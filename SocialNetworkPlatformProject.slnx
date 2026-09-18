@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SocialNetworkPlatformProject/SocialNetworkPlatformProject.csproj" />
+    <Project Path="src/SocialNetworkPlatformProject.Infrastructure/SocialNetworkPlatformProject.Infrastructure.csproj" />
+    <Project Path="src/SocialNetworkPlatformProject.Persistence/SocialNetworkPlatformProject.Persistence.csproj" />
+  </Folder>
+  <Folder Name="/src/Core/">
+    <Project Path="src/Core/SocialNetworkPlatformProject.Application/SocialNetworkPlatformProject.Application.csproj" />
+    <Project Path="src/Core/SocialNetworkPlatformProject.Domain/SocialNetworkPlatformProject.Domain.csproj" />
+  </Folder>
+</Solution>

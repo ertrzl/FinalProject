@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Persistence.Contexts;
 using SocialNetworkPlatformProject.Persistence.Identity;
+using SocialNetworkPlatformProject.Persistence.Implementations.Repositories;
 
 namespace SocialNetworkPlatformProject.Persistence;
 
@@ -24,8 +26,38 @@ public static class ServiceRegistration
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-        // Repository registrations will go here as they're written
-        // (e.g. services.AddScoped<IPostRepository, PostRepository>();)
+        // F3–F5
+        services.AddScoped<IPostRepository, PostRepository>();
+        services.AddScoped<ICommentRepository, CommentRepository>();
+        services.AddScoped<IPostLikeRepository, PostLikeRepository>();
+        services.AddScoped<ICommentLikeRepository, CommentLikeRepository>();
+        services.AddScoped<ISavedPostRepository, SavedPostRepository>();
+
+        // F2
+        services.AddScoped<IFriendRequestRepository, FriendRequestRepository>();
+        services.AddScoped<IFriendshipRepository, FriendshipRepository>();
+
+        // F8
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+
+        // Stories
+        services.AddScoped<IStoryRepository, StoryRepository>();
+
+        // Messages
+        services.AddScoped<IConversationRepository, ConversationRepository>();
+        services.AddScoped<IConversationParticipantRepository, ConversationParticipantRepository>();
+        services.AddScoped<IMessageRepository, MessageRepository>();
+
+        // Groups
+        services.AddScoped<IGroupRepository, GroupRepository>();
+        services.AddScoped<IGroupMemberRepository, GroupMemberRepository>();
+
+        // Marketplace
+        services.AddScoped<IMarketplaceListingRepository, MarketplaceListingRepository>();
+
+        // Events
+        services.AddScoped<IEventRepository, EventRepository>();
+        services.AddScoped<IEventAttendeeRepository, EventAttendeeRepository>();
 
         return services;
     }

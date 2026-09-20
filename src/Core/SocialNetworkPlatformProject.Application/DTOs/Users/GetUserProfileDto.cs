@@ -18,6 +18,7 @@ public class GetUserProfileDto
 
     public int FriendCount { get; set; }
     public bool IsOnline { get; set; }
+    public bool IsPrivateAccount { get; set; }
 
     public bool IsOwnProfile { get; set; }
     public string FriendshipStatus { get; set; } = "None"; // "None" / "Friends" / "RequestSent" / "RequestReceived"

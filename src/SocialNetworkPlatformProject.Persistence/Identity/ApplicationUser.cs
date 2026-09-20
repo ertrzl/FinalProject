@@ -28,4 +28,7 @@ public class ApplicationUser : IdentityUser<Guid>
 
     // Drives the green "Çevrimiçi" dot shown on profile.html / navbar avatar
     public DateTime? LastSeenAt { get; set; }
+
+    // profile.html "Katılma tarihi"
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
+using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Persistence.Contexts;
 using SocialNetworkPlatformProject.Persistence.Identity;
 using SocialNetworkPlatformProject.Persistence.Implementations.Repositories;
@@ -58,6 +59,9 @@ public static class ServiceRegistration
         // Events
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IEventAttendeeRepository, EventAttendeeRepository>();
+
+        // Users (Identity-backed, so not a generic IRepository<T>)
+        services.AddScoped<IUserRepository, UserRepository>();
 
         return services;
     }

@@ -7,6 +7,7 @@ using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Persistence.Contexts;
 using SocialNetworkPlatformProject.Persistence.Identity;
 using SocialNetworkPlatformProject.Persistence.Implementations.Repositories;
+using SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 namespace SocialNetworkPlatformProject.Persistence;
 
@@ -62,6 +63,20 @@ public static class ServiceRegistration
 
         // Users (Identity-backed, so not a generic IRepository<T>)
         services.AddScoped<IUserRepository, UserRepository>();
+
+        // Services (business logic)
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IFriendService, FriendService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IPostAccessService, PostAccessService>();
+        services.AddScoped<IPostService, PostService>();
+        services.AddScoped<ICommentService, CommentService>();
+        services.AddScoped<IStoryService, StoryService>();
+        services.AddScoped<IMessageService, MessageService>();
+        services.AddScoped<IGroupService, GroupService>();
+        services.AddScoped<IMarketplaceService, MarketplaceService>();
+        services.AddScoped<IEventService, EventService>();
 
         return services;
     }

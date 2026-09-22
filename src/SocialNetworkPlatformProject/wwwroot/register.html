@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="css/style.css">
+<script src="js/api.js"></script>
 </head>
 <body>
 
@@ -18,48 +19,53 @@
       <p class="text-muted small mb-0">Dijital kimliğini oluştur, ağını büyüt.</p>
     </div>
 
-    <form action="home.html">
+    <div id="registerError" class="alert alert-danger py-2 small d-none"></div>
+
+    <form id="registerForm">
 
       <div class="d-flex align-items-center gap-3 mb-4">
-        <img id="avatarPreview" class="avatar-md" src="https://i.pravatar.cc/150?img=45" alt="Profil fotoğrafı">
+        <img id="avatarPreview" class="avatar-md" src="images/default-avatar.png" alt="Profil fotoğrafı">
         <label class="avatar-upload-btn m-0">
           <i class="bi bi-camera me-1"></i> Profil Fotoğrafı Seç
-          <input type="file" class="d-none" accept="image/*" onchange="previewAvatar(this)">
+          <input type="file" id="avatarInput" class="d-none" accept="image/*" onchange="previewAvatar(this)">
         </label>
       </div>
 
       <div class="row g-3">
         <div class="col-md-6">
           <label class="form-label fw-semibold small">Ad Soyad</label>
-          <input type="text" class="form-control" placeholder="Ada Lovelace" required>
+          <input type="text" id="fullName" class="form-control" placeholder="Ada Lovelace" required>
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold small">Kullanıcı Adı</label>
-          <input type="text" class="form-control" placeholder="ada.lovelace" required>
+          <input type="text" id="userName" class="form-control" placeholder="ada.lovelace" required>
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold small">E-posta</label>
-          <input type="email" class="form-control" placeholder="ornek@mail.com" required>
+          <input type="email" id="email" class="form-control" placeholder="ornek@mail.com" required>
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold small">Doğum Tarihi</label>
-          <input type="date" class="form-control">
+          <input type="date" id="birthDate" class="form-control">
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold small">Şifre</label>
-          <input type="password" class="form-control" placeholder="••••••••" required>
+          <input type="password" id="password" class="form-control" placeholder="••••••••" required>
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold small">Konum</label>
-          <input type="text" class="form-control" placeholder="İstanbul, Türkiye">
+          <input type="text" id="location" class="form-control" placeholder="İstanbul, Türkiye">
         </div>
         <div class="col-12">
           <label class="form-label fw-semibold small">Hakkında / Biyografi</label>
-          <textarea class="form-control" rows="3" placeholder="Kendinden kısaca bahset..."></textarea>
+          <textarea id="bio" class="form-control" rows="3" placeholder="Kendinden kısaca bahset..."></textarea>
         </div>
       </div>
 
-      <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold mt-4">Hesap Oluştur</button>
+      <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold mt-4">
+        <span id="registerBtnText">Hesap Oluştur</span>
+        <span id="registerSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+      </button>
     </form>
 
     <p class="text-center text-muted small mt-4 mb-0">
@@ -70,5 +76,52 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="js/app.js"></script>
+<script>
+if (getSession()) window.location.href = "home.html";
+
+document.getElementById("registerForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const errorBox = document.getElementById("registerError");
+  const btnText = document.getElementById("registerBtnText");
+  const spinner = document.getElementById("registerSpinner");
+  errorBox.classList.add("d-none");
+  btnText.classList.add("d-none");
+  spinner.classList.remove("d-none");
+
+  try {
+    const formData = new FormData();
+    formData.append("fullName", document.getElementById("fullName").value.trim());
+    formData.append("userName", document.getElementById("userName").value.trim());
+    formData.append("email", document.getElementById("email").value.trim());
+    formData.append("password", document.getElementById("password").value);
+
+    const birthDate = document.getElementById("birthDate").value;
+    if (birthDate) formData.append("birthDate", birthDate);
+
+    const location = document.getElementById("location").value.trim();
+    if (location) formData.append("location", location);
+
+    const bio = document.getElementById("bio").value.trim();
+    if (bio) formData.append("bio", bio);
+
+    const avatarFile = document.getElementById("avatarInput").files[0];
+    if (avatarFile) formData.append("avatar", avatarFile);
+
+    const tokenResponse = await apiFetchForm("/api/auth/register", {
+      method: "POST",
+      body: formData
+    });
+
+    saveSession(tokenResponse);
+    window.location.href = "home.html";
+  } catch (err) {
+    errorBox.textContent = err.message || "Kayıt oluşturulamadı.";
+    errorBox.classList.remove("d-none");
+    btnText.classList.remove("d-none");
+    spinner.classList.add("d-none");
+  }
+});
+</script>
 </body>
 </html>

@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="css/style.css">
+<script src="js/api.js"></script>
 </head>
 <body>
 
@@ -31,7 +32,7 @@
       <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Temayı Değiştir"><i class="bi bi-moon-stars-fill"></i></button>
       <div class="dropdown ms-2">
         <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown">
-          <img src="https://i.pravatar.cc/80?img=45" class="avatar-xs" alt="Profilim">
+          <img src="images/default-avatar.png" class="avatar-xs" alt="Profilim">
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
           <li><a class="dropdown-item" href="profile.html"><i class="bi bi-person me-2"></i>Profilim</a></li>
@@ -51,14 +52,14 @@
   <div class="profile-cover position-relative" id="profileCover">
     <label class="btn btn-dark btn-sm rounded-pill position-absolute d-flex align-items-center gap-1" id="profileCoverEditBtn" style="bottom:14px; right:14px; opacity:.85;">
       <i class="bi bi-camera-fill"></i> Kapak Fotoğrafını Değiştir
-      <input type="file" class="d-none" accept="image/*" onchange="previewCoverPhoto(this)">
+      <input type="file" id="coverPhotoInput" class="d-none" accept="image/*" onchange="uploadCoverPhoto(this)">
     </label>
   </div>
 
   <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 px-2 px-md-3" style="margin-top: -60px;">
     <div class="d-flex align-items-end gap-3">
       <div class="position-relative flex-shrink-0">
-        <img id="profileAvatar" src="https://i.pravatar.cc/200?img=45" class="avatar-lg bg-white" alt="">
+        <img id="profileAvatar" src="images/default-avatar.png" class="avatar-lg bg-white" alt="">
         <span id="profileOnlineDot" class="position-absolute bg-success border border-3 border-white rounded-circle" style="width:22px;height:22px;bottom:8px;left:8px;" title="Çevrimiçi"></span>
       </div>
       <div class="pb-2">
@@ -88,11 +89,7 @@
         <div class="col-lg-4">
           <div class="card border-0 shadow-sm rounded-4 p-3">
             <div class="fw-bold mb-3">Hakkında</div>
-            <p class="small mb-3"><i class="bi bi-chat-quote me-1 text-primary"></i> Matematikçi &amp; yazılımcı. Kodlamayı ve doğa yürüyüşlerini severim.</p>
-            <div class="small border-top pt-2 mb-2 d-flex"><span class="text-muted" style="width:110px;"><i class="bi bi-geo-alt me-1"></i>Konum</span><span>İstanbul, Türkiye</span></div>
-            <div class="small border-top pt-2 mb-2 d-flex"><span class="text-muted" style="width:110px;"><i class="bi bi-briefcase me-1"></i>Meslek</span><span>Yazılım Mühendisi</span></div>
-            <div class="small border-top pt-2 mb-2 d-flex"><span class="text-muted" style="width:110px;"><i class="bi bi-mortarboard me-1"></i>Eğitim</span><span>Bilgisayar Mühendisliği</span></div>
-            <div class="small border-top pt-2 d-flex"><span class="text-muted" style="width:110px;"><i class="bi bi-calendar3 me-1"></i>Katılım</span><span>Mart 2021</span></div>
+            <div id="aboutSummary"></div>
           </div>
 
           <div class="card border-0 shadow-sm rounded-4 p-3 mt-4">
@@ -100,14 +97,7 @@
               <span class="fw-bold">Arkadaşlar</span>
               <a href="friends.html" class="text-primary small fw-semibold">Tümünü Gör</a>
             </div>
-            <div class="row row-cols-3 g-2 text-center">
-              <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=47" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?name=Lana%20Rose&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D47" class="text-dark text-decoration-none">Lana Rose</a></div></div>
-              <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=32" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?name=Winnie%20Haley&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D32" class="text-dark text-decoration-none">Winnie H.</a></div></div>
-              <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=15" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?name=Daniel%20Bale&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D15" class="text-dark text-decoration-none">Daniel B.</a></div></div>
-              <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=25" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?name=Jane%20Doe&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D25" class="text-dark text-decoration-none">Jane Doe</a></div></div>
-              <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=5" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?name=Tina%20White&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D5" class="text-dark text-decoration-none">Tina W.</a></div></div>
-              <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=51" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?name=Marcus%20Lee&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D51" class="text-dark text-decoration-none">Marcus L.</a></div></div>
-            </div>
+            <div id="friendsSummary" class="row row-cols-3 g-2 text-center"></div>
           </div>
         </div>
 
@@ -115,8 +105,8 @@
         <div class="col-lg-8">
           <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 composer" id="ownComposerWrap">
             <div class="d-flex gap-3">
-              <img src="https://i.pravatar.cc/80?img=45" class="avatar-sm flex-shrink-0" alt="">
-              <textarea id="profileComposerText" class="form-control" rows="2" placeholder="Aklında ne var, Ada?"></textarea>
+              <img id="composerAvatar" src="images/default-avatar.png" class="avatar-sm flex-shrink-0" alt="">
+              <textarea id="composerText" class="form-control" rows="2" placeholder="Aklında ne var?"></textarea>
             </div>
             <div class="d-none mt-3 position-relative" id="composerPreview">
               <button type="button" class="btn btn-dark btn-sm rounded-circle position-absolute top-0 end-0 m-2" onclick="clearComposerImage()"><i class="bi bi-x"></i></button>
@@ -125,82 +115,16 @@
             <div class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top">
               <div class="d-flex gap-2 align-items-center">
                 <label class="attach-label m-0"><i class="bi bi-image"></i> Fotoğraf Ekle<input type="file" id="composerFile" class="d-none" accept="image/*" onchange="previewComposerImage(this)"></label>
-                <select class="form-select form-select-sm privacy-select">
-                  <option>🌐 Herkese Açık</option>
-                  <option>👥 Sadece Arkadaşlar</option>
+                <select id="composerPrivacy" class="form-select form-select-sm privacy-select">
+                  <option value="Public">🌐 Herkese Açık</option>
+                  <option value="FriendsOnly">👥 Sadece Arkadaşlar</option>
                 </select>
               </div>
               <button type="button" class="btn btn-primary btn-sm rounded-pill px-3" onclick="publishPost(this)">Paylaş</button>
             </div>
           </div>
 
-          <div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
-            <div class="d-flex align-items-center gap-3">
-              <img src="https://i.pravatar.cc/80?img=45" class="avatar-sm" alt="">
-              <div class="flex-grow-1">
-                <div class="fw-bold profile-owner-name">Ada Lovelace</div>
-                <div class="text-muted small">3 gün önce · <i class="bi bi-globe-americas"></i> Herkese Açık</div>
-              </div>
-              <div class="dropdown">
-                <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li><button class="dropdown-item" onclick="deletePost(this)"><i class="bi bi-trash me-2"></i>Gönderiyi Sil</button></li>
-                  <li><button class="dropdown-item" onclick="toast('Gönderi kaydedildi.')"><i class="bi bi-bookmark me-2"></i>Kaydet</button></li>
-                </ul>
-              </div>
-            </div>
-            <p class="mt-3 mb-2">Yeni algoritmalar üzerinde çalışıyorum, çok yakında paylaşacağım! 💻</p>
-            <div class="d-flex justify-content-between text-muted small py-2 border-bottom">
-              <span><i class="bi bi-heart-fill text-danger"></i> 18 beğeni</span><span>4 yorum</span>
-            </div>
-            <div class="d-flex pt-1">
-              <button class="btn btn-sm flex-fill text-muted fw-semibold like-btn" onclick="toggleLike(this)">
-                <i class="like-icon bi bi-heart"></i> Beğen <span class="like-count" data-count="18">18</span>
-              </button>
-              <button class="btn btn-sm flex-fill text-muted fw-semibold" data-bs-toggle="collapse" data-bs-target="#comments-p1"><i class="bi bi-chat"></i> Yorum Yap</button>
-              <button class="btn btn-sm flex-fill text-muted fw-semibold" onclick="copyPostLink(this)"><i class="bi bi-share"></i> Paylaş</button>
-            </div>
-            <div class="collapse comments-collapse mt-3 pt-3 border-top" id="comments-p1">
-              <form class="d-flex gap-2 align-items-center" onsubmit="addComment(event, this, 'comments-p1')">
-                <img src="https://i.pravatar.cc/80?img=45" class="avatar-xs" alt="">
-                <input type="text" class="form-control form-control-sm rounded-pill" placeholder="Bir yorum yaz...">
-              </form>
-            </div>
-          </div>
-
-          <div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
-            <div class="d-flex align-items-center gap-3">
-              <img src="https://i.pravatar.cc/80?img=45" class="avatar-sm" alt="">
-              <div class="flex-grow-1">
-                <div class="fw-bold profile-owner-name">Ada Lovelace</div>
-                <div class="text-muted small">1 hafta önce · <i class="bi bi-people-fill"></i> Sadece Arkadaşlar</div>
-              </div>
-              <div class="dropdown">
-                <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li><button class="dropdown-item" onclick="deletePost(this)"><i class="bi bi-trash me-2"></i>Gönderiyi Sil</button></li>
-                  <li><button class="dropdown-item" onclick="toast('Gönderi kaydedildi.')"><i class="bi bi-bookmark me-2"></i>Kaydet</button></li>
-                </ul>
-              </div>
-            </div>
-            <div class="rounded-3 overflow-hidden my-2"><img src="https://picsum.photos/seed/social2/700/420" class="w-100" alt=""></div>
-            <div class="d-flex justify-content-between text-muted small py-2 border-bottom">
-              <span><i class="bi bi-heart-fill text-danger"></i> 33 beğeni</span><span>6 yorum</span>
-            </div>
-            <div class="d-flex pt-1">
-              <button class="btn btn-sm flex-fill text-muted fw-semibold like-btn" onclick="toggleLike(this)">
-                <i class="like-icon bi bi-heart"></i> Beğen <span class="like-count" data-count="33">33</span>
-              </button>
-              <button class="btn btn-sm flex-fill text-muted fw-semibold" data-bs-toggle="collapse" data-bs-target="#comments-p2"><i class="bi bi-chat"></i> Yorum Yap</button>
-              <button class="btn btn-sm flex-fill text-muted fw-semibold" onclick="copyPostLink(this)"><i class="bi bi-share"></i> Paylaş</button>
-            </div>
-            <div class="collapse comments-collapse mt-3 pt-3 border-top" id="comments-p2">
-              <form class="d-flex gap-2 align-items-center" onsubmit="addComment(event, this, 'comments-p2')">
-                <img src="https://i.pravatar.cc/80?img=45" class="avatar-xs" alt="">
-                <input type="text" class="form-control form-control-sm rounded-pill" placeholder="Bir yorum yaz...">
-              </form>
-            </div>
-          </div>
+          <div id="profilePostsList"><div class="text-muted small">Yükleniyor...</div></div>
         </div>
       </div>
     </div>
@@ -208,17 +132,8 @@
     <!-- Friends tab -->
     <div class="tab-pane fade" id="tab-friends">
       <div class="card border-0 shadow-sm rounded-4 p-3">
-        <div class="fw-bold mb-3">312 Arkadaş</div>
-        <div class="row row-cols-2 row-cols-md-4 g-3 text-center">
-          <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=47" alt=""><div class="small fw-semibold mt-1">Lana Rose</div></div>
-          <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=32" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?name=Winnie%20Haley&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D32" class="text-dark text-decoration-none">Winnie Haley</a></div></div>
-          <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=15" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?name=Daniel%20Bale&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D15" class="text-dark text-decoration-none">Daniel Bale</a></div></div>
-          <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=25" alt=""><div class="small fw-semibold mt-1">Jane Doe</div></div>
-          <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=5" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?name=Tina%20White&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D5" class="text-dark text-decoration-none">Tina White</a></div></div>
-          <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=51" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?name=Marcus%20Lee&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D51" class="text-dark text-decoration-none">Marcus Lee</a></div></div>
-          <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=60" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?name=Diana%20Prince&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D60" class="text-dark text-decoration-none">Diana Prince</a></div></div>
-          <div class="col friend-tile"><img src="https://i.pravatar.cc/150?img=41" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?name=Sophie%20Turner&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D41" class="text-dark text-decoration-none">Sophie Turner</a></div></div>
-        </div>
+        <div class="fw-bold mb-3" id="friendsTabHeading">Arkadaşlar</div>
+        <div id="friendsTabList" class="row row-cols-2 row-cols-md-4 g-3 text-center"></div>
         <a href="friends.html" class="btn btn-outline-primary rounded-pill mt-3 align-self-start">Arkadaş Listesini Yönet</a>
       </div>
     </div>
@@ -227,12 +142,7 @@
     <div class="tab-pane fade" id="tab-about">
       <div class="card border-0 shadow-sm rounded-4 p-3" style="max-width:520px;">
         <div class="fw-bold mb-3">Hakkında</div>
-        <p class="mb-3">Matematikçi &amp; yazılımcı. Kodlamayı ve doğa yürüyüşlerini severim. Açık kaynak projelere katkı sağlamayı seviyorum.</p>
-        <div class="border-top pt-2 mb-2 d-flex"><span class="text-muted" style="width:130px;"><i class="bi bi-geo-alt me-1"></i>Konum</span><span>İstanbul, Türkiye</span></div>
-        <div class="border-top pt-2 mb-2 d-flex"><span class="text-muted" style="width:130px;"><i class="bi bi-briefcase me-1"></i>Meslek</span><span>Yazılım Mühendisi</span></div>
-        <div class="border-top pt-2 mb-2 d-flex"><span class="text-muted" style="width:130px;"><i class="bi bi-mortarboard me-1"></i>Eğitim</span><span>Bilgisayar Mühendisliği</span></div>
-        <div class="border-top pt-2 mb-2 d-flex"><span class="text-muted" style="width:130px;"><i class="bi bi-envelope me-1"></i>E-posta</span><span>ada@socialnet.com</span></div>
-        <div class="border-top pt-2 d-flex"><span class="text-muted" style="width:130px;"><i class="bi bi-calendar3 me-1"></i>Katılım</span><span>Mart 2021</span></div>
+        <div id="aboutFull"></div>
       </div>
     </div>
 
@@ -240,16 +150,7 @@
     <div class="tab-pane fade" id="tab-photos">
       <div class="card border-0 shadow-sm rounded-4 p-3">
         <div class="fw-bold mb-3">Fotoğraflar</div>
-        <div class="row row-cols-2 row-cols-md-4 g-2">
-          <div class="col"><img src="https://picsum.photos/seed/p1/300/300" class="w-100 rounded-3" style="aspect-ratio:1/1;object-fit:cover;" alt=""></div>
-          <div class="col"><img src="https://picsum.photos/seed/p2/300/300" class="w-100 rounded-3" style="aspect-ratio:1/1;object-fit:cover;" alt=""></div>
-          <div class="col"><img src="https://picsum.photos/seed/p3/300/300" class="w-100 rounded-3" style="aspect-ratio:1/1;object-fit:cover;" alt=""></div>
-          <div class="col"><img src="https://picsum.photos/seed/p4/300/300" class="w-100 rounded-3" style="aspect-ratio:1/1;object-fit:cover;" alt=""></div>
-          <div class="col"><img src="https://picsum.photos/seed/social1/300/300" class="w-100 rounded-3" style="aspect-ratio:1/1;object-fit:cover;" alt=""></div>
-          <div class="col"><img src="https://picsum.photos/seed/social2/300/300" class="w-100 rounded-3" style="aspect-ratio:1/1;object-fit:cover;" alt=""></div>
-          <div class="col"><img src="https://picsum.photos/seed/p7/300/300" class="w-100 rounded-3" style="aspect-ratio:1/1;object-fit:cover;" alt=""></div>
-          <div class="col"><img src="https://picsum.photos/seed/p8/300/300" class="w-100 rounded-3" style="aspect-ratio:1/1;object-fit:cover;" alt=""></div>
-        </div>
+        <div id="photosGrid" class="row row-cols-2 row-cols-md-4 g-2"></div>
       </div>
     </div>
 
@@ -265,22 +166,39 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
+        <div class="d-flex align-items-center gap-3 mb-4">
+          <img id="editAvatarPreview" src="images/default-avatar.png" class="avatar-md" alt="">
+          <label class="avatar-upload-btn m-0">
+            <i class="bi bi-camera me-1"></i>Profil Fotoğrafını Değiştir
+            <input type="file" id="editAvatarInput" class="d-none" accept="image/*" onchange="previewEditAvatar(this)">
+          </label>
+        </div>
         <div class="mb-3">
           <label class="form-label fw-semibold small">Ad Soyad</label>
-          <input type="text" class="form-control" value="Ada Lovelace">
+          <input type="text" id="editFullName" class="form-control">
         </div>
         <div class="mb-3">
           <label class="form-label fw-semibold small">Biyografi</label>
-          <textarea class="form-control" rows="3">Matematikçi & yazılımcı. Kodlamayı ve doğa yürüyüşlerini severim.</textarea>
+          <textarea id="editBio" class="form-control" rows="3"></textarea>
         </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold small">Konum</label>
-          <input type="text" class="form-control" value="İstanbul, Türkiye">
+        <div class="row g-3">
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold small">Konum</label>
+            <input type="text" id="editLocation" class="form-control">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold small">Meslek</label>
+            <input type="text" id="editOccupation" class="form-control">
+          </div>
+        </div>
+        <div class="mb-1">
+          <label class="form-label fw-semibold small">Eğitim</label>
+          <input type="text" id="editEducation" class="form-control">
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>
-        <button type="button" class="btn btn-primary rounded-pill" data-bs-dismiss="modal" onclick="toast('Profil güncellendi.')">Kaydet</button>
+        <button type="button" id="saveProfileBtn" class="btn btn-primary rounded-pill" onclick="saveProfile()">Kaydet</button>
       </div>
     </div>
   </div>
@@ -296,36 +214,9 @@
 <div id="chatPopups" class="chat-popups"></div>
 
 <script src="js/app.js"></script>
+<script src="js/navbar-badge.js"></script>
 <script src="js/chat-data.js"></script>
 <script src="js/chat-dock.js"></script>
-<script>
-  // Own profile vs someone else's profile — driven by URL params for now.
-  // Backend will replace this with real per-user data (e.g. /profile/{id}).
-  const profileParams = new URLSearchParams(window.location.search);
-  const viewedName = profileParams.get("name");
-
-  if (viewedName && viewedName.toLowerCase() !== "ada lovelace") {
-    const avatar = profileParams.get("avatar") || "https://i.pravatar.cc/200?img=1";
-    const handle = "@" + viewedName.toLowerCase().replace(/\s+/g, ".");
-    const friendCount = Math.floor(Math.random() * 400) + 40;
-
-    document.getElementById("profileName").textContent = viewedName;
-    document.getElementById("profileHandle").textContent = handle;
-    document.getElementById("profileFriendCount").textContent = friendCount;
-    document.getElementById("profileAvatar").src = avatar.replace(/\/\d+\?/, "/200?");
-    document.querySelectorAll(".profile-owner-name").forEach(el => (el.textContent = viewedName));
-
-    // Swap "edit profile" for friend/message actions
-    document.getElementById("profileActionArea").innerHTML = `
-      <button class="btn btn-primary btn-sm rounded-pill mb-2 me-2" onclick="toggleFriendRequest(this)"><i class="bi bi-person-plus me-1"></i>Arkadaş Ekle</button>
-      <a href="messages.html?with=${encodeURIComponent(viewedName)}&avatar=${encodeURIComponent(avatar)}" class="btn btn-light btn-sm rounded-pill shadow-sm border mb-2"><i class="bi bi-chat-dots me-1"></i>Mesaj Gönder</a>`;
-
-    // Can't post as someone else, and can't edit their cover photo either
-    document.getElementById("ownComposerWrap")?.remove();
-    document.getElementById("profileCoverEditBtn")?.remove();
-
-    document.title = viewedName + " | SocialNet";
-  }
-</script>
+<script src="js/profile.js"></script>
 </body>
 </html>

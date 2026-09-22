@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="css/style.css">
+<script src="js/api.js"></script>
 </head>
 <body>
 
@@ -31,7 +32,7 @@
       <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Temayı Değiştir"><i class="bi bi-moon-stars-fill"></i></button>
       <div class="dropdown ms-2">
         <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown">
-          <img src="https://i.pravatar.cc/80?img=45" class="avatar-xs" alt="Profilim">
+          <img src="images/default-avatar.png" class="avatar-xs" alt="Profilim">
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
           <li><a class="dropdown-item" href="profile.html"><i class="bi bi-person me-2"></i>Profilim</a></li>
@@ -48,48 +49,7 @@
 <div class="container py-4" style="max-width: 700px;">
   <h1 class="h4 fw-bold mb-4">Kaydedilenler</h1>
 
-  <div id="savedList">
-
-    <div class="card border-0 shadow-sm rounded-4 p-3 mb-3">
-      <div class="d-flex align-items-center gap-3">
-        <img src="https://i.pravatar.cc/80?img=47" class="avatar-sm" alt="">
-        <div class="flex-grow-1">
-          <div class="fw-bold">Lana Rose</div>
-          <div class="text-muted small">15 dakika önce · <i class="bi bi-globe-americas"></i> Herkese Açık</div>
-        </div>
-        <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="deletePost(this)"><i class="bi bi-bookmark-x me-1"></i>Kaydı Kaldır</button>
-      </div>
-      <p class="mt-3 mb-2">Bugün harika bir gün geçirdim, arkadaşlarımla buluştum ve çok güldük! 🎉</p>
-      <div class="rounded-3 overflow-hidden">
-        <img src="https://picsum.photos/seed/social1/700/420" class="w-100" alt="">
-      </div>
-    </div>
-
-    <div class="card border-0 shadow-sm rounded-4 p-3 mb-3">
-      <div class="d-flex align-items-center gap-3">
-        <img src="https://i.pravatar.cc/80?img=15" class="avatar-sm" alt="">
-        <div class="flex-grow-1">
-          <div class="fw-bold">Daniel Bale</div>
-          <div class="text-muted small">Dün · <i class="bi bi-globe-americas"></i> Herkese Açık</div>
-        </div>
-        <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="deletePost(this)"><i class="bi bi-bookmark-x me-1"></i>Kaydı Kaldır</button>
-      </div>
-      <p class="mt-3 mb-0">Hafta sonu için doğa yürüyüşü planlayan var mı? 🌲🥾</p>
-    </div>
-
-    <div class="card border-0 shadow-sm rounded-4 p-3 mb-3">
-      <div class="d-flex align-items-center gap-3">
-        <img src="https://i.pravatar.cc/80?img=32" class="avatar-sm" alt="">
-        <div class="flex-grow-1">
-          <div class="fw-bold">Winnie Haley</div>
-          <div class="text-muted small">2 gün önce · <i class="bi bi-people-fill"></i> Sadece Arkadaşlar</div>
-        </div>
-        <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="deletePost(this)"><i class="bi bi-bookmark-x me-1"></i>Kaydı Kaldır</button>
-      </div>
-      <p class="mt-3 mb-0">Yeni projeme başladım, çok heyecanlıyım! Sizce hangi renk paleti daha iyi olur?</p>
-    </div>
-
-  </div>
+  <div id="savedList"><div class="text-muted small">Yükleniyor...</div></div>
 
   <div class="text-center text-muted py-5 d-none" id="emptyState">
     <i class="bi bi-bookmark-heart" style="font-size: 42px;"></i>
@@ -107,14 +67,9 @@
 <div id="chatPopups" class="chat-popups"></div>
 
 <script src="js/app.js"></script>
+<script src="js/navbar-badge.js"></script>
 <script src="js/chat-data.js"></script>
 <script src="js/chat-dock.js"></script>
-<script>
-  const savedList = document.getElementById("savedList");
-  const emptyState = document.getElementById("emptyState");
-  new MutationObserver(() => {
-    if (!savedList.children.length) emptyState.classList.remove("d-none");
-  }).observe(savedList, { childList: true });
-</script>
+<script src="js/saved.js"></script>
 </body>
 </html>

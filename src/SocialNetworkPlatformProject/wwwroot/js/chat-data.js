@@ -1,78 +1,17 @@
-// Shared conversation data used by both the full Messages page and the
-// bottom-right chat dock. Static seed data, no backend — state resets on reload.
+// Shared conversation cache backed by the real backend. Used by chat-dock.js and messages.js.
+// requireAuth() must have already run on the page (every page that includes this also includes api.js).
 
-window.chatConversations = [
-  {
-    id: "lana",
-    name: "Lana Rose",
-    avatar: "https://i.pravatar.cc/100?img=47",
-    online: true,
-    messages: [
-      { fromMe: false, text: "Merhaba! Bugün buluşma hâlâ geçerli mi?", time: "09:12" },
-      { fromMe: true, text: "Evet, saat 6'da kafede buluşalım.", time: "09:15" },
-      { fromMe: false, text: "Harika, orada görüşürüz! 🎉", time: "09:16" },
-    ],
-  },
-  {
-    id: "winnie",
-    name: "Winnie Haley",
-    avatar: "https://i.pravatar.cc/100?img=32",
-    online: false,
-    messages: [
-      { fromMe: false, text: "Renk paleti için mavi tonlarına karar verdim, teşekkürler!", time: "Dün" },
-      { fromMe: true, text: "Ne demek, harika görünecek 👍", time: "Dün" },
-    ],
-  },
-  {
-    id: "daniel",
-    name: "Daniel Bale",
-    avatar: "https://i.pravatar.cc/100?img=15",
-    online: true,
-    messages: [
-      { fromMe: false, text: "Hafta sonu yürüyüşe geliyor musun?", time: "Salı" },
-      { fromMe: true, text: "Kesinlikle, saat kaçta?", time: "Salı" },
-      { fromMe: false, text: "Sabah 9'da buluşalım.", time: "Salı" },
-    ],
-  },
-  {
-    id: "diana",
-    name: "Diana Prince",
-    avatar: "https://i.pravatar.cc/100?img=60",
-    online: false,
-    messages: [
-      { fromMe: false, text: "Projeyle ilgili dosyaları gönderdim, kontrol edebilir misin?", time: "Pazartesi" },
-    ],
-  },
-  {
-    id: "jane",
-    name: "Jane Doe",
-    avatar: "https://i.pravatar.cc/100?img=25",
-    online: true,
-    messages: [
-      { fromMe: false, text: "Arkadaşlık isteğimi kabul ettiğin için teşekkürler!", time: "1 hafta önce" },
-      { fromMe: true, text: "Rica ederim, tanıştığımıza sevindim 🙂", time: "1 hafta önce" },
-    ],
-  },
-];
+window.chatConversationsCache = [];
+
+window.refreshChatConversations = async function () {
+  try {
+    window.chatConversationsCache = await apiFetch("/api/messages/conversations");
+  } catch (err) {
+    window.chatConversationsCache = [];
+  }
+  return window.chatConversationsCache;
+};
 
 window.findChatConversation = function (id) {
-  return window.chatConversations.find(c => c.id === id);
-};
-
-window.lastChatMessage = function (conv) {
-  return conv.messages[conv.messages.length - 1];
-};
-
-window.addChatConversation = function (name, avatar) {
-  const existing = window.chatConversations.find(c => c.name.toLowerCase() === name.toLowerCase());
-  if (existing) return existing;
-  const conv = {
-    id: "new-" + Date.now(),
-    name,
-    avatar: avatar || "https://i.pravatar.cc/100?img=1",
-    online: false,
-    messages: [],
-  };
-  window.chatConversations.unshift(conv);
-  return conv;
+  return window.chatConversationsCache.find(c => c.id === id);
 };

@@ -1,28 +1,27 @@
 // Bottom-right chat dock (Messenger-style), shown on every logged-in page.
-// Shares data with messages.html via js/chat-data.js. Visual only — no backend.
+// Shares data with messages.html via js/chat-data.js. REST-based (no live push yet).
 
 const openPopups = [];
 const MAX_POPUPS = 2;
 
-function renderDockList() {
+async function renderDockList() {
   const list = document.getElementById("chatDockList");
   if (!list) return;
-  list.innerHTML = window.chatConversations
-    .map(conv => {
-      const last = window.lastChatMessage(conv);
-      return `
+  const conversations = await window.refreshChatConversations();
+  list.innerHTML = conversations
+    .map(conv => `
         <button class="btn w-100 text-start rounded-0 px-3 py-2 border-0 border-bottom d-flex align-items-center gap-2" onclick="openChatPopup('${conv.id}')">
           <div class="position-relative flex-shrink-0">
-            <img src="${conv.avatar}" class="avatar-sm" alt="">
-            ${conv.online ? '<span class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle" style="width:10px;height:10px;"></span>' : ""}
+            <img src="${conv.otherUserAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt="">
+            ${conv.isOtherUserOnline ? '<span class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle" style="width:10px;height:10px;"></span>' : ""}
           </div>
           <div class="flex-grow-1 overflow-hidden">
-            <div class="fw-bold small text-truncate">${conv.name}</div>
-            <div class="text-muted small text-truncate">${last ? last.text : "Henüz mesaj yok"}</div>
+            <div class="fw-bold small text-truncate">${escapeHtml(conv.otherUserName)}</div>
+            <div class="text-muted small text-truncate">${conv.lastMessageText ? escapeHtml(conv.lastMessageText) : "Henüz mesaj yok"}</div>
           </div>
-        </button>`;
-    })
-    .join("");
+          ${conv.unreadCount > 0 ? `<span class="badge bg-danger rounded-pill flex-shrink-0">${conv.unreadCount}</span>` : ""}
+        </button>`)
+    .join("") || `<div class="p-3 text-muted small">Henüz mesajın yok.</div>`;
 }
 
 function toggleChatDockList() {
@@ -38,7 +37,7 @@ function closeChatDockList(event) {
   }
 }
 
-function openChatPopup(id) {
+async function openChatPopup(id) {
   document.getElementById("chatDockList")?.classList.add("d-none");
 
   if (openPopups.includes(id)) {
@@ -50,11 +49,12 @@ function openChatPopup(id) {
     closeChatPopup(openPopups.shift());
   }
   buildPopupShell(id);
-  renderPopup(id);
+  await renderPopup(id);
 }
 
 function buildPopupShell(id) {
   const conv = window.findChatConversation(id);
+  if (!conv) return;
   const container = document.getElementById("chatPopups");
   const popup = document.createElement("div");
   popup.className = "chat-popup";
@@ -62,11 +62,11 @@ function buildPopupShell(id) {
   popup.innerHTML = `
     <div class="chat-popup-header">
       <div class="position-relative flex-shrink-0">
-        <img src="${conv.avatar}" class="avatar-xs" alt="">
-        ${conv.online ? '<span class="position-absolute bottom-0 end-0 bg-success border border-1 border-white rounded-circle" style="width:9px;height:9px;"></span>' : ""}
+        <img src="${conv.otherUserAvatarUrl || DEFAULT_AVATAR}" class="avatar-xs" alt="">
+        ${conv.isOtherUserOnline ? '<span class="position-absolute bottom-0 end-0 bg-success border border-1 border-white rounded-circle" style="width:9px;height:9px;"></span>' : ""}
       </div>
       <div class="flex-grow-1 overflow-hidden">
-        <div class="fw-bold small text-truncate">${conv.name}</div>
+        <div class="fw-bold small text-truncate">${escapeHtml(conv.otherUserName)}</div>
       </div>
       <button type="button" class="btn-close btn-close-white btn-sm" onclick="closeChatPopup('${id}')"></button>
     </div>
@@ -78,32 +78,42 @@ function buildPopupShell(id) {
   container.appendChild(popup);
 }
 
-function renderPopup(id) {
-  const conv = window.findChatConversation(id);
+async function renderPopup(id) {
   const thread = document.getElementById("chatPopupThread-" + id);
   if (!thread) return;
-  thread.innerHTML = conv.messages
-    .map(m => `
-      <div class="d-flex mb-2 ${m.fromMe ? "justify-content-end" : "justify-content-start"}">
-        <div class="px-2 py-1 rounded-3 ${m.fromMe ? "bg-primary text-white" : "bg-body-tertiary"}" style="max-width:80%; font-size:13px;">
-          ${m.text}
-        </div>
-      </div>`)
-    .join("");
-  thread.scrollTop = thread.scrollHeight;
+  try {
+    const result = await apiFetch(`/api/messages/conversations/${id}?page=1&pageSize=30`);
+    thread.innerHTML = result.items.map(bubbleHtml).join("");
+    thread.scrollTop = thread.scrollHeight;
+    apiFetch(`/api/messages/conversations/${id}/read`, { method: "POST" }).catch(() => {});
+  } catch (err) {
+    thread.innerHTML = `<div class="text-danger small p-2">${escapeHtml(err.message)}</div>`;
+  }
 }
 
-function sendChatPopupMessage(event, id) {
+function bubbleHtml(m) {
+  return `
+      <div class="d-flex mb-2 ${m.isMine ? "justify-content-end" : "justify-content-start"}">
+        <div class="px-2 py-1 rounded-3 ${m.isMine ? "bg-primary text-white" : "bg-body-tertiary"}" style="max-width:80%; font-size:13px;">
+          ${escapeHtml(m.text)}
+        </div>
+      </div>`;
+}
+
+async function sendChatPopupMessage(event, id) {
   event.preventDefault();
   const form = event.target;
   const input = form.querySelector("input");
   const text = input.value.trim();
   if (!text) return;
-  const conv = window.findChatConversation(id);
-  conv.messages.push({ fromMe: true, text, time: "Şimdi" });
   input.value = "";
-  renderPopup(id);
-  renderDockList();
+
+  try {
+    await apiFetch("/api/messages", { method: "POST", body: { conversationId: id, text } });
+    await renderPopup(id);
+  } catch (err) {
+    toast(err.message || "Mesaj gönderilemedi.");
+  }
 }
 
 function closeChatPopup(id) {

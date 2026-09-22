@@ -7,6 +7,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="css/style.css">
+<script src="js/api.js"></script>
 </head>
 <body>
 
@@ -31,7 +32,7 @@
       <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Temayı Değiştir"><i class="bi bi-moon-stars-fill"></i></button>
       <div class="dropdown ms-2">
         <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown">
-          <img src="https://i.pravatar.cc/80?img=45" class="avatar-xs" alt="Profilim">
+          <img src="images/default-avatar.png" class="avatar-xs" alt="Profilim">
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
           <li><a class="dropdown-item" href="profile.html"><i class="bi bi-person me-2"></i>Profilim</a></li>
@@ -67,47 +68,40 @@
       <div class="card border-0 shadow-sm rounded-4 p-3" id="section-account">
         <div class="fw-bold mb-3">Hesap Bilgileri</div>
         <div class="d-flex align-items-center gap-3 mb-3">
-          <img id="settingsAvatarPreview" src="https://i.pravatar.cc/150?img=45" class="avatar-md" alt="">
+          <img id="settingsAvatarPreview" src="images/default-avatar.png" class="avatar-md" alt="">
           <label class="avatar-upload-btn m-0">
             <i class="bi bi-camera me-1"></i>Fotoğrafı Değiştir
-            <input type="file" class="d-none" accept="image/*" onchange="previewSettingsAvatar(this)">
+            <input type="file" id="settingsAvatarInput" class="d-none" accept="image/*" onchange="previewSettingsAvatar(this)">
           </label>
         </div>
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label fw-semibold small">Ad Soyad</label>
-            <input type="text" class="form-control" value="Ada Lovelace">
+            <input type="text" id="settingsFullName" class="form-control">
           </div>
           <div class="col-md-6">
             <label class="form-label fw-semibold small">Kullanıcı Adı</label>
-            <input type="text" class="form-control" value="ada.lovelace">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label fw-semibold small">E-posta</label>
-            <input type="email" class="form-control" value="ada@socialnet.com">
+            <input type="text" id="settingsUserName" class="form-control" disabled>
           </div>
           <div class="col-md-6">
             <label class="form-label fw-semibold small">Konum</label>
-            <input type="text" class="form-control" value="İstanbul, Türkiye">
+            <input type="text" id="settingsLocation" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-semibold small">Meslek</label>
+            <input type="text" id="settingsOccupation" class="form-control">
           </div>
           <div class="col-12">
             <label class="form-label fw-semibold small">Biyografi</label>
-            <textarea class="form-control" rows="3">Matematikçi & yazılımcı. Kodlamayı ve doğa yürüyüşlerini severim.</textarea>
+            <textarea id="settingsBio" class="form-control" rows="3"></textarea>
           </div>
         </div>
-        <button type="button" class="btn btn-primary rounded-pill mt-3 align-self-start" onclick="toast('Hesap bilgileri kaydedildi.')">Kaydet</button>
+        <button type="button" id="saveAccountBtn" class="btn btn-primary rounded-pill mt-3 align-self-start" onclick="saveAccount()">Kaydet</button>
       </div>
 
       <!-- Privacy -->
       <div class="card border-0 shadow-sm rounded-4 p-3" id="section-privacy">
         <div class="fw-bold mb-3">Gizlilik</div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold small">Gönderilerimi kimler görebilir?</label>
-          <select class="form-select">
-            <option>🌐 Herkes</option>
-            <option>👥 Sadece Arkadaşlar</option>
-          </select>
-        </div>
         <div class="form-check form-switch mb-2">
           <input class="form-check-input" type="checkbox" role="switch" id="privateAccount">
           <label class="form-check-label small" for="privateAccount">Hesabımı gizli yap</label>
@@ -116,7 +110,7 @@
           <input class="form-check-input" type="checkbox" role="switch" id="showOnline" checked>
           <label class="form-check-label small" for="showOnline">Çevrimiçi durumumu göster</label>
         </div>
-        <button type="button" class="btn btn-primary rounded-pill align-self-start" onclick="toast('Gizlilik ayarları kaydedildi.')">Kaydet</button>
+        <button type="button" class="btn btn-primary rounded-pill align-self-start" onclick="savePrivacy()">Kaydet</button>
       </div>
 
       <!-- Password -->
@@ -137,7 +131,7 @@
               <input type="password" class="form-control" id="newPasswordConfirm" required>
             </div>
           </div>
-          <div class="text-danger small mt-2 d-none" id="passwordError">Yeni şifreler eşleşmiyor.</div>
+          <div class="text-danger small mt-2 d-none" id="passwordError"></div>
           <button type="submit" class="btn btn-primary rounded-pill mt-3">Şifreyi Güncelle</button>
         </form>
       </div>
@@ -188,7 +182,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>
-        <button type="button" class="btn btn-danger rounded-pill" data-bs-dismiss="modal" onclick="toast('Hesap silme isteği alındı.')">Evet, Sil</button>
+        <button type="button" class="btn btn-danger rounded-pill" onclick="deleteAccount()">Evet, Sil</button>
       </div>
     </div>
   </div>
@@ -204,30 +198,9 @@
 <div id="chatPopups" class="chat-popups"></div>
 
 <script src="js/app.js"></script>
+<script src="js/navbar-badge.js"></script>
 <script src="js/chat-data.js"></script>
 <script src="js/chat-dock.js"></script>
-<script>
-  function previewSettingsAvatar(input) {
-    const preview = document.getElementById("settingsAvatarPreview");
-    if (input.files && input.files[0] && preview) {
-      preview.src = URL.createObjectURL(input.files[0]);
-    }
-  }
-
-  function submitPasswordForm(event) {
-    event.preventDefault();
-    const newPass = document.getElementById("newPassword").value;
-    const confirmPass = document.getElementById("newPasswordConfirm").value;
-    const error = document.getElementById("passwordError");
-    if (newPass !== confirmPass) {
-      error.classList.remove("d-none");
-      return false;
-    }
-    error.classList.add("d-none");
-    document.getElementById("passwordForm").reset();
-    toast("Şifren güncellendi.");
-    return false;
-  }
-</script>
+<script src="js/settings.js"></script>
 </body>
 </html>

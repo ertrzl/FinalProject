@@ -32,17 +32,6 @@ function previewAvatar(input) {
   }
 }
 
-// ---- Profile: cover photo preview (profile.html) ----
-function previewCoverPhoto(input) {
-  const cover = document.getElementById("profileCover");
-  if (input.files && input.files[0] && cover) {
-    cover.style.backgroundImage = `url(${URL.createObjectURL(input.files[0])})`;
-    cover.style.backgroundSize = "cover";
-    cover.style.backgroundPosition = "center";
-    toast("Kapak fotoğrafı güncellendi.");
-  }
-}
-
 // ---- Composer: image attach preview ----
 function previewComposerImage(input) {
   const wrap = document.getElementById("composerPreview");
@@ -126,13 +115,6 @@ function publishPost(btn) {
   toast("Gönderi paylaşıldı!");
 }
 
-function deletePost(btn) {
-  const post = btn.closest(".card");
-  post.style.transition = "opacity .2s";
-  post.style.opacity = "0";
-  setTimeout(() => post.remove(), 200);
-}
-
 function copyPostLink(btn) {
   const url = window.location.href.split("#")[0] + "#post";
   if (navigator.clipboard) {
@@ -151,105 +133,6 @@ function toggleLike(btn) {
   countEl.dataset.count = count;
   countEl.textContent = count;
   icon.className = "like-icon bi " + (liked ? "bi-heart-fill" : "bi-heart");
-}
-
-// ---- Add a comment (front-end only, no persistence) ----
-function addComment(event, form, threadId) {
-  event.preventDefault();
-  const input = form.querySelector("input[type=text]");
-  const text = input.value.trim();
-  if (!text) return;
-  const list = document.getElementById(threadId);
-  const comment = document.createElement("div");
-  comment.className = "d-flex gap-2 mb-3";
-  comment.innerHTML = `
-    <img class="avatar-xs flex-shrink-0" src="https://i.pravatar.cc/80?img=45" alt="">
-    <div class="comment-bubble flex-grow-1">
-      <div class="fw-bold small">Sen</div>
-      <div class="small">${text.replace(/</g, "&lt;")}</div>
-      <div class="small text-muted mt-1 d-flex gap-3">
-        <span>Şimdi</span><a href="#" class="text-muted" onclick="likeComment(event, this)">Beğen</a><a href="#" class="text-muted" onclick="focusReply(event, this)">Yanıtla</a>
-      </div>
-    </div>`;
-  list.insertBefore(comment, list.lastElementChild);
-  input.value = "";
-
-  const post = list.closest(".card");
-  const counter = post.querySelector(".post-stats span:last-child, .d-flex.justify-content-between.text-muted.small span:last-child");
-  if (counter) {
-    const n = parseInt(counter.textContent, 10) || 0;
-    counter.textContent = (n + 1) + " yorum";
-  }
-}
-
-// ---- Like / reply on an individual comment ----
-function likeComment(event, link) {
-  event.preventDefault();
-  const liked = link.classList.toggle("fw-bold");
-  link.classList.toggle("text-primary", liked);
-  link.textContent = liked ? "Beğenildi" : "Beğen";
-}
-
-function focusReply(event, link) {
-  event.preventDefault();
-  const bubble = link.closest(".comment-bubble");
-  const name = bubble ? bubble.querySelector(".c-name").textContent : "";
-  const thread = link.closest(".comments-collapse");
-  const input = thread ? thread.querySelector('form input[type="text"]') : null;
-  if (input) {
-    input.value = "@" + name + " ";
-    input.focus();
-  }
-}
-
-// ---- Friend request actions (visual only) ----
-function acceptRequest(btn) {
-  const card = btn.closest(".request-card");
-  card.style.transition = "opacity .2s";
-  card.style.opacity = "0";
-  setTimeout(() => card.remove(), 200);
-  toast("Arkadaşlık isteği kabul edildi.");
-}
-function declineRequest(btn) {
-  const card = btn.closest(".request-card");
-  card.style.transition = "opacity .2s";
-  card.style.opacity = "0";
-  setTimeout(() => card.remove(), 200);
-}
-
-// ---- Send / cancel a friend request from suggestion cards ----
-function toggleFriendRequest(btn) {
-  const sent = btn.classList.toggle("sent");
-  if (sent) {
-    btn.textContent = "İstek Gönderildi";
-    btn.classList.remove("btn-outline-primary");
-    btn.classList.add("btn-muted", "btn-secondary");
-    btn.disabled = true;
-  }
-}
-
-// ---- Notifications ----
-function markAllRead() {
-  document.querySelectorAll(".notif-unread").forEach(el => el.classList.remove("notif-unread"));
-  toast("Tüm bildirimler okundu olarak işaretlendi.");
-}
-
-function respondNotifRequest(btn, accepted) {
-  const item = btn.closest(".notif-unread") || btn.closest(".rounded-3");
-  const actions = btn.parentElement;
-  actions.innerHTML = accepted
-    ? `<span class="badge text-bg-success rounded-pill">Kabul edildi</span>`
-    : `<span class="badge text-bg-secondary rounded-pill">Reddedildi</span>`;
-  if (item) item.classList.remove("notif-unread");
-}
-
-// ---- Join / leave a group (groups.html) ----
-function toggleGroupMembership(btn) {
-  const joined = btn.classList.toggle("joined");
-  btn.textContent = joined ? "Ayrıl" : "Katıl";
-  btn.classList.toggle("btn-primary", joined);
-  btn.classList.toggle("btn-outline-primary", !joined);
-  toast(joined ? "Gruba katıldın." : "Gruptan ayrıldın.");
 }
 
 // ---- Search form: keep the query in the results heading ----
@@ -283,60 +166,4 @@ function toggleTheme() {
   applyTheme(saved);
 })();
 
-// ---- Live search suggestions ----
-const directoryUsers = [
-  { name: "Ada Lovelace", avatar: "https://i.pravatar.cc/80?img=45" },
-  { name: "Lana Rose", avatar: "https://i.pravatar.cc/80?img=47" },
-  { name: "Winnie Haley", avatar: "https://i.pravatar.cc/80?img=32" },
-  { name: "Daniel Bale", avatar: "https://i.pravatar.cc/80?img=15" },
-  { name: "Jane Doe", avatar: "https://i.pravatar.cc/80?img=25" },
-  { name: "Tina White", avatar: "https://i.pravatar.cc/80?img=5" },
-  { name: "Marcus Lee", avatar: "https://i.pravatar.cc/80?img=51" },
-  { name: "Diana Prince", avatar: "https://i.pravatar.cc/80?img=60" },
-  { name: "Sophie Turner", avatar: "https://i.pravatar.cc/80?img=41" },
-  { name: "Emre Kaya", avatar: "https://i.pravatar.cc/80?img=22" },
-  { name: "Elif Aksoy", avatar: "https://i.pravatar.cc/80?img=9" },
-  { name: "Bora Yıldız", avatar: "https://i.pravatar.cc/80?img=18" },
-  { name: "Jane Smith", avatar: "https://i.pravatar.cc/80?img=44" },
-  { name: "Janet Kim", avatar: "https://i.pravatar.cc/80?img=36" },
-];
-
-function initSearchSuggestions() {
-  document.querySelectorAll(".nav-search-wrap input[name='q']").forEach(input => {
-    const wrap = input.closest(".nav-search-wrap");
-    let box = wrap.querySelector(".search-suggestions");
-    if (!box) {
-      box = document.createElement("div");
-      box.className = "search-suggestions d-none";
-      wrap.appendChild(box);
-    }
-
-    input.addEventListener("input", () => {
-      const q = input.value.trim().toLowerCase();
-      if (!q) {
-        box.classList.add("d-none");
-        box.innerHTML = "";
-        return;
-      }
-      const matches = directoryUsers.filter(u => u.name.toLowerCase().includes(q)).slice(0, 5);
-      if (!matches.length) {
-        box.classList.add("d-none");
-        box.innerHTML = "";
-        return;
-      }
-      box.innerHTML = matches
-        .map(u => `<button type="button" onclick="window.location.href='search.html?q=${encodeURIComponent(u.name)}'">
-          <img src="${u.avatar}" class="avatar-xs" alt="">
-          <span class="small fw-semibold">${u.name}</span>
-        </button>`)
-        .join("");
-      box.classList.remove("d-none");
-    });
-
-    document.addEventListener("click", e => {
-      if (!wrap.contains(e.target)) box.classList.add("d-none");
-    });
-  });
-}
-
-document.addEventListener("DOMContentLoaded", initSearchSuggestions);
+// Live search suggestions moved to js/navbar-search.js (real backend data, not a hardcoded list).

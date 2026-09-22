@@ -27,12 +27,15 @@ async function loadProfile() {
   document.getElementById("profileAvatar").src = p.avatarUrl || DEFAULT_AVATAR;
   document.getElementById("profileOnlineDot").classList.toggle("d-none", !p.isOnline);
 
+  const cover = document.getElementById("profileCover");
   if (p.coverPhotoUrl) {
-    const cover = document.getElementById("profileCover");
     cover.style.backgroundImage = `url(${p.coverPhotoUrl})`;
     cover.style.backgroundSize = "cover";
     cover.style.backgroundPosition = "center";
+  } else {
+    cover.style.backgroundImage = "";
   }
+  document.getElementById("removeCoverBtn")?.classList.toggle("d-none", !p.coverPhotoUrl);
 
   const aboutHtml = `
     ${p.bio ? `<p class="small mb-3"><i class="bi bi-chat-quote me-1 text-primary"></i> ${escapeHtml(p.bio)}</p>` : ""}
@@ -190,15 +193,37 @@ function postCardHtml(post) {
 }
 
 function commentHtml(c) {
+  const likedClass = c.isLikedByCurrentUser ? "fw-bold text-primary" : "text-muted";
+  const likeLabel = c.isLikedByCurrentUser ? "Beğenildi" : "Beğen";
+  const likeCountLabel = c.likeCount > 0 ? ` (${c.likeCount})` : "";
   return `
-    <div class="d-flex gap-2 mb-3">
+    <div class="d-flex gap-2 mb-3" data-comment-id="${c.id}">
       <img src="${c.authorAvatarUrl || DEFAULT_AVATAR}" class="avatar-xs flex-shrink-0" alt="">
       <div class="comment-bubble flex-grow-1">
         <div class="fw-bold small c-name">${escapeHtml(c.authorName)}</div>
         <div class="small">${escapeHtml(c.text)}</div>
-        <div class="small text-muted mt-1 d-flex gap-3"><span>${timeAgo(c.createdAt)}</span></div>
+        <div class="small text-muted mt-1 d-flex gap-3">
+          <span>${timeAgo(c.createdAt)}</span>
+          <a href="#" class="comment-like-link ${likedClass}" onclick="return toggleCommentLike(event, this)">${likeLabel}<span class="comment-like-count">${likeCountLabel}</span></a>
+        </div>
       </div>
     </div>`;
+}
+
+async function toggleCommentLike(event, link) {
+  event.preventDefault();
+  const commentId = link.closest("[data-comment-id]").dataset.commentId;
+  try {
+    const result = await apiFetch(`/api/comments/${commentId}/like`, { method: "POST" });
+    link.classList.toggle("fw-bold", result.isLiked);
+    link.classList.toggle("text-primary", result.isLiked);
+    link.classList.toggle("text-muted", !result.isLiked);
+    const countLabel = result.likeCount > 0 ? ` (${result.likeCount})` : "";
+    link.innerHTML = `${result.isLiked ? "Beğenildi" : "Beğen"}<span class="comment-like-count">${countLabel}</span>`;
+  } catch (err) {
+    toast(err.message || "İşlem gerçekleştirilemedi.");
+  }
+  return false;
 }
 
 async function loadComments(postId) {
@@ -322,6 +347,8 @@ async function removePost(postId, btn) {
   }
 }
 
+let avatarMarkedForRemoval = false;
+
 function openEditProfileModal() {
   const p = currentProfile;
   document.getElementById("editFullName").value = p.fullName;
@@ -331,14 +358,23 @@ function openEditProfileModal() {
   document.getElementById("editEducation").value = p.education || "";
   document.getElementById("editAvatarPreview").src = p.avatarUrl || DEFAULT_AVATAR;
   document.getElementById("editAvatarInput").value = "";
+  avatarMarkedForRemoval = false;
+  document.getElementById("removeAvatarBtn").classList.toggle("d-none", !p.avatarUrl);
 }
 document.getElementById("editProfileModal").addEventListener("show.bs.modal", openEditProfileModal);
 
 function previewEditAvatar(input) {
   const preview = document.getElementById("editAvatarPreview");
   if (input.files && input.files[0] && preview) {
+    avatarMarkedForRemoval = false;
     preview.src = URL.createObjectURL(input.files[0]);
   }
+}
+
+function markAvatarForRemoval() {
+  avatarMarkedForRemoval = true;
+  document.getElementById("editAvatarInput").value = "";
+  document.getElementById("editAvatarPreview").src = DEFAULT_AVATAR;
 }
 
 async function saveProfile() {
@@ -354,10 +390,12 @@ async function saveProfile() {
 
     const avatarFile = document.getElementById("editAvatarInput").files[0];
     if (avatarFile) formData.append("avatar", avatarFile);
+    else if (avatarMarkedForRemoval) formData.append("removeAvatar", "true");
 
     await apiFetchForm("/api/users/me/profile", { method: "PUT", body: formData });
 
     document.getElementById("editAvatarInput").value = "";
+    avatarMarkedForRemoval = false;
     bootstrap.Modal.getInstance(document.getElementById("editProfileModal"))?.hide();
     toast("Profil güncellendi.");
     await loadProfile();
@@ -365,6 +403,29 @@ async function saveProfile() {
     toast(err.message || "Profil güncellenemedi.");
   } finally {
     btn.disabled = false;
+  }
+}
+
+async function removeCoverPhoto() {
+  const cover = document.getElementById("profileCover");
+  const previousBg = cover.style.backgroundImage;
+  cover.style.backgroundImage = "";
+
+  try {
+    const formData = new FormData();
+    formData.append("fullName", currentProfile.fullName);
+    formData.append("bio", currentProfile.bio || "");
+    formData.append("location", currentProfile.location || "");
+    formData.append("occupation", currentProfile.occupation || "");
+    formData.append("education", currentProfile.education || "");
+    formData.append("removeCoverPhoto", "true");
+
+    await apiFetchForm("/api/users/me/profile", { method: "PUT", body: formData });
+    toast("Kapak fotoğrafı kaldırıldı.");
+    await loadProfile();
+  } catch (err) {
+    cover.style.backgroundImage = previousBg;
+    toast(err.message || "Kapak fotoğrafı kaldırılamadı.");
   }
 }
 

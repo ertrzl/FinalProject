@@ -1,12 +1,11 @@
-// home.html — real feed, comments and stories wired to the backend (replaces the mocks from app.js/stories.js).
-// Friend suggestions on this page are still mock.
+// home.html — feed, comments, stories and friend suggestions, all wired to the backend.
 
 const session = requireAuth();
 
 function postCardHtml(post) {
   const privacyIcon = post.privacy === "FriendsOnly" ? "bi-people-fill" : "bi-globe-americas";
   const privacyLabel = post.privacy === "FriendsOnly" ? "Sadece Arkadaşlar" : "Herkese Açık";
-  const avatar = post.authorAvatarUrl || "https://i.pravatar.cc/80?img=45";
+  const avatar = post.authorAvatarUrl || DEFAULT_AVATAR;
   const likedClass = post.isLikedByCurrentUser ? "liked" : "";
   const heartIcon = post.isLikedByCurrentUser ? "bi-heart-fill" : "bi-heart";
 
@@ -45,15 +44,37 @@ function postCardHtml(post) {
 }
 
 function commentHtml(c) {
+  const likedClass = c.isLikedByCurrentUser ? "fw-bold text-primary" : "text-muted";
+  const likeLabel = c.isLikedByCurrentUser ? "Beğenildi" : "Beğen";
+  const likeCountLabel = c.likeCount > 0 ? ` (${c.likeCount})` : "";
   return `
-    <div class="d-flex gap-2 mb-3">
+    <div class="d-flex gap-2 mb-3" data-comment-id="${c.id}">
       <img src="${c.authorAvatarUrl || DEFAULT_AVATAR}" class="avatar-xs flex-shrink-0" alt="">
       <div class="comment-bubble flex-grow-1">
         <div class="fw-bold small c-name">${escapeHtml(c.authorName)}</div>
         <div class="small">${escapeHtml(c.text)}</div>
-        <div class="small text-muted mt-1 d-flex gap-3"><span>${timeAgo(c.createdAt)}</span></div>
+        <div class="small text-muted mt-1 d-flex gap-3">
+          <span>${timeAgo(c.createdAt)}</span>
+          <a href="#" class="comment-like-link ${likedClass}" onclick="return toggleCommentLike(event, this)">${likeLabel}<span class="comment-like-count">${likeCountLabel}</span></a>
+        </div>
       </div>
     </div>`;
+}
+
+async function toggleCommentLike(event, link) {
+  event.preventDefault();
+  const commentId = link.closest("[data-comment-id]").dataset.commentId;
+  try {
+    const result = await apiFetch(`/api/comments/${commentId}/like`, { method: "POST" });
+    link.classList.toggle("fw-bold", result.isLiked);
+    link.classList.toggle("text-primary", result.isLiked);
+    link.classList.toggle("text-muted", !result.isLiked);
+    const countLabel = result.likeCount > 0 ? ` (${result.likeCount})` : "";
+    link.innerHTML = `${result.isLiked ? "Beğenildi" : "Beğen"}<span class="comment-like-count">${countLabel}</span>`;
+  } catch (err) {
+    toast(err.message || "İşlem gerçekleştirilemedi.");
+  }
+  return false;
 }
 
 async function loadComments(postId) {
@@ -168,4 +189,44 @@ async function toggleLike(btn) {
   }
 }
 
+function suggestionCardHtml(user) {
+  const mutualLabel = user.mutualFriendsCount > 0 ? `${user.mutualFriendsCount} ortak arkadaş` : "Yeni üye";
+  return `
+    <div class="d-flex align-items-center gap-2 mb-3" data-user-id="${user.id}">
+      <img src="${user.avatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt="">
+      <div class="flex-grow-1">
+        <div class="fw-bold small"><a href="profile.html?id=${user.id}" class="text-dark text-decoration-none">${escapeHtml(user.fullName)}</a></div>
+        <div class="text-muted small">${mutualLabel}</div>
+      </div>
+      <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="sendSuggestionRequest('${user.id}', this)">Ekle</button>
+    </div>`;
+}
+
+async function loadSuggestions() {
+  const list = document.getElementById("suggestionsList");
+  try {
+    const suggestions = await apiFetch("/api/friends/suggestions?take=3");
+    list.innerHTML = suggestions.length
+      ? suggestions.map(suggestionCardHtml).join("")
+      : `<div class="text-muted small">Şu an önerecek kimse yok.</div>`;
+  } catch (err) {
+    list.innerHTML = "";
+  }
+}
+
+async function sendSuggestionRequest(userId, btn) {
+  btn.disabled = true;
+  try {
+    await apiFetch("/api/friends/requests", { method: "POST", body: { receiverId: userId } });
+    btn.textContent = "İstek Gönderildi";
+    btn.classList.remove("btn-outline-primary");
+    btn.classList.add("btn-secondary");
+    toast("Arkadaşlık isteği gönderildi.");
+  } catch (err) {
+    btn.disabled = false;
+    toast(err.message || "İstek gönderilemedi.");
+  }
+}
+
 loadFeed();
+loadSuggestions();

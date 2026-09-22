@@ -167,31 +167,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
           <span class="fw-bold">Arkadaşlık Önerileri</span>
         </div>
-
-        <div class="d-flex align-items-center gap-2 mb-3">
-          <img src="https://i.pravatar.cc/80?img=25" class="avatar-sm" alt="">
-          <div class="flex-grow-1">
-            <div class="fw-bold small"><a href="profile.html?name=Jane%20Doe&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D25" class="text-dark text-decoration-none">Jane Doe</a></div>
-            <div class="text-muted small">4 ortak arkadaş</div>
-          </div>
-          <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="toggleFriendRequest(this)">Ekle</button>
-        </div>
-        <div class="d-flex align-items-center gap-2 mb-3">
-          <img src="https://i.pravatar.cc/80?img=5" class="avatar-sm" alt="">
-          <div class="flex-grow-1">
-            <div class="fw-bold small"><a href="profile.html?name=Tina%20White&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D5" class="text-dark text-decoration-none">Tina White</a></div>
-            <div class="text-muted small">2 ortak arkadaş</div>
-          </div>
-          <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="toggleFriendRequest(this)">Ekle</button>
-        </div>
-        <div class="d-flex align-items-center gap-2">
-          <img src="https://i.pravatar.cc/80?img=51" class="avatar-sm" alt="">
-          <div class="flex-grow-1">
-            <div class="fw-bold small"><a href="profile.html?name=Marcus%20Lee&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D51" class="text-dark text-decoration-none">Marcus Lee</a></div>
-            <div class="text-muted small">1 ortak arkadaş</div>
-          </div>
-          <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="toggleFriendRequest(this)">Ekle</button>
-        </div>
+        <div id="suggestionsList"><div class="text-muted small">Yükleniyor...</div></div>
       </div>
     </aside>
 
@@ -209,6 +185,7 @@
 
 <script src="js/app.js"></script>
 <script src="js/navbar-badge.js"></script>
+<script src="js/navbar-search.js"></script>
 <script src="js/feed.js"></script>
 <script src="js/chat-data.js"></script>
 <script src="js/chat-dock.js"></script>

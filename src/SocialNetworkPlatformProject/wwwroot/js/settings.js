@@ -2,6 +2,8 @@
 
 const session = requireAuth();
 
+let settingsAvatarMarkedForRemoval = false;
+
 async function loadSettings() {
   try {
     const p = await apiFetch(`/api/users/${session.userId}`);
@@ -12,6 +14,8 @@ async function loadSettings() {
     document.getElementById("settingsBio").value = p.bio || "";
     document.getElementById("settingsAvatarPreview").src = p.avatarUrl || DEFAULT_AVATAR;
     document.getElementById("privateAccount").checked = p.isPrivateAccount;
+    settingsAvatarMarkedForRemoval = false;
+    document.getElementById("removeSettingsAvatarBtn").classList.toggle("d-none", !p.avatarUrl);
   } catch (err) {
     toast(err.message || "Ayarlar yüklenemedi.");
   }
@@ -20,8 +24,15 @@ async function loadSettings() {
 function previewSettingsAvatar(input) {
   const preview = document.getElementById("settingsAvatarPreview");
   if (input.files && input.files[0] && preview) {
+    settingsAvatarMarkedForRemoval = false;
     preview.src = URL.createObjectURL(input.files[0]);
   }
+}
+
+function markSettingsAvatarForRemoval() {
+  settingsAvatarMarkedForRemoval = true;
+  document.getElementById("settingsAvatarInput").value = "";
+  document.getElementById("settingsAvatarPreview").src = DEFAULT_AVATAR;
 }
 
 async function saveAccount() {
@@ -36,9 +47,11 @@ async function saveAccount() {
 
     const avatarFile = document.getElementById("settingsAvatarInput").files[0];
     if (avatarFile) formData.append("avatar", avatarFile);
+    else if (settingsAvatarMarkedForRemoval) formData.append("removeAvatar", "true");
 
     await apiFetchForm("/api/users/me/profile", { method: "PUT", body: formData });
     toast("Hesap bilgileri kaydedildi.");
+    await loadSettings();
   } catch (err) {
     toast(err.message || "Kaydedilemedi.");
   } finally {

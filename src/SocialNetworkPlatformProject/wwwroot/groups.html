@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gruplar | SocialNet</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar navbar-expand bg-white border-bottom sticky-top py-2">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand fs-4" href="home.html">SocialNet</a>
+    <form class="d-none d-md-flex align-items-center bg-body-tertiary rounded-pill px-3 py-2 mx-3 nav-search-wrap" style="max-width:380px; flex:1;" onsubmit="return submitSearch(this)">
+      <i class="bi bi-search text-muted me-2"></i>
+      <input type="text" class="form-control form-control-sm border-0 bg-transparent p-0 shadow-none" placeholder="Kullanıcı ara..." name="q">
+    </form>
+    <div class="d-flex align-items-center gap-1 ms-auto">
+      <a href="home.html" class="nav-pill-link"><i class="bi bi-house-door-fill"></i>Ana Sayfa</a>
+      <a href="friends.html" class="nav-pill-link"><i class="bi bi-people-fill"></i>Arkadaşlar</a>
+      <a href="notifications.html" class="nav-pill-link">
+        <i class="bi bi-bell-fill"></i>Bildirimler
+        <span class="position-absolute top-0 end-0 badge rounded-pill bg-danger badge-count">3</span>
+      </a>
+      <a href="messages.html" class="nav-pill-link"><i class="bi bi-chat-dots-fill"></i>Mesajlar</a>
+      <a href="groups.html" class="nav-pill-link active"><i class="bi bi-diagram-3-fill"></i>Gruplar</a>
+      <a href="marketplace.html" class="nav-pill-link"><i class="bi bi-shop"></i>Marketplace</a>
+      <a href="events.html" class="nav-pill-link"><i class="bi bi-calendar-event"></i>Etkinlikler</a>
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Temayı Değiştir"><i class="bi bi-moon-stars-fill"></i></button>
+      <div class="dropdown ms-2">
+        <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown">
+          <img src="https://i.pravatar.cc/80?img=45" class="avatar-xs" alt="Profilim">
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="profile.html"><i class="bi bi-person me-2"></i>Profilim</a></li>
+          <li><a class="dropdown-item" href="saved.html"><i class="bi bi-bookmark me-2"></i>Kaydedilenler</a></li>
+          <li><a class="dropdown-item" href="settings.html"><i class="bi bi-gear me-2"></i>Ayarlar</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="index.html"><i class="bi bi-box-arrow-right me-2"></i>Çıkış Yap</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4" style="max-width: 980px;">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h1 class="h4 mb-0 fw-bold">Gruplar</h1>
+    <button class="btn btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#createGroupModal"><i class="bi bi-plus-lg me-1"></i>Grup Oluştur</button>
+  </div>
+
+  <ul class="nav nav-pills gap-2 mb-4">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#panel-mygroups">Gruplarım (3)</button></li>
+    <li class="nav-item"><button class="nav-link text-muted" data-bs-toggle="pill" data-bs-target="#panel-discover">Keşfet</button></li>
+  </ul>
+
+  <div class="tab-content">
+
+    <!-- My groups -->
+    <div class="tab-pane fade show active" id="panel-mygroups">
+      <div class="row g-3">
+
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+            <img src="https://picsum.photos/seed/group1/400/160" class="w-100" style="height:120px;object-fit:cover;" alt="">
+            <div class="p-3">
+              <div class="fw-bold">Yazılımcılar Kulübü</div>
+              <div class="text-muted small mb-3"><i class="bi bi-people-fill me-1"></i>4.2K üye · Genel</div>
+              <button class="btn btn-primary w-100 rounded-pill joined" onclick="toggleGroupMembership(this)">Ayrıl</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+            <img src="https://picsum.photos/seed/group2/400/160" class="w-100" style="height:120px;object-fit:cover;" alt="">
+            <div class="p-3">
+              <div class="fw-bold">Doğa Yürüyüşü Severler</div>
+              <div class="text-muted small mb-3"><i class="bi bi-people-fill me-1"></i>1.8K üye · Genel</div>
+              <button class="btn btn-primary w-100 rounded-pill joined" onclick="toggleGroupMembership(this)">Ayrıl</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+            <img src="https://picsum.photos/seed/group3/400/160" class="w-100" style="height:120px;object-fit:cover;" alt="">
+            <div class="p-3">
+              <div class="fw-bold">Fotoğrafçılık Tutkunları</div>
+              <div class="text-muted small mb-3"><i class="bi bi-people-fill me-1"></i>952 üye · Gizli</div>
+              <button class="btn btn-primary w-100 rounded-pill joined" onclick="toggleGroupMembership(this)">Ayrıl</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Discover -->
+    <div class="tab-pane fade" id="panel-discover">
+      <div class="row g-3">
+
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+            <img src="https://picsum.photos/seed/group4/400/160" class="w-100" style="height:120px;object-fit:cover;" alt="">
+            <div class="p-3">
+              <div class="fw-bold">Kahve Tutkunları</div>
+              <div class="text-muted small mb-3"><i class="bi bi-people-fill me-1"></i>3.1K üye · Genel</div>
+              <button class="btn btn-outline-primary w-100 rounded-pill" onclick="toggleGroupMembership(this)">Katıl</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+            <img src="https://picsum.photos/seed/group5/400/160" class="w-100" style="height:120px;object-fit:cover;" alt="">
+            <div class="p-3">
+              <div class="fw-bold">Girişimcilik Ağı</div>
+              <div class="text-muted small mb-3"><i class="bi bi-people-fill me-1"></i>6.4K üye · Genel</div>
+              <button class="btn btn-outline-primary w-100 rounded-pill" onclick="toggleGroupMembership(this)">Katıl</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+            <img src="https://picsum.photos/seed/group6/400/160" class="w-100" style="height:120px;object-fit:cover;" alt="">
+            <div class="p-3">
+              <div class="fw-bold">Kitap Kulübü</div>
+              <div class="text-muted small mb-3"><i class="bi bi-people-fill me-1"></i>2.5K üye · Genel</div>
+              <button class="btn btn-outline-primary w-100 rounded-pill" onclick="toggleGroupMembership(this)">Katıl</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+            <img src="https://picsum.photos/seed/group7/400/160" class="w-100" style="height:120px;object-fit:cover;" alt="">
+            <div class="p-3">
+              <div class="fw-bold">Mobil Oyun Geliştiriciler</div>
+              <div class="text-muted small mb-3"><i class="bi bi-people-fill me-1"></i>1.2K üye · Genel</div>
+              <button class="btn btn-outline-primary w-100 rounded-pill" onclick="toggleGroupMembership(this)">Katıl</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+            <img src="https://picsum.photos/seed/group8/400/160" class="w-100" style="height:120px;object-fit:cover;" alt="">
+            <div class="p-3">
+              <div class="fw-bold">Evcil Hayvan Sahipleri</div>
+              <div class="text-muted small mb-3"><i class="bi bi-people-fill me-1"></i>4.8K üye · Genel</div>
+              <button class="btn btn-outline-primary w-100 rounded-pill" onclick="toggleGroupMembership(this)">Katıl</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Create group modal -->
+<div class="modal fade" id="createGroupModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Grup Oluştur</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Grup Adı</label>
+          <input type="text" class="form-control" placeholder="Örn. Kitap Kulübü">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Açıklama</label>
+          <textarea class="form-control" rows="3" placeholder="Bu grup ne hakkında?"></textarea>
+        </div>
+        <div class="mb-1">
+          <label class="form-label fw-semibold small">Gizlilik</label>
+          <select class="form-select">
+            <option>🌐 Genel</option>
+            <option>🔒 Gizli</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>
+        <button type="button" class="btn btn-primary rounded-pill" data-bs-dismiss="modal" onclick="toast('Grup oluşturuldu!')">Oluştur</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<div id="chatDock" class="chat-dock">
+  <div class="chat-dock-bar" onclick="toggleChatDockList()">
+    <i class="bi bi-chat-dots-fill"></i> Sohbetler
+  </div>
+  <div class="chat-dock-list d-none" id="chatDockList"></div>
+</div>
+<div id="chatPopups" class="chat-popups"></div>
+
+<script src="js/app.js"></script>
+<script src="js/chat-data.js"></script>
+<script src="js/chat-dock.js"></script>
+</body>
+</html>

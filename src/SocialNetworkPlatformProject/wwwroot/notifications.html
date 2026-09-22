@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bildirimler | SocialNet</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<nav class="navbar navbar-expand bg-white border-bottom sticky-top py-2">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand fs-4" href="home.html">SocialNet</a>
+    <form class="d-none d-md-flex align-items-center bg-body-tertiary rounded-pill px-3 py-2 mx-3 nav-search-wrap" style="max-width:380px; flex:1;" onsubmit="return submitSearch(this)">
+      <i class="bi bi-search text-muted me-2"></i>
+      <input type="text" class="form-control form-control-sm border-0 bg-transparent p-0 shadow-none" placeholder="Kullanıcı ara..." name="q">
+    </form>
+    <div class="d-flex align-items-center gap-1 ms-auto">
+      <a href="home.html" class="nav-pill-link"><i class="bi bi-house-door-fill"></i>Ana Sayfa</a>
+      <a href="friends.html" class="nav-pill-link"><i class="bi bi-people-fill"></i>Arkadaşlar</a>
+      <a href="notifications.html" class="nav-pill-link active">
+        <i class="bi bi-bell-fill"></i>Bildirimler
+        <span class="position-absolute top-0 end-0 badge rounded-pill bg-danger badge-count">3</span>
+      </a>
+            <a href="messages.html" class="nav-pill-link"><i class="bi bi-chat-dots-fill"></i>Mesajlar</a>
+      <a href="groups.html" class="nav-pill-link"><i class="bi bi-diagram-3-fill"></i>Gruplar</a>
+      <a href="marketplace.html" class="nav-pill-link"><i class="bi bi-shop"></i>Marketplace</a>
+      <a href="events.html" class="nav-pill-link"><i class="bi bi-calendar-event"></i>Etkinlikler</a>
+      <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Temayı Değiştir"><i class="bi bi-moon-stars-fill"></i></button>
+      <div class="dropdown ms-2">
+        <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown">
+          <img src="https://i.pravatar.cc/80?img=45" class="avatar-xs" alt="Profilim">
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="dropdown-item" href="profile.html"><i class="bi bi-person me-2"></i>Profilim</a></li>
+          <li><a class="dropdown-item" href="saved.html"><i class="bi bi-bookmark me-2"></i>Kaydedilenler</a></li>
+          <li><a class="dropdown-item" href="settings.html"><i class="bi bi-gear me-2"></i>Ayarlar</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="index.html"><i class="bi bi-box-arrow-right me-2"></i>Çıkış Yap</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4" style="max-width: 660px;">
+
+  <!-- F8: Notification system for friend requests, likes, and comments -->
+  <div class="card border-0 shadow-sm rounded-4 p-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <span class="fw-bold fs-5">Bildirimler</span>
+      <button type="button" class="btn btn-link text-primary small fw-semibold p-0 text-decoration-none" onclick="markAllRead()">Tümünü okundu işaretle</button>
+    </div>
+
+    <div class="d-flex align-items-start gap-3 p-3 rounded-3 notif-unread mb-2">
+      <div class="position-relative flex-shrink-0">
+        <img src="https://i.pravatar.cc/80?img=25" class="avatar-sm" alt="">
+        <span class="notif-icon-badge bg-success"><i class="bi bi-person-plus-fill"></i></span>
+      </div>
+      <div class="flex-grow-1">
+        <div class="small"><a href="profile.html?name=Jane%20Doe&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D25" class="text-dark fw-bold text-decoration-none">Jane Doe</a> sana arkadaşlık isteği gönderdi.</div>
+        <div class="text-muted small mt-1">5 dakika önce</div>
+      </div>
+      <div class="d-flex gap-2 flex-shrink-0">
+        <button class="btn btn-primary btn-sm rounded-pill" onclick="respondNotifRequest(this, true)">Kabul Et</button>
+        <button class="btn btn-light btn-sm rounded-pill" onclick="respondNotifRequest(this, false)">Reddet</button>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-start gap-3 p-3 rounded-3 notif-unread mb-2">
+      <div class="position-relative flex-shrink-0">
+        <img src="https://i.pravatar.cc/80?img=47" class="avatar-sm" alt="">
+        <span class="notif-icon-badge bg-danger"><i class="bi bi-heart-fill"></i></span>
+      </div>
+      <div class="flex-grow-1">
+        <div class="small"><a href="profile.html?name=Lana%20Rose&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D47" class="text-dark fw-bold text-decoration-none">Lana Rose</a> ve <b>3 kişi daha</b> gönderini beğendi.</div>
+        <div class="text-muted small mt-1">32 dakika önce</div>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-start gap-3 p-3 rounded-3 notif-unread mb-2">
+      <div class="position-relative flex-shrink-0">
+        <img src="https://i.pravatar.cc/80?img=12" class="avatar-sm" alt="">
+        <span class="notif-icon-badge bg-primary"><i class="bi bi-chat-fill"></i></span>
+      </div>
+      <div class="flex-grow-1">
+        <div class="small"><a href="profile.html?name=Daniel%20Bale&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D15" class="text-dark fw-bold text-decoration-none">Daniel Bale</a> gönderine yorum yaptı: "Harika görünüyor!"</div>
+        <div class="text-muted small mt-1">1 saat önce</div>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-start gap-3 p-3 rounded-3 mb-2">
+      <div class="position-relative flex-shrink-0">
+        <img src="https://i.pravatar.cc/80?img=32" class="avatar-sm" alt="">
+        <span class="notif-icon-badge bg-danger"><i class="bi bi-heart-fill"></i></span>
+      </div>
+      <div class="flex-grow-1">
+        <div class="small"><a href="profile.html?name=Winnie%20Haley&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D32" class="text-dark fw-bold text-decoration-none">Winnie Haley</a> yorumunu beğendi.</div>
+        <div class="text-muted small mt-1">3 saat önce</div>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-start gap-3 p-3 rounded-3 mb-2">
+      <div class="position-relative flex-shrink-0">
+        <img src="https://i.pravatar.cc/80?img=5" class="avatar-sm" alt="">
+        <span class="notif-icon-badge bg-success"><i class="bi bi-check-lg"></i></span>
+      </div>
+      <div class="flex-grow-1">
+        <div class="small"><a href="profile.html?name=Tina%20White&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D5" class="text-dark fw-bold text-decoration-none">Tina White</a> arkadaşlık isteğini kabul etti.</div>
+        <div class="text-muted small mt-1">Dün</div>
+      </div>
+    </div>
+
+    <div class="d-flex align-items-start gap-3 p-3 rounded-3">
+      <div class="position-relative flex-shrink-0">
+        <img src="https://i.pravatar.cc/80?img=51" class="avatar-sm" alt="">
+        <span class="notif-icon-badge bg-primary"><i class="bi bi-chat-fill"></i></span>
+      </div>
+      <div class="flex-grow-1">
+        <div class="small"><a href="profile.html?name=Marcus%20Lee&avatar=https%3A%2F%2Fi.pravatar.cc%2F100%3Fimg%3D51" class="text-dark fw-bold text-decoration-none">Marcus Lee</a>: "Bu fikri çok sevdim, konuşalım mı?"</div>
+        <div class="text-muted small mt-1">2 gün önce</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<div id="chatDock" class="chat-dock">
+  <div class="chat-dock-bar" onclick="toggleChatDockList()">
+    <i class="bi bi-chat-dots-fill"></i> Sohbetler
+  </div>
+  <div class="chat-dock-list d-none" id="chatDockList"></div>
+</div>
+<div id="chatPopups" class="chat-popups"></div>
+
+<script src="js/app.js"></script>
+<script src="js/chat-data.js"></script>
+<script src="js/chat-dock.js"></script>
+</body>
+</html>

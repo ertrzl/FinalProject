@@ -20,6 +20,14 @@ function clearSession() {
   localStorage.removeItem(SESSION_KEY);
 }
 
+// Keeps the navbar/composer avatars in sync right after a profile edit, without forcing a re-login.
+function updateSessionAvatar(avatarUrl) {
+  const session = getSession();
+  if (!session) return;
+  session.avatarUrl = avatarUrl;
+  saveSession(session);
+}
+
 function getToken() {
   const session = getSession();
   return session ? session.accessToken : null;

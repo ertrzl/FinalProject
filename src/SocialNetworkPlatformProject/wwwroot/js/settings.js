@@ -16,6 +16,8 @@ async function loadSettings() {
     document.getElementById("privateAccount").checked = p.isPrivateAccount;
     settingsAvatarMarkedForRemoval = false;
     document.getElementById("removeSettingsAvatarBtn").classList.toggle("d-none", !p.avatarUrl);
+    updateSessionAvatar(p.avatarUrl);
+    document.querySelectorAll(".nav-profile-avatar").forEach(el => { el.src = p.avatarUrl || DEFAULT_AVATAR; });
   } catch (err) {
     toast(err.message || "Ayarlar yüklenemedi.");
   }

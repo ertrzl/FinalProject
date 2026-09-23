@@ -2,6 +2,10 @@
 
 const session = requireAuth();
 
+const composerFirstName = session.fullName.split(" ")[0];
+document.getElementById("composerText").placeholder = `Aklında ne var, ${composerFirstName}?`;
+document.getElementById("composerAvatar").src = session.avatarUrl || DEFAULT_AVATAR;
+
 function postCardHtml(post) {
   const privacyIcon = post.privacy === "FriendsOnly" ? "bi-people-fill" : "bi-globe-americas";
   const privacyLabel = post.privacy === "FriendsOnly" ? "Sadece Arkadaşlar" : "Herkese Açık";

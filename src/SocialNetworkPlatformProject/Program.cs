@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.OpenApi.Models;
 using SocialNetworkPlatformProject.Application;
 using SocialNetworkPlatformProject.Infrastructure;
@@ -43,6 +46,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
@@ -53,4 +59,32 @@ app.MapControllers();
 app.MapHub<NotificationsHub>(HubRoutes.Notifications);
 app.MapHub<MessagesHub>(HubRoutes.Messages);
 
+// Dev convenience: launchSettings.json can only auto-open one URL, so open both the site and Swagger here instead.
+if (app.Environment.IsDevelopment())
+{
+    app.Lifetime.ApplicationStarted.Register(() =>
+    {
+        var baseUrl = app.Services.GetRequiredService<IServer>()
+            .Features.Get<IServerAddressesFeature>()?.Addresses.FirstOrDefault();
+
+        if (baseUrl == null)
+            return;
+
+        OpenBrowser(baseUrl);
+        OpenBrowser($"{baseUrl}/swagger");
+    });
+}
+
 app.Run();
+
+static void OpenBrowser(string url)
+{
+    try
+    {
+        Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+    }
+    catch
+    {
+        // Best-effort only — no browser available (e.g. running headless) shouldn't crash startup.
+    }
+}

@@ -80,11 +80,21 @@ public class UserService : IUserService
             oldAvatar = user.AvatarUrl;
             user.AvatarUrl = await _files.SaveImageAsync(dto.Avatar, "avatars");
         }
+        else if (dto.RemoveAvatar)
+        {
+            oldAvatar = user.AvatarUrl;
+            user.AvatarUrl = null;
+        }
 
         if (dto.CoverPhoto != null)
         {
             oldCover = user.CoverPhotoUrl;
             user.CoverPhotoUrl = await _files.SaveImageAsync(dto.CoverPhoto, "covers");
+        }
+        else if (dto.RemoveCoverPhoto)
+        {
+            oldCover = user.CoverPhotoUrl;
+            user.CoverPhotoUrl = null;
         }
 
         var result = await _userManager.UpdateAsync(user);

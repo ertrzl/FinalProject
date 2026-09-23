@@ -47,7 +47,15 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    // wwwroot is a live frontend under active development — force browsers to always
+    // revalidate instead of caching, so a file edit is visible on the very next reload.
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+    }
+});
 
 app.UseHttpsRedirection();
 

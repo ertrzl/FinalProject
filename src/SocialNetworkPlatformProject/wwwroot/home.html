@@ -38,7 +38,7 @@
       <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Temayı Değiştir"><i class="bi bi-moon-stars-fill"></i></button>
       <div class="dropdown ms-2">
         <button class="btn p-0 border-0 bg-transparent position-relative" data-bs-toggle="dropdown">
-          <img src="images/default-avatar.png" class="avatar-xs" alt="Profilim">
+          <img src="images/default-avatar.png" class="avatar-xs nav-profile-avatar" alt="Profilim">
           <span class="position-absolute bg-success border border-2 border-white rounded-circle" style="width:11px;height:11px;bottom:0;right:0;" title="Çevrimiçi"></span>
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
@@ -79,7 +79,7 @@
       <!-- Stories -->
       <div class="d-flex gap-2 overflow-auto pb-2 mb-3">
         <div class="story-card" data-bs-toggle="modal" data-bs-target="#addStoryModal">
-          <img src="images/default-avatar.png" alt="">
+          <img src="images/default-avatar.png" class="nav-profile-avatar" alt="">
           <span class="story-name">Hikayen</span>
         </div>
         <div id="storyBarDynamic" class="d-flex gap-2"></div>
@@ -130,8 +130,8 @@
       <!-- F3: Post creation with text and optional image, scoped to public or friends -->
       <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 composer">
         <div class="d-flex gap-3">
-          <img src="images/default-avatar.png" class="avatar-sm flex-shrink-0" alt="">
-          <textarea id="composerText" class="form-control" rows="2" placeholder="Aklında ne var, Ada?"></textarea>
+          <img id="composerAvatar" src="images/default-avatar.png" class="avatar-sm flex-shrink-0 nav-profile-avatar" alt="">
+          <textarea id="composerText" class="form-control" rows="2" placeholder="Aklında ne var?"></textarea>
         </div>
 
         <div class="d-none mt-3 position-relative" id="composerPreview">

@@ -32,7 +32,7 @@
       <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Temayı Değiştir"><i class="bi bi-moon-stars-fill"></i></button>
       <div class="dropdown ms-2">
         <button class="btn p-0 border-0 bg-transparent" data-bs-toggle="dropdown">
-          <img src="images/default-avatar.png" class="avatar-xs" alt="Profilim">
+          <img src="images/default-avatar.png" class="avatar-xs nav-profile-avatar" alt="Profilim">
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
           <li><a class="dropdown-item" href="profile.html"><i class="bi bi-person me-2"></i>Profilim</a></li>
@@ -63,13 +63,21 @@
 
   <div class="d-flex flex-wrap align-items-end justify-content-between gap-3 px-2 px-md-3" style="margin-top: -60px;">
     <div class="d-flex align-items-end gap-3">
-      <div class="position-relative flex-shrink-0">
+      <div class="position-relative flex-shrink-0 dropdown">
         <img id="profileAvatar" src="images/default-avatar.png" class="avatar-lg bg-white" alt="">
         <span id="profileOnlineDot" class="position-absolute bg-success border border-3 border-white rounded-circle" style="width:22px;height:22px;bottom:8px;left:8px;" title="Çevrimiçi"></span>
+        <ul class="dropdown-menu shadow-sm rounded-3 p-1" style="min-width:210px;">
+          <li>
+            <label class="dropdown-item d-flex align-items-center gap-2 rounded-2 py-2 fw-semibold" style="cursor:pointer;">
+              <i class="bi bi-camera-fill"></i> Profil resmi seç
+              <input type="file" class="d-none" accept="image/*" onchange="uploadAvatarQuick(this)">
+            </label>
+          </li>
+        </ul>
       </div>
       <div class="pb-2">
-        <h1 class="h4 mb-0" id="profileName">Ada Lovelace</h1>
-        <p class="mb-0 small text-muted"><span id="profileHandle">@ada.lovelace</span> · <span id="profileFriendCount">312</span> arkadaş</p>
+        <h1 class="h4 mb-0" id="profileName">&nbsp;</h1>
+        <p class="mb-0 small text-muted"><span id="profileHandle"></span> · <span id="profileFriendCount">0</span> arkadaş</p>
       </div>
     </div>
     <div id="profileActionArea">

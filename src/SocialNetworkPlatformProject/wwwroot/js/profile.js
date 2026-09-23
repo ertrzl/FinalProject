@@ -48,6 +48,12 @@ async function loadProfile() {
 
   if (p.isOwnProfile) {
     document.getElementById("composerAvatar").src = p.avatarUrl || DEFAULT_AVATAR;
+    document.getElementById("composerText").placeholder = `Aklında ne var, ${p.fullName.split(" ")[0]}?`;
+    updateSessionAvatar(p.avatarUrl);
+    document.querySelectorAll(".nav-profile-avatar").forEach(el => { el.src = p.avatarUrl || DEFAULT_AVATAR; });
+    const avatarImg = document.getElementById("profileAvatar");
+    avatarImg.setAttribute("data-bs-toggle", "dropdown");
+    avatarImg.style.cursor = "pointer";
   } else {
     document.getElementById("ownComposerWrap")?.remove();
     document.getElementById("profileCoverEditBtn")?.remove();
@@ -403,6 +409,35 @@ async function saveProfile() {
     toast(err.message || "Profil güncellenemedi.");
   } finally {
     btn.disabled = false;
+  }
+}
+
+// Facebook-style: clicking the camera item in the avatar dropdown uploads immediately, no modal needed.
+async function uploadAvatarQuick(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const avatarImg = document.getElementById("profileAvatar");
+  const previousSrc = avatarImg.src;
+  avatarImg.src = URL.createObjectURL(file);
+
+  try {
+    const formData = new FormData();
+    formData.append("fullName", currentProfile.fullName);
+    formData.append("bio", currentProfile.bio || "");
+    formData.append("location", currentProfile.location || "");
+    formData.append("occupation", currentProfile.occupation || "");
+    formData.append("education", currentProfile.education || "");
+    formData.append("avatar", file);
+
+    await apiFetchForm("/api/users/me/profile", { method: "PUT", body: formData });
+    toast("Profil fotoğrafı güncellendi.");
+    await loadProfile();
+  } catch (err) {
+    avatarImg.src = previousSrc;
+    toast(err.message || "Profil fotoğrafı güncellenemedi.");
+  } finally {
+    input.value = "";
   }
 }
 

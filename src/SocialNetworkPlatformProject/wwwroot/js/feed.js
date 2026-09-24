@@ -41,7 +41,7 @@ function postCardHtml(post) {
         <div class="comments-list mb-2"></div>
         <form class="d-flex gap-2 align-items-center" onsubmit="return submitComment(event, '${post.id}')">
           <img src="${session.avatarUrl || DEFAULT_AVATAR}" class="avatar-xs" alt="">
-          <input type="text" class="form-control form-control-sm rounded-pill" placeholder="Bir yorum yaz...">
+          <input type="text" autocomplete="off" class="form-control form-control-sm rounded-pill" placeholder="Bir yorum yaz...">
         </form>
       </div>
     </div>`;
@@ -109,13 +109,16 @@ async function submitComment(event, postId) {
   try {
     const comment = await apiFetch("/api/comments", { method: "POST", body: { postId, text } });
     const list = form.closest(".comments-collapse").querySelector(".comments-list");
-    if (list.dataset.empty) { list.innerHTML = ""; delete list.dataset.empty; }
-    list.insertAdjacentHTML("beforeend", commentHtml(comment));
     input.value = "";
 
-    const card = form.closest(".card[data-post-id]");
-    const label = card.querySelector(".comment-count-label");
-    label.textContent = (parseInt(label.textContent, 10) || 0) + 1;
+    // The live "comment-added" event may have shown this comment (and set the count) before this response arrived.
+    if (!list.querySelector(`[data-comment-id="${comment.id}"]`)) {
+      if (list.dataset.empty) { list.innerHTML = ""; delete list.dataset.empty; }
+      list.insertAdjacentHTML("beforeend", commentHtml(comment));
+
+      const label = form.closest(".card[data-post-id]").querySelector(".comment-count-label");
+      label.textContent = (parseInt(label.textContent, 10) || 0) + 1;
+    }
   } catch (err) {
     toast(err.message || "Yorum eklenemedi.");
   }
@@ -231,6 +234,39 @@ async function sendSuggestionRequest(userId, btn) {
     toast(err.message || "İstek gönderilemedi.");
   }
 }
+
+// A friend (or one of our other tabs) posted: fetch it as we would see it and put it on top.
+document.addEventListener("realtime:post-created", async e => {
+  const { postId } = e.detail;
+  if (livePostCard(postId)) return;
+  try {
+    const post = await apiFetch(`/api/posts/${postId}`);
+    if (livePostCard(postId)) return;
+    const list = document.getElementById("feedList");
+    if (!list.querySelector("[data-post-id]")) list.innerHTML = "";
+    list.insertAdjacentHTML("afterbegin", postCardHtml(post));
+  } catch (err) {
+    // Not visible to us after all, or already gone: nothing to show.
+  }
+});
+
+document.addEventListener("realtime:post-updated", async e => {
+  const card = livePostCard(e.detail.postId);
+  if (!card) return;
+  try {
+    card.outerHTML = postCardHtml(await apiFetch(`/api/posts/${e.detail.postId}`));
+  } catch (err) {
+    // Gone or no longer visible: the delete event (or the next reload) takes care of it.
+  }
+});
+
+window.afterLivePostRemoved = () => {
+  const list = document.getElementById("feedList");
+  if (!list.querySelector("[data-post-id]"))
+    list.innerHTML = `<div class="text-center text-muted small py-4">Henüz gönderi yok. İlk paylaşımı sen yap!</div>`;
+};
+
+document.addEventListener("realtime:reconnected", loadFeed);
 
 loadFeed();
 loadSuggestions();

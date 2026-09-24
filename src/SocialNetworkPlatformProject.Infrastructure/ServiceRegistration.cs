@@ -22,6 +22,9 @@ public static class ServiceRegistration
         services.AddSingleton<IUserIdProvider, SubClaimUserIdProvider>();
         services.AddScoped<IRealTimeNotifier, SignalRNotifier>();
 
+        services.AddSingleton<PresenceTracker>();
+        services.AddSingleton<IPresenceTracker>(sp => sp.GetRequiredService<PresenceTracker>());
+
         services.AddAuthentication(options =>
         {
             options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

@@ -16,6 +16,4 @@ public class UserSummary
     public bool ShowOnlineStatus { get; init; }
     public DateTime? LastSeenAt { get; init; }
     public DateTime CreatedAt { get; init; }
-
-    public bool IsOnline => ShowOnlineStatus && LastSeenAt.HasValue && LastSeenAt.Value >= DateTime.UtcNow.AddMinutes(-5);
 }

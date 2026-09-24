@@ -77,6 +77,7 @@ public static class ServiceRegistration
         services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<IMarketplaceService, MarketplaceService>();
         services.AddScoped<IEventService, EventService>();
+        services.AddScoped<ILiveUpdateService, LiveUpdateService>();
 
         return services;
     }

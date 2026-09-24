@@ -60,6 +60,7 @@ async function markRead(id) {
   try {
     await apiFetch(`/api/notifications/${id}/read`, { method: "POST" });
     document.querySelector(`[data-notification-id="${id}"]`)?.classList.remove("notif-unread");
+    window.refreshNotificationBadge?.();
   } catch (err) {
     // Silent: marking as read is a background convenience, not worth interrupting the user for.
   }
@@ -69,6 +70,7 @@ async function markAllRead() {
   try {
     await apiFetch("/api/notifications/read-all", { method: "POST" });
     document.querySelectorAll(".notif-unread").forEach(el => el.classList.remove("notif-unread"));
+    window.refreshNotificationBadge?.();
     toast("Tüm bildirimler okundu olarak işaretlendi.");
   } catch (err) {
     toast(err.message || "İşlem gerçekleştirilemedi.");
@@ -93,5 +95,15 @@ async function respondFromNotification(requestId, notificationId, accepted) {
     toast(err.message || "İşlem gerçekleştirilemedi.");
   }
 }
+
+document.addEventListener("realtime:notification", e => {
+  const n = e.detail;
+  const list = document.getElementById("notificationsList");
+  if (list.querySelector(`[data-notification-id="${n.id}"]`)) return;
+  if (!list.querySelector("[data-notification-id]")) list.innerHTML = "";
+  list.insertAdjacentHTML("afterbegin", notificationHtml(n));
+});
+
+document.addEventListener("realtime:reconnected", loadNotifications);
 
 loadNotifications();

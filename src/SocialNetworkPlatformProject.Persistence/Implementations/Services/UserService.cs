@@ -14,17 +14,23 @@ public class UserService : IUserService
     private readonly IUserRepository _users;
     private readonly IFriendService _friends;
     private readonly IFileStorageService _files;
+    private readonly IPresenceTracker _presence;
+    private readonly ILiveUpdateService _live;
 
     public UserService(
         UserManager<ApplicationUser> userManager,
         IUserRepository users,
         IFriendService friends,
-        IFileStorageService files)
+        IFileStorageService files,
+        IPresenceTracker presence,
+        ILiveUpdateService live)
     {
         _userManager = userManager;
         _users = users;
         _friends = friends;
         _files = files;
+        _presence = presence;
+        _live = live;
     }
 
     public async Task<GetUserProfileDto> GetProfileAsync(Guid userId, Guid currentUserId)
@@ -55,7 +61,7 @@ public class UserService : IUserService
             Education = user.Education,
             JoinedAt = user.CreatedAt,
             FriendCount = friendCount,
-            IsOnline = user.IsOnline,
+            IsOnline = user.ShowOnlineStatus && _presence.IsOnline(user.Id),
             IsPrivateAccount = user.IsPrivateAccount,
             IsOwnProfile = isOwnProfile,
             FriendshipStatus = friendshipStatus
@@ -117,6 +123,8 @@ public class UserService : IUserService
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
             throw new BadRequestException(JoinErrors(result));
+
+        await _live.PresenceChangedAsync(currentUserId);
     }
 
     public async Task ChangePasswordAsync(Guid currentUserId, PutPasswordDto dto)

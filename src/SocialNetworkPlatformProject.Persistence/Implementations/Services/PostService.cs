@@ -25,6 +25,7 @@ public class PostService : IPostService
     private readonly IPostAccessService _access;
     private readonly INotificationService _notifications;
     private readonly IFileStorageService _files;
+    private readonly ILiveUpdateService _live;
     private readonly IMapper _mapper;
 
     public PostService(
@@ -36,6 +37,7 @@ public class PostService : IPostService
         IPostAccessService access,
         INotificationService notifications,
         IFileStorageService files,
+        ILiveUpdateService live,
         IMapper mapper)
     {
         _posts = posts;
@@ -46,6 +48,7 @@ public class PostService : IPostService
         _access = access;
         _notifications = notifications;
         _files = files;
+        _live = live;
         _mapper = mapper;
     }
 
@@ -68,6 +71,7 @@ public class PostService : IPostService
         await _posts.AddAsync(post);
         await _posts.SaveChangesAsync();
 
+        await _live.PostCreatedAsync(currentUserId, post.Id);
         return (await BuildDtosAsync(new[] { post }, currentUserId))[0];
     }
 
@@ -87,6 +91,7 @@ public class PostService : IPostService
         post.Privacy = ParsePrivacy(dto.Privacy);
         await _posts.SaveChangesAsync();
 
+        await _live.PostUpdatedAsync(currentUserId, post.Id);
         return (await BuildDtosAsync(new[] { post }, currentUserId))[0];
     }
 
@@ -103,6 +108,7 @@ public class PostService : IPostService
 
         _files.Delete(post.ImageUrl);
         await _notifications.DeleteByPostAsync(postId);
+        await _live.PostDeletedAsync(currentUserId, postId);
     }
 
     public async Task<GetPostDto> GetByIdAsync(Guid currentUserId, Guid postId)
@@ -168,6 +174,7 @@ public class PostService : IPostService
             await _notifications.CreateAsync(post.AuthorId, currentUserId, NotificationType.PostLiked, postId: postId);
 
         var count = await _likes.GetAll(l => l.PostId == postId).CountAsync();
+        await _live.PostLikeCountChangedAsync(post.AuthorId, currentUserId, postId, count);
         return new GetLikeResultDto { IsLiked = isLiked, LikeCount = count };
     }
 

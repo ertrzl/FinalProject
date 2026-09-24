@@ -27,4 +27,20 @@ public class SignalRNotifier : IRealTimeNotifier
     {
         return _messagesHub.Clients.User(recipientId.ToString()).SendAsync("ReceiveMessage", message);
     }
+
+    public Task PublishAsync(IEnumerable<Guid> recipientIds, string eventName, object payload)
+    {
+        var users = recipientIds.Select(id => id.ToString()).ToList();
+        return _notificationsHub.Clients.Users(users).SendAsync(eventName, payload);
+    }
+
+    public Task BroadcastAsync(string eventName, object payload)
+    {
+        return _notificationsHub.Clients.All.SendAsync(eventName, payload);
+    }
+
+    public Task PublishToMessagesAsync(Guid recipientId, string eventName, object payload)
+    {
+        return _messagesHub.Clients.User(recipientId.ToString()).SendAsync(eventName, payload);
+    }
 }

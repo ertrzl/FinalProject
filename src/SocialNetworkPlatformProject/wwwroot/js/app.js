@@ -104,7 +104,7 @@ function publishPost(btn) {
     <div class="collapse comments-collapse mt-3 pt-3 border-top" id="${id}">
       <form class="d-flex gap-2 align-items-center" onsubmit="addComment(event, this, '${id}')">
         <img src="https://i.pravatar.cc/80?img=45" class="avatar-xs" alt="">
-        <input type="text" class="form-control form-control-sm rounded-pill" placeholder="Bir yorum yaz...">
+        <input type="text" autocomplete="off" class="form-control form-control-sm rounded-pill" placeholder="Bir yorum yaz...">
       </form>
     </div>`;
 

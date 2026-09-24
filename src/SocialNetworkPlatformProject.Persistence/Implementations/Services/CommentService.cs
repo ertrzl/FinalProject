@@ -20,6 +20,7 @@ public class CommentService : ICommentService
     private readonly IUserRepository _users;
     private readonly IPostAccessService _access;
     private readonly INotificationService _notifications;
+    private readonly ILiveUpdateService _live;
     private readonly IMapper _mapper;
 
     public CommentService(
@@ -29,6 +30,7 @@ public class CommentService : ICommentService
         IUserRepository users,
         IPostAccessService access,
         INotificationService notifications,
+        ILiveUpdateService live,
         IMapper mapper)
     {
         _comments = comments;
@@ -37,6 +39,7 @@ public class CommentService : ICommentService
         _users = users;
         _access = access;
         _notifications = notifications;
+        _live = live;
         _mapper = mapper;
     }
 
@@ -95,7 +98,9 @@ public class CommentService : ICommentService
                 postId: post.Id, commentId: comment.Id);
         }
 
-        return (await BuildDtosAsync(new[] { comment }, currentUserId))[0];
+        var result = (await BuildDtosAsync(new[] { comment }, currentUserId))[0];
+        await _live.CommentAddedAsync(post.AuthorId, result, await CountForPostAsync(post.Id));
+        return result;
     }
 
     public async Task DeleteAsync(Guid currentUserId, Guid commentId)
@@ -116,6 +121,9 @@ public class CommentService : ICommentService
 
         _comments.Delete(comment);
         await _comments.SaveChangesAsync();
+
+        var removedIds = replies.Select(r => r.Id).Append(comment.Id).ToList();
+        await _live.CommentDeletedAsync(post?.AuthorId ?? comment.AuthorId, currentUserId, comment.PostId, removedIds, await CountForPostAsync(comment.PostId));
     }
 
     public async Task<GetLikeResultDto> ToggleLikeAsync(Guid currentUserId, Guid commentId)
@@ -145,7 +153,13 @@ public class CommentService : ICommentService
         }
 
         var count = await _likes.GetAll(l => l.CommentId == commentId).CountAsync();
+        await _live.CommentLikeCountChangedAsync(post.AuthorId, currentUserId, comment.PostId, commentId, count);
         return new GetLikeResultDto { IsLiked = isLiked, LikeCount = count };
+    }
+
+    private async Task<int> CountForPostAsync(Guid postId)
+    {
+        return await _comments.GetAll(c => c.PostId == postId).CountAsync();
     }
 
     private async Task<List<GetCommentDto>> BuildDtosAsync(IEnumerable<Comment> comments, Guid currentUserId)

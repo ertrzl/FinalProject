@@ -13,7 +13,11 @@ public interface IMessageService
     // Persists the message, then pushes it to the other participant over SignalR.
     Task<GetMessageDto> SendAsync(Guid currentUserId, PostMessageDto dto);
 
+    // Also tells the other participant (read receipt) when something was actually marked read.
     Task MarkConversationAsReadAsync(Guid currentUserId, Guid conversationId);
+
+    // "X is typing..." signal for the other participant; nothing is stored.
+    Task NotifyTypingAsync(Guid currentUserId, Guid conversationId);
 
     Task<int> GetUnreadCountAsync(Guid currentUserId);
 }

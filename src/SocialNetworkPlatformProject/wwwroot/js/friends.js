@@ -133,7 +133,18 @@ async function sendRequestTo(userId, btn) {
   }
 }
 
-loadIncoming();
-loadSent();
-loadFriends();
-loadSuggestions();
+function reloadAll() {
+  loadIncoming();
+  loadSent();
+  loadFriends();
+  loadSuggestions();
+}
+
+// Someone sent us a request / accepted ours: keep the lists in step without a reload.
+document.addEventListener("realtime:notification", e => {
+  if (e.detail.type === "FriendRequestReceived" || e.detail.type === "FriendRequestAccepted") reloadAll();
+});
+
+document.addEventListener("realtime:reconnected", reloadAll);
+
+reloadAll();

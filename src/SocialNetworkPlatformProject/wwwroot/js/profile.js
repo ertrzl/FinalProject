@@ -25,7 +25,9 @@ async function loadProfile() {
   document.getElementById("profileHandle").textContent = "@" + p.userName;
   document.getElementById("profileFriendCount").textContent = p.friendCount;
   document.getElementById("profileAvatar").src = p.avatarUrl || DEFAULT_AVATAR;
-  document.getElementById("profileOnlineDot").classList.toggle("d-none", !p.isOnline);
+  const onlineDot = document.getElementById("profileOnlineDot");
+  onlineDot.dataset.presenceUser = p.id;
+  onlineDot.classList.toggle("d-none", !p.isOnline);
 
   const cover = document.getElementById("profileCover");
   if (p.coverPhotoUrl) {
@@ -192,7 +194,7 @@ function postCardHtml(post) {
         <div class="comments-list mb-2"></div>
         <form class="d-flex gap-2 align-items-center" onsubmit="return submitComment(event, '${post.id}')">
           <img src="${session.avatarUrl || DEFAULT_AVATAR}" class="avatar-xs" alt="">
-          <input type="text" class="form-control form-control-sm rounded-pill" placeholder="Bir yorum yaz...">
+          <input type="text" autocomplete="off" class="form-control form-control-sm rounded-pill" placeholder="Bir yorum yaz...">
         </form>
       </div>
     </div>`;
@@ -260,11 +262,16 @@ async function submitComment(event, postId) {
   try {
     const comment = await apiFetch("/api/comments", { method: "POST", body: { postId, text } });
     const list = form.closest(".comments-collapse").querySelector(".comments-list");
-    if (list.dataset.empty) { list.innerHTML = ""; delete list.dataset.empty; }
-    list.insertAdjacentHTML("beforeend", commentHtml(comment));
     input.value = "";
-    const label = form.closest(".card").querySelector(".comment-count-label");
-    label.textContent = (parseInt(label.textContent, 10) || 0) + 1;
+
+    // The live "comment-added" event may have shown this comment (and set the count) before this response arrived.
+    if (!list.querySelector(`[data-comment-id="${comment.id}"]`)) {
+      if (list.dataset.empty) { list.innerHTML = ""; delete list.dataset.empty; }
+      list.insertAdjacentHTML("beforeend", commentHtml(comment));
+
+      const label = form.closest(".card").querySelector(".comment-count-label");
+      label.textContent = (parseInt(label.textContent, 10) || 0) + 1;
+    }
   } catch (err) {
     toast(err.message || "Yorum eklenemedi.");
   }

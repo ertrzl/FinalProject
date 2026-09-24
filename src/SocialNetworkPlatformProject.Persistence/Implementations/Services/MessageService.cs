@@ -16,6 +16,7 @@ public class MessageService : IMessageService
     private readonly IMessageRepository _messages;
     private readonly IUserRepository _users;
     private readonly IRealTimeNotifier _notifier;
+    private readonly IPresenceTracker _presence;
     private readonly IMapper _mapper;
 
     public MessageService(
@@ -24,6 +25,7 @@ public class MessageService : IMessageService
         IMessageRepository messages,
         IUserRepository users,
         IRealTimeNotifier notifier,
+        IPresenceTracker presence,
         IMapper mapper)
     {
         _conversations = conversations;
@@ -31,6 +33,7 @@ public class MessageService : IMessageService
         _messages = messages;
         _users = users;
         _notifier = notifier;
+        _presence = presence;
         _mapper = mapper;
     }
 
@@ -76,7 +79,7 @@ public class MessageService : IMessageService
                 OtherUserId = user.Id,
                 OtherUserName = user.FullName,
                 OtherUserAvatarUrl = user.AvatarUrl,
-                IsOtherUserOnline = user.IsOnline,
+                IsOtherUserOnline = user.ShowOnlineStatus && _presence.IsOnline(user.Id),
                 LastMessageText = lastMessage?.Text,
                 LastMessageAt = lastMessage?.CreatedAt,
                 LastMessageIsMine = lastMessage?.SenderId == currentUserId,
@@ -174,6 +177,8 @@ public class MessageService : IMessageService
 
         var forSender = _mapper.Map<GetMessageDto>(message);
         forSender.IsMine = true;
+        // Also reaches the sender's other open tabs/devices; the client de-duplicates by message id.
+        await _notifier.SendMessageAsync(currentUserId, forSender);
         return forSender;
     }
 
@@ -189,6 +194,20 @@ public class MessageService : IMessageService
             message.IsRead = true;
 
         await _messages.SaveChangesAsync();
+
+        // Read receipt: whoever sent those messages sees them turn "seen".
+        foreach (var senderId in unread.Select(m => m.SenderId).Distinct())
+            await _notifier.PublishToMessagesAsync(senderId, "MessagesRead", new { conversationId, readerId = currentUserId });
+    }
+
+    public async Task NotifyTypingAsync(Guid currentUserId, Guid conversationId)
+    {
+        var participants = await _participants.GetAll(p => p.ConversationId == conversationId, asNoTracking: true).ToListAsync();
+        if (participants.All(p => p.UserId != currentUserId))
+            throw new NotFoundException("Conversation not found.");
+
+        foreach (var other in participants.Where(p => p.UserId != currentUserId))
+            await _notifier.PublishToMessagesAsync(other.UserId, "UserTyping", new { conversationId, userId = currentUserId });
     }
 
     public async Task<int> GetUnreadCountAsync(Guid currentUserId)

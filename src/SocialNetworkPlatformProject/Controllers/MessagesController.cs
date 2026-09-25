@@ -51,4 +51,10 @@ public class MessagesController : ControllerBase
     {
         return await _messages.SendAsync(User.GetUserId(), dto);
     }
+
+    [HttpPost("image")]
+    public async Task<ActionResult<GetMessageDto>> SendImage([FromForm] PostMessageImageDto dto)
+    {
+        return await _messages.SendImageAsync(User.GetUserId(), dto);
+    }
 }

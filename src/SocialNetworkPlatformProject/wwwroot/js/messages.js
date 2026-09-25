@@ -37,9 +37,9 @@ function readStatusHtml(isRead) {
 function messageBubbleHtml(m) {
   return `
       <div class="d-flex mb-3 ${m.isMine ? "justify-content-end" : "justify-content-start"}" data-message-id="${m.id}">
-        <div class="px-3 py-2 rounded-4 ${m.isMine ? "bg-primary text-white" : "bg-body-tertiary"}" style="max-width:70%;">
-          <div class="small">${escapeHtml(m.text)}</div>
-          <div class="mt-1 ${m.isMine ? "text-white-50" : "text-muted"}" style="font-size:10.5px;">${timeAgo(m.sentAt)}${m.isMine ? readStatusHtml(m.isRead) : ""}</div>
+        <div class="px-3 py-2 rounded-4 ${window.chatBubbleColorClasses(m)}" style="max-width:70%;">
+          ${window.chatMessageBodyHtml(m)}
+          <div class="mt-1 ${m.isMine && m.type !== "Sticker" ? "text-white-50" : "text-muted"}" style="font-size:10.5px;">${timeAgo(m.sentAt)}${m.isMine ? readStatusHtml(m.isRead) : ""}</div>
         </div>
       </div>`;
 }
@@ -97,17 +97,13 @@ async function startDraftConversation(userId) {
   document.getElementById("conversationThread").innerHTML = `<div class="text-muted small text-center py-4">${escapeHtml(draftUser.fullName)} ile henüz bir sohbetin yok. İlk mesajı gönder!</div>`;
 }
 
-document.getElementById("messageForm").addEventListener("submit", async function (e) {
-  e.preventDefault();
-  const input = document.getElementById("messageInput");
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = "";
+let lastTypingSentAt = 0;
 
-  try {
-    const body = activeId ? { conversationId: activeId, text } : { receiverId: draftUser.id, text };
-    const sent = await window.realtime.sendMessage(body);
+// Text, photo, sticker, emoji and thumbs-up all go through this bar (see chat-composer.js).
+window.createChatComposer(document.getElementById("messageForm"), {
+  getTarget: () => (activeId ? { conversationId: activeId } : draftUser ? { receiverId: draftUser.id } : null),
 
+  onSent: async sent => {
     if (!activeId) {
       activeId = sent.conversationId;
       draftUser = null;
@@ -116,8 +112,12 @@ document.getElementById("messageForm").addEventListener("submit", async function
       appendMessage(sent);
       await renderList();
     }
-  } catch (err) {
-    toast(err.message || "Mesaj gönderilemedi.");
+  },
+
+  onTyping: () => {
+    if (!activeId || Date.now() - lastTypingSentAt < 2500) return;
+    lastTypingSentAt = Date.now();
+    window.realtime.sendTyping(activeId);
   }
 });
 
@@ -188,13 +188,6 @@ document.addEventListener("realtime:typing", e => {
   label.textContent = "yazıyor...";
   clearTimeout(typingTimer);
   typingTimer = setTimeout(hideTyping, 3500);
-});
-
-let lastTypingSentAt = 0;
-document.getElementById("messageInput").addEventListener("input", () => {
-  if (!activeId || Date.now() - lastTypingSentAt < 2500) return;
-  lastTypingSentAt = Date.now();
-  window.realtime.sendTyping(activeId);
 });
 
 document.addEventListener("realtime:reconnected", () => {

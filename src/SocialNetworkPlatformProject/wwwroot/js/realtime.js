@@ -74,7 +74,8 @@
     if (m.isMine || event.defaultPrevented) return;
     const conversations = window.refreshChatConversations ? await window.refreshChatConversations() : [];
     const conversation = conversations.find(c => c.id === m.conversationId);
-    toast(`<b>${escapeHtml(conversation ? conversation.otherUserName : "Yeni mesaj")}</b>: ${escapeHtml(m.text)}`);
+    const preview = window.chatMessagePreviewText ? window.chatMessagePreviewText(m) : m.text;
+    toast(`<b>${escapeHtml(conversation ? conversation.otherUserName : "Yeni mesaj")}</b>: ${escapeHtml(preview)}`);
   });
 
   // Feed changes pushed by the server, re-dispatched as "realtime:<name>" (see live-posts.js and feed.js).

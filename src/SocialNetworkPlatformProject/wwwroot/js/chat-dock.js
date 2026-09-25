@@ -85,11 +85,18 @@ function buildPopupShell(id) {
       <button type="button" class="btn-close btn-close-white btn-sm" onclick="closeChatPopup('${id}')"></button>
     </div>
     <div class="chat-popup-thread" id="chatPopupThread-${id}"></div>
-    <form class="chat-popup-form" onsubmit="sendChatPopupMessage(event, '${id}')">
-      <input type="text" autocomplete="off" class="form-control form-control-sm rounded-pill" placeholder="Bir mesaj yaz..." oninput="sendPopupTyping('${id}')">
-      <button type="submit" class="btn btn-primary btn-sm rounded-circle chat-popup-send"><i class="bi bi-send-fill"></i></button>
-    </form>`;
+    <form class="chat-popup-form"></form>`;
   container.appendChild(popup);
+
+  window.createChatComposer(popup.querySelector(".chat-popup-form"), {
+    compact: true,
+    getTarget: () => ({ conversationId: id }),
+    onSent: sent => {
+      appendPopupMessage(id, sent);
+      renderDockList();
+    },
+    onTyping: () => sendPopupTyping(id)
+  });
 }
 
 async function renderPopup(id) {
@@ -108,8 +115,8 @@ async function renderPopup(id) {
 function bubbleHtml(m) {
   return `
       <div class="d-flex mb-2 ${m.isMine ? "justify-content-end" : "justify-content-start"}" data-message-id="${m.id}">
-        <div class="px-2 py-1 rounded-3 ${m.isMine ? "bg-primary text-white" : "bg-body-tertiary"}" style="max-width:80%; font-size:13px;">
-          ${escapeHtml(m.text)}${m.isMine ? ` <i class="bi ${m.isRead ? "bi-check2-all text-info" : "bi-check2"} read-status" style="font-size:11px;"></i>` : ""}
+        <div class="px-2 py-1 rounded-3 ${window.chatBubbleColorClasses(m)}" style="max-width:80%; font-size:13px;">
+          ${window.chatMessageBodyHtml(m, true)}${m.isMine ? ` <i class="bi ${m.isRead ? "bi-check2-all text-info" : "bi-check2"} read-status" style="font-size:11px;"></i>` : ""}
         </div>
       </div>`;
 }
@@ -129,23 +136,6 @@ async function markPopupRead(id) {
     renderDockList();
   } catch (err) {
     // Silent: it will be marked read next time the popup is opened.
-  }
-}
-
-async function sendChatPopupMessage(event, id) {
-  event.preventDefault();
-  const form = event.target;
-  const input = form.querySelector("input");
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = "";
-
-  try {
-    const sent = await window.realtime.sendMessage({ conversationId: id, text });
-    appendPopupMessage(id, sent);
-    renderDockList();
-  } catch (err) {
-    toast(err.message || "Mesaj gönderilemedi.");
   }
 }
 

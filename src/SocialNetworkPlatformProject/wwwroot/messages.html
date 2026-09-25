@@ -62,10 +62,7 @@
       <div class="col-12 col-md-8 col-lg-9 h-100 d-flex flex-column">
         <div class="p-3 border-bottom d-flex align-items-center gap-2" id="conversationHeader"></div>
         <div class="flex-grow-1 overflow-auto p-3" id="conversationThread"></div>
-        <form class="p-3 border-top d-flex gap-2 align-items-center d-none" id="messageForm">
-          <input type="text" id="messageInput" autocomplete="off" class="form-control rounded-pill" placeholder="Bir mesaj yaz...">
-          <button type="submit" class="btn btn-primary rounded-circle" style="width:42px;height:42px;"><i class="bi bi-send-fill"></i></button>
-        </form>
+        <form class="p-3 border-top d-none" id="messageForm"></form>
       </div>
 
     </div>
@@ -78,7 +75,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
 <script src="js/realtime.js"></script>
 <script src="js/navbar-search.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.3/index.js"></script>
 <script src="js/chat-data.js"></script>
+<script src="js/chat-composer.js"></script>
 <script src="js/messages.js"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@ using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Domain.Entities;
+using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
@@ -17,6 +18,7 @@ public class MessageService : IMessageService
     private readonly IUserRepository _users;
     private readonly IRealTimeNotifier _notifier;
     private readonly IPresenceTracker _presence;
+    private readonly IFileStorageService _files;
     private readonly IMapper _mapper;
 
     public MessageService(
@@ -26,6 +28,7 @@ public class MessageService : IMessageService
         IUserRepository users,
         IRealTimeNotifier notifier,
         IPresenceTracker presence,
+        IFileStorageService files,
         IMapper mapper)
     {
         _conversations = conversations;
@@ -34,6 +37,7 @@ public class MessageService : IMessageService
         _users = users;
         _notifier = notifier;
         _presence = presence;
+        _files = files;
         _mapper = mapper;
     }
 
@@ -80,7 +84,7 @@ public class MessageService : IMessageService
                 OtherUserName = user.FullName,
                 OtherUserAvatarUrl = user.AvatarUrl,
                 IsOtherUserOnline = user.ShowOnlineStatus && _presence.IsOnline(user.Id),
-                LastMessageText = lastMessage?.Text,
+                LastMessageText = lastMessage?.Type == MessageType.Image ? "📷 Fotoğraf" : lastMessage?.Text,
                 LastMessageAt = lastMessage?.CreatedAt,
                 LastMessageIsMine = lastMessage?.SenderId == currentUserId,
                 UnreadCount = unreadCounts.GetValueOrDefault(conversationId)
@@ -121,21 +125,43 @@ public class MessageService : IMessageService
 
     public async Task<GetMessageDto> SendAsync(Guid currentUserId, PostMessageDto dto)
     {
+        var type = dto.Type == "Sticker" ? MessageType.Sticker : MessageType.Text;
+        return await SendCoreAsync(currentUserId, dto.ConversationId, dto.ReceiverId, type, dto.Text.Trim(), null);
+    }
+
+    public async Task<GetMessageDto> SendImageAsync(Guid currentUserId, PostMessageImageDto dto)
+    {
+        var mediaUrl = await _files.SaveImageAsync(dto.Image!, "messages");
+        try
+        {
+            return await SendCoreAsync(currentUserId, dto.ConversationId, dto.ReceiverId, MessageType.Image, (dto.Text ?? string.Empty).Trim(), mediaUrl);
+        }
+        catch
+        {
+            // The message was never created (e.g. unknown conversation), so don't leave the upload orphaned.
+            _files.Delete(mediaUrl);
+            throw;
+        }
+    }
+
+    private async Task<GetMessageDto> SendCoreAsync(
+        Guid currentUserId, Guid? conversationIdArg, Guid? receiverIdArg, MessageType type, string text, string? mediaUrl)
+    {
         Guid conversationId;
         Guid recipientId;
 
-        if (dto.ConversationId.HasValue)
+        if (conversationIdArg.HasValue)
         {
-            var participants = await _participants.GetAll(p => p.ConversationId == dto.ConversationId.Value, asNoTracking: true).ToListAsync();
+            var participants = await _participants.GetAll(p => p.ConversationId == conversationIdArg.Value, asNoTracking: true).ToListAsync();
             if (participants.All(p => p.UserId != currentUserId))
                 throw new NotFoundException("Conversation not found.");
 
-            conversationId = dto.ConversationId.Value;
+            conversationId = conversationIdArg.Value;
             recipientId = participants.First(p => p.UserId != currentUserId).UserId;
         }
-        else if (dto.ReceiverId.HasValue)
+        else if (receiverIdArg.HasValue)
         {
-            recipientId = dto.ReceiverId.Value;
+            recipientId = receiverIdArg.Value;
             if (recipientId == currentUserId)
                 throw new BadRequestException("You can't message yourself.");
 
@@ -165,7 +191,9 @@ public class MessageService : IMessageService
         {
             ConversationId = conversationId,
             SenderId = currentUserId,
-            Text = dto.Text.Trim()
+            Type = type,
+            Text = text,
+            MediaUrl = mediaUrl
         };
 
         await _messages.AddAsync(message);

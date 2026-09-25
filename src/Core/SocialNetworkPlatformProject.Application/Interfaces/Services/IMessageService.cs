@@ -13,6 +13,9 @@ public interface IMessageService
     // Persists the message, then pushes it to the other participant over SignalR.
     Task<GetMessageDto> SendAsync(Guid currentUserId, PostMessageDto dto);
 
+    // Same as SendAsync for a photo (with an optional caption); the image is stored under uploads/messages.
+    Task<GetMessageDto> SendImageAsync(Guid currentUserId, PostMessageImageDto dto);
+
     // Also tells the other participant (read receipt) when something was actually marked read.
     Task MarkConversationAsReadAsync(Guid currentUserId, Guid conversationId);
 

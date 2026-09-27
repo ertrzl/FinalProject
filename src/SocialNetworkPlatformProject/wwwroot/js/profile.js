@@ -7,6 +7,8 @@ const profileUserId = params.get("id") || session.userId;
 let currentProfile = null;
 let loadedPosts = [];
 
+enableLocationAutocomplete(document.getElementById("editLocation"));
+
 function monthYear(isoDate) {
   return new Date(isoDate).toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
 }

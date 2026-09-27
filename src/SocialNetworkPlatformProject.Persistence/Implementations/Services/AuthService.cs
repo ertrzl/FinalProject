@@ -40,8 +40,6 @@ public class AuthService : IAuthService
             Email = dto.Email.Trim(),
             FullName = dto.FullName.Trim(),
             BirthDate = dto.BirthDate,
-            Location = dto.Location?.Trim(),
-            Bio = dto.Bio?.Trim(),
             AvatarUrl = avatarUrl,
             LastSeenAt = DateTime.UtcNow
         };

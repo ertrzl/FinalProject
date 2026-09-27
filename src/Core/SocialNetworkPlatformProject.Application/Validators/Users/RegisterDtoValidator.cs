@@ -23,8 +23,5 @@ public class RegisterDtoValidator : AbstractValidator<RegisterDto>
         RuleFor(x => x.Password)
             .NotEmpty().WithMessage("Password is required.")
             .MinimumLength(8).WithMessage("Password must be at least 8 characters long.");
-
-        RuleFor(x => x.Bio)
-            .MaximumLength(500);
     }
 }

@@ -52,14 +52,6 @@
           <label class="form-label fw-semibold small">Şifre</label>
           <input type="password" id="password" class="form-control" placeholder="••••••••" required>
         </div>
-        <div class="col-md-6">
-          <label class="form-label fw-semibold small">Konum</label>
-          <input type="text" id="location" class="form-control" placeholder="İstanbul, Türkiye">
-        </div>
-        <div class="col-12">
-          <label class="form-label fw-semibold small">Hakkında / Biyografi</label>
-          <textarea id="bio" class="form-control" rows="3" placeholder="Kendinden kısaca bahset..."></textarea>
-        </div>
       </div>
 
       <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-semibold mt-4">
@@ -98,12 +90,6 @@ document.getElementById("registerForm").addEventListener("submit", async (event)
 
     const birthDate = document.getElementById("birthDate").value;
     if (birthDate) formData.append("birthDate", birthDate);
-
-    const location = document.getElementById("location").value.trim();
-    if (location) formData.append("location", location);
-
-    const bio = document.getElementById("bio").value.trim();
-    if (bio) formData.append("bio", bio);
 
     const avatarFile = document.getElementById("avatarInput").files[0];
     if (avatarFile) formData.append("avatar", avatarFile);

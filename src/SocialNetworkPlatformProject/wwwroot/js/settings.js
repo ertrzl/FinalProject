@@ -4,6 +4,8 @@ const session = requireAuth();
 
 let settingsAvatarMarkedForRemoval = false;
 
+enableLocationAutocomplete(document.getElementById("settingsLocation"));
+
 async function loadSettings() {
   try {
     const p = await apiFetch(`/api/users/${session.userId}`);

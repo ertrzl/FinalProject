@@ -45,6 +45,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Event> Events => Set<Event>();
     public DbSet<EventAttendee> EventAttendees => Set<EventAttendee>();
 
+    // Auth: refresh tokens
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder); // required — wires up Identity's own tables (Users, Roles, Claims, etc.)

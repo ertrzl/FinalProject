@@ -1,8 +1,12 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using SocialNetworkPlatformProject.Application.DTOs.Users;
 using SocialNetworkPlatformProject.Application.Exceptions;
+using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Persistence.Identity;
+using DomainRefreshToken = SocialNetworkPlatformProject.Domain.Entities.RefreshToken;
 
 namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
@@ -11,15 +15,21 @@ public class AuthService : IAuthService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ITokenService _tokenService;
     private readonly IFileStorageService _files;
+    private readonly IRefreshTokenRepository _refreshTokens;
+    private readonly IConfiguration _configuration;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
         ITokenService tokenService,
-        IFileStorageService files)
+        IFileStorageService files,
+        IRefreshTokenRepository refreshTokens,
+        IConfiguration configuration)
     {
         _userManager = userManager;
         _tokenService = tokenService;
         _files = files;
+        _refreshTokens = refreshTokens;
+        _configuration = configuration;
     }
 
     public async Task<TokenResponseDto> RegisterAsync(RegisterDto dto)
@@ -71,15 +81,54 @@ public class AuthService : IAuthService
         return await BuildTokenResponseAsync(user);
     }
 
+    public async Task<TokenResponseDto> RefreshTokenAsync(RefreshTokenDto dto)
+    {
+        var stored = await _refreshTokens.GetAll(t => t.Token == dto.RefreshToken).FirstOrDefaultAsync();
+        if (stored == null || stored.IsRevoked || stored.ExpiresAt < DateTime.UtcNow)
+            throw new UnauthorizedException("Invalid or expired refresh token.");
+
+        var user = await _userManager.FindByIdAsync(stored.UserId.ToString())
+            ?? throw new UnauthorizedException("Invalid or expired refresh token.");
+
+        // Rotation: a used refresh token is dead even if it hadn't expired yet, so a leaked one has a single use.
+        stored.IsRevoked = true;
+        _refreshTokens.Update(stored);
+        await _refreshTokens.SaveChangesAsync();
+
+        return await BuildTokenResponseAsync(user);
+    }
+
+    public async Task RevokeRefreshTokenAsync(RefreshTokenDto dto)
+    {
+        var stored = await _refreshTokens.GetAll(t => t.Token == dto.RefreshToken).FirstOrDefaultAsync();
+        if (stored == null || stored.IsRevoked)
+            return;
+
+        stored.IsRevoked = true;
+        _refreshTokens.Update(stored);
+        await _refreshTokens.SaveChangesAsync();
+    }
+
     private async Task<TokenResponseDto> BuildTokenResponseAsync(ApplicationUser user)
     {
         var roles = await _userManager.GetRolesAsync(user);
-        var token = _tokenService.GenerateAccessToken(user.Id, user.Email!, user.FullName, roles);
+        var accessToken = _tokenService.GenerateAccessToken(user.Id, user.Email!, user.FullName, roles);
+
+        var refreshTokenDays = int.Parse(_configuration["Jwt:RefreshTokenExpiryDays"] ?? "30");
+        var refreshToken = new DomainRefreshToken
+        {
+            UserId = user.Id,
+            Token = _tokenService.GenerateRefreshToken(),
+            ExpiresAt = DateTime.UtcNow.AddDays(refreshTokenDays)
+        };
+        await _refreshTokens.AddAsync(refreshToken);
+        await _refreshTokens.SaveChangesAsync();
 
         return new TokenResponseDto
         {
-            AccessToken = token.AccessToken,
-            ExpiresAt = token.ExpiresAt,
+            AccessToken = accessToken.AccessToken,
+            ExpiresAt = accessToken.ExpiresAt,
+            RefreshToken = refreshToken.Token,
             UserId = user.Id,
             FullName = user.FullName,
             AvatarUrl = user.AvatarUrl

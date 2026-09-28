@@ -63,6 +63,7 @@ public static class ServiceRegistration
 
         // Users (Identity-backed, so not a generic IRepository<T>)
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         // Services (business logic)
         services.AddScoped<IAuthService, AuthService>();

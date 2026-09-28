@@ -26,7 +26,7 @@
 
   function createConnection(url) {
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(url, { accessTokenFactory: () => getToken() || "" })
+      .withUrl(url, { accessTokenFactory: async () => (await getValidAccessToken()) || "" })
       .withAutomaticReconnect([0, 2000, 5000, 10000, 20000])
       .build();
 

@@ -1,7 +1,7 @@
 // Shared API helper: talks to our own backend (same origin, so no CORS needed).
 // Every other page's JS will call apiFetch()/apiFetchForm() instead of using fetch() directly.
 
-const SESSION_KEY = "socialnet-session"; // { accessToken, expiresAt, userId, fullName, avatarUrl }
+const SESSION_KEY = "socialnet-session"; // { accessToken, expiresAt, refreshToken, userId, fullName, avatarUrl }
 
 function saveSession(tokenResponse) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(tokenResponse));
@@ -43,15 +43,66 @@ function requireAuth() {
   return session;
 }
 
-function logout() {
+async function logout() {
+  const session = getSession();
   clearSession();
+  if (session?.refreshToken) {
+    // Best-effort — invalidates the refresh token server-side so it can't be replayed later.
+    // Never blocks the redirect: a network hiccup shouldn't trap the user on the page.
+    fetch("/api/auth/logout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: session.refreshToken })
+    }).catch(() => {});
+  }
   window.location.href = "index.html";
+}
+
+// Access tokens are short-lived; this refreshes one just before it expires, using the long-lived
+// refresh token, so the user is never bounced back to the login page mid-session.
+let refreshPromise = null;
+
+async function getValidAccessToken() {
+  const session = getSession();
+  if (!session) return null;
+
+  const expiresAtMs = new Date(/Z$|[+-]\d\d:\d\d$/.test(session.expiresAt) ? session.expiresAt : `${session.expiresAt}Z`).getTime();
+  if (Number.isFinite(expiresAtMs) && expiresAtMs - Date.now() > 30000) {
+    return session.accessToken;
+  }
+
+  if (!session.refreshToken) {
+    clearSession();
+    window.location.href = "index.html";
+    throw new Error("Oturum sona erdi.");
+  }
+
+  // Several requests can notice the stale token at nearly the same time — only one of them should refresh.
+  if (!refreshPromise) {
+    refreshPromise = fetch("/api/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: session.refreshToken })
+    })
+      .then(response => { if (!response.ok) throw new Error("refresh failed"); return response.json(); })
+      .finally(() => { refreshPromise = null; });
+  }
+
+  try {
+    const fresh = await refreshPromise;
+    saveSession(fresh);
+    return fresh.accessToken;
+  } catch (err) {
+    clearSession();
+    window.location.href = "index.html";
+    throw new Error("Oturum sona erdi.");
+  }
 }
 
 // JSON requests (most endpoints): body is a plain object, auto-stringified.
 async function apiFetch(path, options = {}) {
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
-  const token = getToken();
+  const token = await getValidAccessToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const response = await fetch(path, {
@@ -66,7 +117,7 @@ async function apiFetch(path, options = {}) {
 // multipart/form-data requests (endpoints with [FromForm], e.g. file uploads): pass a FormData body as-is.
 async function apiFetchForm(path, options = {}) {
   const headers = { ...(options.headers || {}) };
-  const token = getToken();
+  const token = await getValidAccessToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const response = await fetch(path, { ...options, headers });

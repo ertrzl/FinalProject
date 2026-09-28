@@ -8,4 +8,7 @@ namespace SocialNetworkPlatformProject.Application.Interfaces.Services;
 public interface ITokenService
 {
     TokenResult GenerateAccessToken(Guid userId, string email, string fullName, IEnumerable<string> roles);
+
+    // Opaque random string, not a JWT — just something to look up in the RefreshTokens table.
+    string GenerateRefreshToken();
 }

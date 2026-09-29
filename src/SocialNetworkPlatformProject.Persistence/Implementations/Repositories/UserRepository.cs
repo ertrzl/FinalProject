@@ -59,10 +59,11 @@ public class UserRepository : IUserRepository
         return await _context.Users.AnyAsync(u => u.Id == id);
     }
 
-    public async Task<(List<UserSummary> Items, int TotalCount)> SearchAsync(string term, Guid excludeUserId, int page, int pageSize)
+    public async Task<(List<UserSummary> Items, int TotalCount)> SearchAsync(string term, Guid currentUserId, int page, int pageSize)
     {
+        // The current user is deliberately included: typing your own name should still find your own profile.
         var query = _context.Users.AsNoTracking()
-            .Where(u => u.Id != excludeUserId && (u.FullName.Contains(term) || u.UserName!.Contains(term)));
+            .Where(u => u.FullName.Contains(term) || u.UserName!.Contains(term));
 
         var total = await query.CountAsync();
 
@@ -111,7 +112,7 @@ public class UserRepository : IUserRepository
         // Image files that will be orphaned once the rows below are gone.
         var files = new List<string>();
         files.AddRange(await myPosts.Where(p => p.ImageUrl != null).Select(p => p.ImageUrl!).ToListAsync());
-        files.AddRange(await _context.Set<Story>().Where(s => s.UserId == userId).Select(s => s.ImageUrl).ToListAsync());
+        files.AddRange(await _context.Set<Story>().Where(s => s.UserId == userId).Select(s => s.MediaUrl).ToListAsync());
         files.AddRange(await _context.Set<MarketplaceListing>().Where(l => l.SellerId == userId && l.ImageUrl != null).Select(l => l.ImageUrl!).ToListAsync());
         files.AddRange(await _context.Set<Group>().Where(g => g.CreatedByUserId == userId && g.CoverImageUrl != null).Select(g => g.CoverImageUrl!).ToListAsync());
         files.AddRange(await _context.Set<Event>().Where(e => e.CreatedByUserId == userId && e.CoverImageUrl != null).Select(e => e.CoverImageUrl!).ToListAsync());

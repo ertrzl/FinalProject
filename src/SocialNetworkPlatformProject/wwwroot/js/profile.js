@@ -177,7 +177,7 @@ function postCardHtml(post) {
         </div>
         ${ownerMenu}
       </div>
-      ${post.text ? `<p class="mt-3 mb-2">${escapeHtml(post.text)}</p>` : ""}
+      ${post.text ? `<p class="mt-3 mb-2">${linkifyHashtags(escapeHtml(post.text))}</p>` : ""}
       ${post.imageUrl ? `<div class="rounded-3 overflow-hidden mb-2"><img src="${post.imageUrl}" class="w-100" style="max-height:420px;object-fit:cover;" alt=""></div>` : ""}
       <div class="d-flex justify-content-between text-muted small py-2 border-bottom">
         <span><i class="bi bi-heart-fill text-danger"></i> <span class="like-count-label">${post.likeCount}</span> beğeni</span>

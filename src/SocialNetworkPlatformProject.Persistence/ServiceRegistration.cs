@@ -34,6 +34,7 @@ public static class ServiceRegistration
         services.AddScoped<IPostLikeRepository, PostLikeRepository>();
         services.AddScoped<ICommentLikeRepository, CommentLikeRepository>();
         services.AddScoped<ISavedPostRepository, SavedPostRepository>();
+        services.AddScoped<IHashtagRepository, HashtagRepository>();
 
         // F2
         services.AddScoped<IFriendRequestRepository, FriendRequestRepository>();

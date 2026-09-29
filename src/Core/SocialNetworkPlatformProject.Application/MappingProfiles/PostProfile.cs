@@ -15,6 +15,7 @@ public class PostProfile : Profile
             .ForMember(dest => dest.Privacy, opt => opt.MapFrom(src => src.Privacy.ToString()))
             .ForMember(dest => dest.LikeCount, opt => opt.MapFrom(src => src.Likes.Count))
             .ForMember(dest => dest.CommentCount, opt => opt.MapFrom(src => src.Comments.Count))
+            .ForMember(dest => dest.Hashtags, opt => opt.MapFrom(src => src.Hashtags.Select(h => h.Hashtag!.Name)))
             .ForMember(dest => dest.AuthorName, opt => opt.Ignore())
             .ForMember(dest => dest.AuthorAvatarUrl, opt => opt.Ignore())
             .ForMember(dest => dest.IsLikedByCurrentUser, opt => opt.Ignore())

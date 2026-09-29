@@ -95,6 +95,7 @@
             <button type="button" class="btn-close btn-close-white ms-auto" onclick="closeStory()"></button>
           </div>
           <img id="storyViewerImage" class="story-viewer-image" src="" alt="">
+          <video id="storyViewerVideo" class="story-viewer-image d-none" autoplay muted playsinline></video>
           <div class="story-viewer-nav">
             <div class="story-nav-zone" onclick="prevStory()"></div>
             <div class="story-nav-zone" onclick="nextStory()"></div>
@@ -113,10 +114,11 @@
             <div class="modal-body text-center">
               <div class="d-none mb-3" id="addStoryPreviewWrap">
                 <img id="addStoryPreviewImg" src="" class="w-100 rounded-3" style="max-height:280px;object-fit:cover;" alt="">
+                <video id="addStoryPreviewVideo" src="" class="w-100 rounded-3 d-none" style="max-height:280px;" controls muted></video>
               </div>
               <label class="avatar-upload-btn m-0 d-inline-block">
-                <i class="bi bi-camera me-1"></i>Fotoğraf Seç
-                <input type="file" id="addStoryFileInput" class="d-none" accept="image/*" onchange="previewNewStory(this)">
+                <i class="bi bi-camera me-1"></i>Fotoğraf veya Video Seç
+                <input type="file" id="addStoryFileInput" class="d-none" accept="image/*,video/*" onchange="previewNewStory(this)">
               </label>
             </div>
             <div class="modal-footer">

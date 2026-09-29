@@ -16,7 +16,7 @@
     <a class="navbar-brand fs-4" href="home.html">SocialNet</a>
     <form class="d-none d-md-flex align-items-center bg-body-tertiary rounded-pill px-3 py-2 mx-3 nav-search-wrap" style="max-width:380px; flex:1;" onsubmit="return submitSearch(this)">
       <i class="bi bi-search text-muted me-2"></i>
-      <input type="text" id="searchInput" class="form-control form-control-sm border-0 bg-transparent p-0 shadow-none" placeholder="Kullanıcı ara..." name="q" value="Jane">
+      <input type="text" id="searchInput" class="form-control form-control-sm border-0 bg-transparent p-0 shadow-none" placeholder="Kullanıcı ara..." name="q">
     </form>
     <div class="d-flex align-items-center gap-1 ms-auto">
       <a href="home.html" class="nav-pill-link"><i class="bi bi-house-door-fill"></i>Ana Sayfa</a>
@@ -48,10 +48,15 @@
 
 <div class="container py-4" style="max-width: 700px;">
 
-  <!-- F7: Search for users by name or username -->
+  <!-- F7: Search for users by name or username, plus a bonus post/hashtag search -->
   <div class="card border-0 shadow-sm rounded-4 p-3">
     <div class="fw-bold mb-3" id="searchHeading">Arama sonuçları</div>
-    <div id="searchResults"><div class="text-muted small">Bir kullanıcı adı yazarak arama yap.</div></div>
+    <ul class="nav nav-tabs mb-3">
+      <li class="nav-item"><button type="button" class="nav-link active" id="searchTabUsersBtn" onclick="switchSearchTab('users')">Kullanıcılar</button></li>
+      <li class="nav-item"><button type="button" class="nav-link" id="searchTabPostsBtn" onclick="switchSearchTab('posts')">Gönderiler</button></li>
+    </ul>
+    <div id="searchResultsUsers"><div class="text-muted small">Bir kullanıcı adı yazarak arama yap.</div></div>
+    <div id="searchResultsPosts" class="d-none"><div class="text-muted small">Bir kelime ya da #hashtag yazarak arama yap.</div></div>
   </div>
 
 </div>

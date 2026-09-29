@@ -7,7 +7,8 @@ public class GetStoryDto
     public Guid UserId { get; set; }
     public string UserName { get; set; } = string.Empty;
     public string? UserAvatarUrl { get; set; }
-    public string ImageUrl { get; set; } = string.Empty;
+    public string MediaUrl { get; set; } = string.Empty;
+    public string MediaType { get; set; } = "Image"; // "Image" / "Video"
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }
 }

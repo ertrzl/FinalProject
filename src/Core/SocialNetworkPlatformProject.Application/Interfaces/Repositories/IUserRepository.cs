@@ -11,7 +11,8 @@ public interface IUserRepository
 
     Task<bool> ExistsAsync(Guid id);
 
-    Task<(List<UserSummary> Items, int TotalCount)> SearchAsync(string term, Guid excludeUserId, int page, int pageSize);
+    // Includes the current user in results — typing your own name should still find your own profile.
+    Task<(List<UserSummary> Items, int TotalCount)> SearchAsync(string term, Guid currentUserId, int page, int pageSize);
 
     // Newest users first, skipping the given ids — used to pad friend suggestions.
     Task<List<UserSummary>> GetRecentAsync(IEnumerable<Guid> excludeIds, int take);

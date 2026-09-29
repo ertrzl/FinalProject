@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SocialNetworkPlatformProject.Application.Common;
@@ -14,12 +15,15 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class PostService : IPostService
 {
-    // The mapping profile computes LikeCount/CommentCount from these collections.
-    private static readonly string[] CountIncludes = { "Likes", "Comments" };
+    // The mapping profile computes LikeCount/CommentCount/Hashtags from these collections.
+    private static readonly string[] CountIncludes = { "Likes", "Comments", "Hashtags.Hashtag" };
+
+    private static readonly Regex HashtagPattern = new(@"#([\p{L}0-9_]+)", RegexOptions.Compiled);
 
     private readonly IPostRepository _posts;
     private readonly IPostLikeRepository _likes;
     private readonly ISavedPostRepository _saved;
+    private readonly IHashtagRepository _hashtags;
     private readonly IUserRepository _users;
     private readonly IFriendService _friends;
     private readonly IPostAccessService _access;
@@ -32,6 +36,7 @@ public class PostService : IPostService
         IPostRepository posts,
         IPostLikeRepository likes,
         ISavedPostRepository saved,
+        IHashtagRepository hashtags,
         IUserRepository users,
         IFriendService friends,
         IPostAccessService access,
@@ -43,6 +48,7 @@ public class PostService : IPostService
         _posts = posts;
         _likes = likes;
         _saved = saved;
+        _hashtags = hashtags;
         _users = users;
         _friends = friends;
         _access = access;
@@ -69,6 +75,7 @@ public class PostService : IPostService
         };
 
         await _posts.AddAsync(post);
+        await SyncHashtagsAsync(post, post.Text);
         await _posts.SaveChangesAsync();
 
         await _live.PostCreatedAsync(currentUserId, post.Id);
@@ -89,6 +96,7 @@ public class PostService : IPostService
 
         post.Text = text;
         post.Privacy = ParsePrivacy(dto.Privacy);
+        await SyncHashtagsAsync(post, text);
         await _posts.SaveChangesAsync();
 
         await _live.PostUpdatedAsync(currentUserId, post.Id);
@@ -281,6 +289,86 @@ public class PostService : IPostService
         }
 
         return dtos;
+    }
+
+    public async Task<PagedResult<GetPostDto>> SearchAsync(Guid currentUserId, string term, int page, int pageSize)
+    {
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+        term = term.Trim();
+
+        if (term.Length == 0)
+            return new PagedResult<GetPostDto> { Page = page, PageSize = pageSize };
+
+        Expression<Func<Post, bool>> filter;
+        if (term.StartsWith('#') && term.Length > 1)
+        {
+            var tag = term[1..].ToLowerInvariant();
+            filter = p => p.Hashtags.Any(h => h.Hashtag!.Name == tag);
+        }
+        else
+        {
+            var tag = term.ToLowerInvariant();
+            filter = p => (p.Text != null && p.Text.Contains(term)) || p.Hashtags.Any(h => h.Hashtag!.Name == tag);
+        }
+
+        // Privacy depends on friendship/account-privacy lookups, so it's applied in memory (same pattern as GetSavedPostsAsync).
+        var candidates = await _posts.GetAll(
+                filter: filter,
+                orderBy: p => p.CreatedAt,
+                isDescending: true,
+                asNoTracking: true,
+                includes: CountIncludes)
+            .ToListAsync();
+
+        var visible = await _access.FilterVisibleAsync(candidates, currentUserId);
+        var pagePosts = visible.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+        return new PagedResult<GetPostDto>
+        {
+            Items = await BuildDtosAsync(pagePosts, currentUserId),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = visible.Count
+        };
+    }
+
+    // Post text -> distinct, lowercased hashtag names ("Merhaba #Kod #kod!" -> ["kod"]).
+    private static List<string> ExtractHashtagNames(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return new List<string>();
+
+        return HashtagPattern.Matches(text)
+            .Select(m => m.Groups[1].Value.ToLowerInvariant())
+            .Distinct()
+            .ToList();
+    }
+
+    // Replaces post.Hashtags with links matching the post's current text, reusing existing Hashtag rows.
+    // Must run before SaveChangesAsync so new Hashtag/PostHashtag rows go in the same write.
+    private async Task SyncHashtagsAsync(Post post, string? text)
+    {
+        post.Hashtags.Clear();
+
+        var names = ExtractHashtagNames(text);
+        if (names.Count == 0)
+            return;
+
+        var existing = await _hashtags.GetAll(h => names.Contains(h.Name)).ToListAsync();
+
+        foreach (var name in names)
+        {
+            var hashtag = existing.FirstOrDefault(h => h.Name == name);
+            if (hashtag == null)
+            {
+                hashtag = new Hashtag { Name = name };
+                await _hashtags.AddAsync(hashtag);
+                existing.Add(hashtag);
+            }
+
+            post.Hashtags.Add(new PostHashtag { Post = post, Hashtag = hashtag });
+        }
     }
 
     private static PostPrivacy ParsePrivacy(string value)

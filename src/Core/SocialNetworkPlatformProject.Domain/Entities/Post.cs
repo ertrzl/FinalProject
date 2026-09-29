@@ -14,4 +14,5 @@ public class Post : BaseEntity
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<PostLike> Likes { get; set; } = new List<PostLike>();
     public ICollection<SavedPost> SavedBy { get; set; } = new List<SavedPost>();
+    public ICollection<PostHashtag> Hashtags { get; set; } = new List<PostHashtag>();
 }

@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Http;
 
 namespace SocialNetworkPlatformProject.Application.DTOs.Stories;
 
-// "Hikaye Ekle" modal on home.html
+// "Hikaye Ekle" modal on home.html — accepts either a photo or a short video.
 public class PostStoryDto
 {
-    public IFormFile Image { get; set; } = null!;
+    public IFormFile Media { get; set; } = null!;
 }

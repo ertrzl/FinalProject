@@ -18,6 +18,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<PostLike> PostLikes => Set<PostLike>();
     public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
     public DbSet<SavedPost> SavedPosts => Set<SavedPost>();
+    public DbSet<Hashtag> Hashtags => Set<Hashtag>();
+    public DbSet<PostHashtag> PostHashtags => Set<PostHashtag>();
 
     // F2: friends
     public DbSet<FriendRequest> FriendRequests => Set<FriendRequest>();

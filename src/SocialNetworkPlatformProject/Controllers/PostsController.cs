@@ -39,6 +39,12 @@ public class PostsController : ControllerBase
         return await _posts.GetUserPostsAsync(userId, User.GetUserId(), page, pageSize);
     }
 
+    [HttpGet("search")]
+    public async Task<ActionResult<PagedResult<GetPostDto>>> Search([FromQuery] string term, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        return await _posts.SearchAsync(User.GetUserId(), term, page, pageSize);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<GetPostDto>> GetById(Guid id)
     {

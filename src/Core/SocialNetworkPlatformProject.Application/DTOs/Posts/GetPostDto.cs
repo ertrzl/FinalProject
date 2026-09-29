@@ -14,6 +14,7 @@ public class GetPostDto
     public string? ImageUrl { get; set; }
     public string Privacy { get; set; } = string.Empty; // "Public" / "FriendsOnly"
     public DateTime CreatedAt { get; set; }
+    public List<string> Hashtags { get; set; } = new();
 
     public int LikeCount { get; set; }
     public int CommentCount { get; set; }

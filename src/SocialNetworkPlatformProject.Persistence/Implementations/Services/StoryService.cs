@@ -5,6 +5,7 @@ using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Domain.Entities;
+using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
@@ -32,9 +33,17 @@ public class StoryService : IStoryService
 
     public async Task<GetStoryDto> CreateAsync(Guid currentUserId, PostStoryDto dto)
     {
-        var imageUrl = await _files.SaveImageAsync(dto.Image, "stories");
+        var isVideo = dto.Media.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase);
+        var mediaUrl = isVideo
+            ? await _files.SaveVideoAsync(dto.Media, "stories")
+            : await _files.SaveImageAsync(dto.Media, "stories");
 
-        var story = new Story { UserId = currentUserId, ImageUrl = imageUrl };
+        var story = new Story
+        {
+            UserId = currentUserId,
+            MediaUrl = mediaUrl,
+            MediaType = isVideo ? StoryMediaType.Video : StoryMediaType.Image
+        };
         await _stories.AddAsync(story);
         await _stories.SaveChangesAsync();
 
@@ -68,7 +77,7 @@ public class StoryService : IStoryService
         _stories.Delete(story);
         await _stories.SaveChangesAsync();
 
-        _files.Delete(story.ImageUrl);
+        _files.Delete(story.MediaUrl);
     }
 
     private async Task<List<GetStoryDto>> BuildDtosAsync(IEnumerable<Story> stories)

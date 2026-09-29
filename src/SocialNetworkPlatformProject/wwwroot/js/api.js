@@ -168,6 +168,13 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// Turns "#tag" into a link to its search results. Text must already be escaped (hashtags contain
+// no characters escapeHtml touches, so running this after escaping is safe).
+function linkifyHashtags(escapedText) {
+  return escapedText.replace(/(^|[\s(])#([\p{L}0-9_]+)/gu,
+    (match, before, tag) => `${before}<a href="search.html?q=${encodeURIComponent("#" + tag)}" class="text-primary text-decoration-none">#${tag}</a>`);
+}
+
 function timeAgo(isoDate) {
   // ASP.NET Core serializes DateTime (not DateTimeOffset) without a "Z" suffix even though it's UTC —
   // without it, JS's Date parser treats the string as local time and skews every timestamp.

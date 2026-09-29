@@ -6,10 +6,14 @@ let currentStory = 0;
 let storyTimer = null;
 
 function storyCardHtml(story, index) {
+  const thumb = story.mediaType === "Video"
+    ? `<video src="${story.mediaUrl}" muted></video><i class="bi bi-play-circle-fill story-video-badge"></i>`
+    : `<img src="${story.mediaUrl}" alt="">`;
+
   return `
     <div class="story-card" onclick="openStory(${index})">
       <span class="story-ring"><img src="${story.userAvatarUrl || DEFAULT_AVATAR}" alt=""></span>
-      <img src="${story.imageUrl}" alt="">
+      ${thumb}
       <span class="story-name">${escapeHtml(story.userName)}</span>
     </div>`;
 }
@@ -53,7 +57,24 @@ function showStory(index) {
   const story = activeStories[index];
   document.getElementById("storyViewerAvatar").src = story.userAvatarUrl || DEFAULT_AVATAR;
   document.getElementById("storyViewerName").textContent = story.userName;
-  document.getElementById("storyViewerImage").src = story.imageUrl;
+
+  const img = document.getElementById("storyViewerImage");
+  const video = document.getElementById("storyViewerVideo");
+  const isVideo = story.mediaType === "Video";
+
+  img.classList.toggle("d-none", isVideo);
+  video.classList.toggle("d-none", !isVideo);
+  if (isVideo) {
+    img.src = "";
+    video.src = story.mediaUrl;
+    video.currentTime = 0;
+    video.play().catch(() => {});
+  } else {
+    video.pause();
+    video.removeAttribute("src");
+    img.src = story.mediaUrl;
+  }
+
   markBarsDone(index);
   runProgress(index);
 }
@@ -91,17 +112,25 @@ function prevStory() {
 function closeStory() {
   clearTimeout(storyTimer);
   document.getElementById("storyViewer").classList.add("d-none");
+  document.getElementById("storyViewerVideo").pause();
   document.body.style.overflow = "";
 }
 
 // ---- Add-story modal ----
 function previewNewStory(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+
   const wrap = document.getElementById("addStoryPreviewWrap");
   const img = document.getElementById("addStoryPreviewImg");
-  if (input.files && input.files[0]) {
-    img.src = URL.createObjectURL(input.files[0]);
-    wrap.classList.remove("d-none");
-  }
+  const video = document.getElementById("addStoryPreviewVideo");
+  const isVideo = file.type.startsWith("video/");
+  const url = URL.createObjectURL(file);
+
+  img.classList.toggle("d-none", isVideo);
+  video.classList.toggle("d-none", !isVideo);
+  if (isVideo) { img.src = ""; video.src = url; } else { video.src = ""; img.src = url; }
+  wrap.classList.remove("d-none");
 }
 
 async function publishStory() {
@@ -111,11 +140,12 @@ async function publishStory() {
 
   try {
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append("media", file);
     await apiFetchForm("/api/stories", { method: "POST", body: formData });
 
     bootstrap.Modal.getInstance(document.getElementById("addStoryModal"))?.hide();
     fileInput.value = "";
+    document.getElementById("addStoryPreviewVideo").src = "";
     document.getElementById("addStoryPreviewWrap").classList.add("d-none");
     toast("Hikayen paylaşıldı!");
     await loadStories();

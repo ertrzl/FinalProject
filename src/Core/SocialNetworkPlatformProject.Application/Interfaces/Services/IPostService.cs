@@ -26,4 +26,8 @@ public interface IPostService
     Task<bool> ToggleSaveAsync(Guid currentUserId, Guid postId);
 
     Task<PagedResult<GetPostDto>> GetSavedPostsAsync(Guid currentUserId, int page, int pageSize);
+
+    // search.html "Gönderiler" tab. A term starting with "#" matches a hashtag exactly;
+    // otherwise it matches the post text or a hashtag with that exact name.
+    Task<PagedResult<GetPostDto>> SearchAsync(Guid currentUserId, string term, int page, int pageSize);
 }

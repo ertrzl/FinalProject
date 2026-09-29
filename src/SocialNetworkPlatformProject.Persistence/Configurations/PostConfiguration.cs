@@ -22,5 +22,10 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
             .WithOne(s => s.Post)
             .HasForeignKey(s => s.PostId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(p => p.Hashtags)
+            .WithOne(h => h.Post)
+            .HasForeignKey(h => h.PostId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

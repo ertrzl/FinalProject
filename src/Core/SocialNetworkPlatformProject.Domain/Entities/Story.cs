@@ -1,4 +1,5 @@
 using SocialNetworkPlatformProject.Domain.Common;
+using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Domain.Entities;
 
@@ -6,6 +7,7 @@ namespace SocialNetworkPlatformProject.Domain.Entities;
 public class Story : BaseEntity
 {
     public Guid UserId { get; set; }
-    public string ImageUrl { get; set; } = string.Empty;
+    public string MediaUrl { get; set; } = string.Empty;
+    public StoryMediaType MediaType { get; set; } = StoryMediaType.Image;
     public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddHours(24);
 }

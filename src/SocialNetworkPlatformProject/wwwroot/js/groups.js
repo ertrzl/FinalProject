@@ -11,9 +11,9 @@ function groupCardHtml(group, discoverMode) {
   return `
     <div class="col-md-4" data-group-id="${group.id}">
       <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
-        <img src="${group.coverImageUrl || "https://picsum.photos/seed/" + group.id + "/400/160"}" class="w-100" style="height:120px;object-fit:cover;" alt="">
+        <a href="group.html?id=${group.id}"><img src="${group.coverImageUrl || "https://picsum.photos/seed/" + group.id + "/400/160"}" class="w-100" style="height:120px;object-fit:cover;" alt=""></a>
         <div class="p-3">
-          <div class="fw-bold"><a href="groups.html#" class="text-dark text-decoration-none">${escapeHtml(group.name)}</a></div>
+          <div class="fw-bold"><a href="group.html?id=${group.id}" class="text-dark text-decoration-none">${escapeHtml(group.name)}</a></div>
           <div class="text-muted small mb-3"><i class="bi bi-people-fill me-1"></i>${group.memberCount} üye · ${privacyLabel}</div>
           ${actionBtn}
         </div>

@@ -20,6 +20,9 @@ public interface IPostService
     // profile.html "Gönderiler" tab, filtered by what the viewer is allowed to see.
     Task<PagedResult<GetPostDto>> GetUserPostsAsync(Guid profileUserId, Guid currentUserId, int page, int pageSize);
 
+    // group.html wall: throws NotFoundException if the group is private and the viewer isn't a member.
+    Task<PagedResult<GetPostDto>> GetGroupPostsAsync(Guid groupId, Guid currentUserId, int page, int pageSize);
+
     Task<GetLikeResultDto> ToggleLikeAsync(Guid currentUserId, Guid postId);
 
     // Returns true when the post is saved after the toggle.

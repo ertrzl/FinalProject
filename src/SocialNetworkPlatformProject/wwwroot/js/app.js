@@ -32,20 +32,30 @@ function previewAvatar(input) {
   }
 }
 
-// ---- Composer: image attach preview ----
+// ---- Composer: image/video attach preview ----
 function previewComposerImage(input) {
   const wrap = document.getElementById("composerPreview");
   const img = document.getElementById("composerPreviewImg");
-  if (input.files && input.files[0] && wrap && img) {
-    img.src = URL.createObjectURL(input.files[0]);
-    wrap.classList.remove("d-none");
-  }
+  const video = document.getElementById("composerPreviewVideo");
+  const file = input.files && input.files[0];
+  if (!file || !wrap) return;
+
+  const isVideo = file.type.startsWith("video/");
+  const url = URL.createObjectURL(file);
+
+  if (img) { img.src = isVideo ? "" : url; img.classList.toggle("d-none", isVideo); }
+  if (video) { video.src = isVideo ? url : ""; video.classList.toggle("d-none", !isVideo); }
+  wrap.classList.remove("d-none");
 }
 function clearComposerImage() {
   const wrap = document.getElementById("composerPreview");
   const fileInput = document.getElementById("composerFile");
+  const img = document.getElementById("composerPreviewImg");
+  const video = document.getElementById("composerPreviewVideo");
   if (wrap) wrap.classList.add("d-none");
   if (fileInput) fileInput.value = "";
+  if (img) img.src = "";
+  if (video) video.src = "";
 }
 
 // ---- Publish a new post from the composer into the feed above it ----

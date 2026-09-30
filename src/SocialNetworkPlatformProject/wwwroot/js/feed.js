@@ -23,7 +23,7 @@ function postCardHtml(post) {
         </div>
       </div>
       ${post.text ? `<p class="mt-3 mb-2">${linkifyHashtags(escapeHtml(post.text))}</p>` : ""}
-      ${post.imageUrl ? `<div class="rounded-3 overflow-hidden mb-2"><img src="${post.imageUrl}" class="w-100" style="max-height:420px;object-fit:cover;" alt=""></div>` : ""}
+      ${postMediaHtml(post)}
       <div class="d-flex justify-content-between text-muted small py-2 border-bottom">
         <span><i class="bi bi-heart-fill text-danger"></i> <span class="like-count-label">${post.likeCount}</span> beğeni</span>
         <span><span class="comment-count-label">${post.commentCount}</span> yorum</span>
@@ -111,14 +111,15 @@ async function submitComment(event, postId) {
     const list = form.closest(".comments-collapse").querySelector(".comments-list");
     input.value = "";
 
-    // The live "comment-added" event may have shown this comment (and set the count) before this response arrived.
+    // The live "comment-added" event may have shown this comment before this response arrived (posting on your
+    // own post always echoes back to you). Counting the actual rendered comments — instead of adding 1 to
+    // whatever the label currently says — makes this safe no matter which one lands first.
     if (!list.querySelector(`[data-comment-id="${comment.id}"]`)) {
       if (list.dataset.empty) { list.innerHTML = ""; delete list.dataset.empty; }
       list.insertAdjacentHTML("beforeend", commentHtml(comment));
-
-      const label = form.closest(".card[data-post-id]").querySelector(".comment-count-label");
-      label.textContent = (parseInt(label.textContent, 10) || 0) + 1;
     }
+    form.closest(".card[data-post-id]").querySelector(".comment-count-label").textContent =
+      list.querySelectorAll("[data-comment-id]").length;
   } catch (err) {
     toast(err.message || "Yorum eklenemedi.");
   }
@@ -158,7 +159,7 @@ async function publishPost(btn) {
   try {
     const formData = new FormData();
     if (text) formData.append("text", text);
-    if (file) formData.append("image", file);
+    if (file) formData.append("media", file);
     formData.append("privacy", privacy);
 
     await apiFetchForm("/api/posts", { method: "POST", body: formData });

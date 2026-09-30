@@ -42,7 +42,9 @@ function postResultHtml(post) {
         <div class="fw-bold small"><a href="profile.html?id=${post.authorId}" class="text-dark text-decoration-none">${escapeHtml(post.authorName)}</a></div>
         <div class="text-muted small mb-1">${timeAgo(post.createdAt)}</div>
         ${post.text ? `<p class="mb-2">${linkifyHashtags(escapeHtml(post.text))}</p>` : ""}
-        ${post.imageUrl ? `<img src="${post.imageUrl}" class="rounded-3 mb-2" style="max-width:100%;max-height:280px;object-fit:cover;" alt="">` : ""}
+        ${post.mediaUrl ? (post.mediaType === "Video"
+          ? `<video src="${post.mediaUrl}" class="rounded-3 mb-2" style="max-width:100%;max-height:280px;object-fit:cover;" controls></video>`
+          : `<img src="${post.mediaUrl}" class="rounded-3 mb-2" style="max-width:100%;max-height:280px;object-fit:cover;" alt="">`) : ""}
         <button class="btn btn-sm p-0 text-muted fw-semibold like-btn ${likedClass}" onclick="togglePostResultLike(this)">
           <i class="like-icon bi ${heartIcon}"></i> <span class="like-count">${post.likeCount}</span>
         </button>

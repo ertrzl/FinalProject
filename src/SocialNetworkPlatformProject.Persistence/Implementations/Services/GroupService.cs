@@ -16,17 +16,20 @@ public class GroupService : IGroupService
 
     private readonly IGroupRepository _groups;
     private readonly IGroupMemberRepository _members;
+    private readonly IUserRepository _users;
     private readonly IFileStorageService _files;
     private readonly IMapper _mapper;
 
     public GroupService(
         IGroupRepository groups,
         IGroupMemberRepository members,
+        IUserRepository users,
         IFileStorageService files,
         IMapper mapper)
     {
         _groups = groups;
         _members = members;
+        _users = users;
         _files = files;
         _mapper = mapper;
     }
@@ -53,7 +56,7 @@ public class GroupService : IGroupService
         await _groups.AddAsync(group);
         await _groups.SaveChangesAsync();
 
-        return ToDto(group, currentUserId);
+        return await ToDtoAsync(group, currentUserId, includeMembers: false);
     }
 
     public async Task<GetGroupDto> GetByIdAsync(Guid currentUserId, Guid groupId)
@@ -65,7 +68,7 @@ public class GroupService : IGroupService
         if (group.Privacy == GroupPrivacy.Private && group.Members.All(m => m.UserId != currentUserId))
             throw new NotFoundException("Group not found.");
 
-        return ToDto(group, currentUserId);
+        return await ToDtoAsync(group, currentUserId, includeMembers: true);
     }
 
     public async Task<List<GetGroupDto>> GetMyGroupsAsync(Guid currentUserId)
@@ -78,7 +81,7 @@ public class GroupService : IGroupService
                 includes: MemberIncludes)
             .ToListAsync();
 
-        return groups.Select(g => ToDto(g, currentUserId)).ToList();
+        return (await Task.WhenAll(groups.Select(g => ToDtoAsync(g, currentUserId, includeMembers: false)))).ToList();
     }
 
     public async Task<List<GetGroupDto>> DiscoverAsync(Guid currentUserId, string? search)
@@ -95,7 +98,7 @@ public class GroupService : IGroupService
                 includes: MemberIncludes)
             .ToListAsync();
 
-        return groups.Select(g => ToDto(g, currentUserId)).ToList();
+        return (await Task.WhenAll(groups.Select(g => ToDtoAsync(g, currentUserId, includeMembers: false)))).ToList();
     }
 
     public async Task<GetGroupDto> JoinAsync(Guid currentUserId, Guid groupId)
@@ -114,7 +117,7 @@ public class GroupService : IGroupService
         await _members.SaveChangesAsync();
 
         // The tracked Members collection was fixed up by EF when the new row was added.
-        return ToDto(group, currentUserId);
+        return await ToDtoAsync(group, currentUserId, includeMembers: false);
     }
 
     public async Task LeaveAsync(Guid currentUserId, Guid groupId)
@@ -125,7 +128,7 @@ public class GroupService : IGroupService
         var membership = group.Members.FirstOrDefault(m => m.UserId == currentUserId)
             ?? throw new BadRequestException("You are not a member of this group.");
 
-        var others = group.Members.Where(m => m.UserId != currentUserId).OrderBy(m => m.CreatedAt).ToList();
+        var others = group.Members.Where(m => m.UserId != currentUserId).ToList();
 
         if (others.Count == 0)
         {
@@ -136,9 +139,13 @@ public class GroupService : IGroupService
             return;
         }
 
-        // Never leave a group without an admin: hand the role to its longest-standing member.
+        // The owner can't slip out unnoticed: they must hand the group to someone else first.
+        if (group.CreatedByUserId == currentUserId)
+            throw new BadRequestException("Grubun sahibisin. Ayrılmadan önce grubu başka bir üyeye devretmelisin.");
+
+        // Never leave a group without an admin: the last admin must promote someone else first.
         if (membership.Role == GroupMemberRole.Admin && others.All(m => m.Role != GroupMemberRole.Admin))
-            others[0].Role = GroupMemberRole.Admin;
+            throw new BadRequestException("Grupta başka yönetici kalmıyor. Ayrılmadan önce bir üyeyi yönetici yap.");
 
         _members.Delete(membership);
         await _members.SaveChangesAsync();
@@ -159,10 +166,118 @@ public class GroupService : IGroupService
         _files.Delete(group.CoverImageUrl);
     }
 
-    private GetGroupDto ToDto(Group group, Guid currentUserId)
+    public async Task RemoveMemberAsync(Guid currentUserId, Guid groupId, Guid targetUserId)
+    {
+        if (currentUserId == targetUserId)
+            throw new BadRequestException("Kendini gruptan çıkaramazsın, bunun için 'Ayrıl' seçeneğini kullan.");
+
+        var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
+            ?? throw new NotFoundException("Group not found.");
+
+        var acting = group.Members.FirstOrDefault(m => m.UserId == currentUserId)
+            ?? throw new ForbiddenException("Bu grubun üyesi değilsin.");
+
+        if (acting.Role == GroupMemberRole.Member)
+            throw new ForbiddenException("Üye çıkarmak için yönetici ya da moderatör olmalısın.");
+
+        var target = group.Members.FirstOrDefault(m => m.UserId == targetUserId)
+            ?? throw new NotFoundException("Bu kullanıcı grubun üyesi değil.");
+
+        // Admins can only be removed by leaving on their own (after handing off admin/ownership).
+        if (target.Role == GroupMemberRole.Admin)
+            throw new ForbiddenException("Bir yöneticiyi gruptan çıkaramazsın.");
+
+        // Moderators can clear out regular members but can't touch each other.
+        if (acting.Role == GroupMemberRole.Moderator && target.Role == GroupMemberRole.Moderator)
+            throw new ForbiddenException("Bir moderatör başka bir moderatörü çıkaramaz.");
+
+        _members.Delete(target);
+        await _members.SaveChangesAsync();
+    }
+
+    public async Task<GetGroupDto> SetMemberRoleAsync(Guid currentUserId, Guid groupId, Guid targetUserId, string role)
+    {
+        if (!Enum.TryParse<GroupMemberRole>(role, out var newRole))
+            throw new BadRequestException("Role must be 'Admin', 'Moderator' or 'Member'.");
+
+        if (currentUserId == targetUserId)
+            throw new BadRequestException("Kendi rolünü değiştiremezsin.");
+
+        var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
+            ?? throw new NotFoundException("Group not found.");
+
+        var acting = group.Members.FirstOrDefault(m => m.UserId == currentUserId)
+            ?? throw new ForbiddenException("Bu grubun üyesi değilsin.");
+        if (acting.Role != GroupMemberRole.Admin)
+            throw new ForbiddenException("Sadece yöneticiler rol değiştirebilir.");
+
+        var target = group.Members.FirstOrDefault(m => m.UserId == targetUserId)
+            ?? throw new NotFoundException("Bu kullanıcı grubun üyesi değil.");
+
+        if (target.UserId == group.CreatedByUserId && newRole != GroupMemberRole.Admin)
+            throw new BadRequestException("Grup sahibinin rütbesini indiremezsin, önce grubu devretmeli.");
+
+        if (target.Role == GroupMemberRole.Admin && newRole != GroupMemberRole.Admin
+            && group.Members.Count(m => m.Role == GroupMemberRole.Admin) == 1)
+            throw new BadRequestException("Gruptaki tek yöneticiyi rütbesini indiremezsin.");
+
+        target.Role = newRole;
+        await _groups.SaveChangesAsync();
+
+        return await ToDtoAsync(group, currentUserId, includeMembers: true);
+    }
+
+    public async Task<GetGroupDto> TransferOwnershipAsync(Guid currentUserId, Guid groupId, Guid newOwnerUserId)
+    {
+        var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
+            ?? throw new NotFoundException("Group not found.");
+
+        if (group.CreatedByUserId != currentUserId)
+            throw new ForbiddenException("Sadece grubun sahibi bu grubu devredebilir.");
+
+        if (newOwnerUserId == currentUserId)
+            throw new BadRequestException("Grup zaten sende.");
+
+        var newOwner = group.Members.FirstOrDefault(m => m.UserId == newOwnerUserId)
+            ?? throw new BadRequestException("Devredilecek kişi grubun bir üyesi olmalı.");
+
+        newOwner.Role = GroupMemberRole.Admin;
+        group.CreatedByUserId = newOwnerUserId;
+        await _groups.SaveChangesAsync();
+
+        return await ToDtoAsync(group, currentUserId, includeMembers: true);
+    }
+
+    private async Task<GetGroupDto> ToDtoAsync(Group group, Guid currentUserId, bool includeMembers)
     {
         var dto = _mapper.Map<GetGroupDto>(group);
         dto.IsCurrentUserMember = group.Members.Any(m => m.UserId == currentUserId);
+        dto.IsCurrentUserAdmin = group.Members.Any(m => m.UserId == currentUserId && m.Role == GroupMemberRole.Admin);
+        dto.IsCurrentUserModerator = group.Members.Any(m => m.UserId == currentUserId && m.Role == GroupMemberRole.Moderator);
+        dto.IsCurrentUserOwner = group.CreatedByUserId == currentUserId;
+
+        if (includeMembers && group.Members.Count > 0)
+        {
+            var summaries = await _users.GetSummariesAsync(group.Members.Select(m => m.UserId));
+            dto.Members = group.Members
+                .OrderByDescending(m => m.Role) // Admin, then Moderator, then Member
+                .ThenBy(m => summaries.TryGetValue(m.UserId, out var s) ? s.FullName : "")
+                .Select(m =>
+                {
+                    summaries.TryGetValue(m.UserId, out var summary);
+                    return new GetGroupMemberDto
+                    {
+                        UserId = m.UserId,
+                        FullName = summary?.FullName ?? "",
+                        UserName = summary?.UserName ?? "",
+                        AvatarUrl = summary?.AvatarUrl,
+                        Role = m.Role.ToString(),
+                        IsOwner = m.UserId == group.CreatedByUserId
+                    };
+                })
+                .ToList();
+        }
+
         return dto;
     }
 }

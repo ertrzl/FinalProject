@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SocialNetworkPlatformProject.Persistence.Contexts;
 
@@ -11,9 +12,11 @@ using SocialNetworkPlatformProject.Persistence.Contexts;
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260930101754_AddGroupPosts")]
+    partial class AddGroupPosts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -552,10 +555,7 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<Guid?>("GroupId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("MediaType")
-                        .HasColumnType("int");
-
-                    b.Property<string>("MediaUrl")
+                    b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Privacy")

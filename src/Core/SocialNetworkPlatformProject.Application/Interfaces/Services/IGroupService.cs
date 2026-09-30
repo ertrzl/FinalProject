@@ -19,4 +19,13 @@ public interface IGroupService
     Task LeaveAsync(Guid currentUserId, Guid groupId);
 
     Task DeleteAsync(Guid currentUserId, Guid groupId);
+
+    // Admin/moderator kicks a member out. Admins can't be kicked; moderators can't kick other moderators.
+    Task RemoveMemberAsync(Guid currentUserId, Guid groupId, Guid targetUserId);
+
+    // Admin-only: promote/demote a member's role. Blocked on the sole admin and on the group owner.
+    Task<GetGroupDto> SetMemberRoleAsync(Guid currentUserId, Guid groupId, Guid targetUserId, string role);
+
+    // Owner-only: hands group ownership to another member (who becomes Admin), so the owner can then leave.
+    Task<GetGroupDto> TransferOwnershipAsync(Guid currentUserId, Guid groupId, Guid newOwnerUserId);
 }

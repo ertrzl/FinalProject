@@ -111,7 +111,7 @@ public class UserRepository : IUserRepository
 
         // Image files that will be orphaned once the rows below are gone.
         var files = new List<string>();
-        files.AddRange(await myPosts.Where(p => p.ImageUrl != null).Select(p => p.ImageUrl!).ToListAsync());
+        files.AddRange(await myPosts.Where(p => p.MediaUrl != null).Select(p => p.MediaUrl!).ToListAsync());
         files.AddRange(await _context.Set<Story>().Where(s => s.UserId == userId).Select(s => s.MediaUrl).ToListAsync());
         files.AddRange(await _context.Set<MarketplaceListing>().Where(l => l.SellerId == userId && l.ImageUrl != null).Select(l => l.ImageUrl!).ToListAsync());
         files.AddRange(await _context.Set<Group>().Where(g => g.CreatedByUserId == userId && g.CoverImageUrl != null).Select(g => g.CoverImageUrl!).ToListAsync());

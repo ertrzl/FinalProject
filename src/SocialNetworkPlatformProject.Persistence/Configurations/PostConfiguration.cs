@@ -27,5 +27,11 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
             .WithOne(h => h.Post)
             .HasForeignKey(h => h.PostId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Deleting a group takes its wall posts (and, transitively, their comments/likes) with it.
+        builder.HasOne(p => p.Group)
+            .WithMany()
+            .HasForeignKey(p => p.GroupId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

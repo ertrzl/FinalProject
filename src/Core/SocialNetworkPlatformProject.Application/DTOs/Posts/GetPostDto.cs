@@ -11,7 +11,8 @@ public class GetPostDto
     public string? AuthorAvatarUrl { get; set; }
 
     public string? Text { get; set; }
-    public string? ImageUrl { get; set; }
+    public string? MediaUrl { get; set; }
+    public string MediaType { get; set; } = "Image"; // "Image" / "Video"
     public string Privacy { get; set; } = string.Empty; // "Public" / "FriendsOnly"
     public DateTime CreatedAt { get; set; }
     public List<string> Hashtags { get; set; } = new();

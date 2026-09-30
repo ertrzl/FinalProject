@@ -13,6 +13,7 @@ public class PostProfile : Profile
         // both are filled in by PostService after this mapping runs, not here.
         CreateMap<Post, GetPostDto>()
             .ForMember(dest => dest.Privacy, opt => opt.MapFrom(src => src.Privacy.ToString()))
+            .ForMember(dest => dest.MediaType, opt => opt.MapFrom(src => src.MediaType.ToString()))
             .ForMember(dest => dest.LikeCount, opt => opt.MapFrom(src => src.Likes.Count))
             .ForMember(dest => dest.CommentCount, opt => opt.MapFrom(src => src.Comments.Count))
             .ForMember(dest => dest.Hashtags, opt => opt.MapFrom(src => src.Hashtags.Select(h => h.Hashtag!.Name)))

@@ -190,3 +190,12 @@ function timeAgo(isoDate) {
 }
 
 const DEFAULT_AVATAR = "/images/default-avatar.png";
+
+// Post card media block: an <img> for photo posts, a <video> for video posts.
+function postMediaHtml(post) {
+  if (!post.mediaUrl) return "";
+  if (post.mediaType === "Video") {
+    return `<div class="rounded-3 overflow-hidden mb-2"><video src="${post.mediaUrl}" class="w-100" style="max-height:420px;object-fit:cover;" controls></video></div>`;
+  }
+  return `<div class="rounded-3 overflow-hidden mb-2"><img src="${post.mediaUrl}" class="w-100" style="max-height:420px;object-fit:cover;" alt=""></div>`;
+}

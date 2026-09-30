@@ -24,6 +24,8 @@ public class PostService : IPostService
     private readonly IPostLikeRepository _likes;
     private readonly ISavedPostRepository _saved;
     private readonly IHashtagRepository _hashtags;
+    private readonly IGroupMemberRepository _groupMembers;
+    private readonly IGroupService _groupService;
     private readonly IUserRepository _users;
     private readonly IFriendService _friends;
     private readonly IPostAccessService _access;
@@ -37,6 +39,8 @@ public class PostService : IPostService
         IPostLikeRepository likes,
         ISavedPostRepository saved,
         IHashtagRepository hashtags,
+        IGroupMemberRepository groupMembers,
+        IGroupService groupService,
         IUserRepository users,
         IFriendService friends,
         IPostAccessService access,
@@ -49,6 +53,8 @@ public class PostService : IPostService
         _likes = likes;
         _saved = saved;
         _hashtags = hashtags;
+        _groupMembers = groupMembers;
+        _groupService = groupService;
         _users = users;
         _friends = friends;
         _access = access;
@@ -62,16 +68,32 @@ public class PostService : IPostService
     {
         var privacy = ParsePrivacy(dto.Privacy);
 
-        string? imageUrl = null;
-        if (dto.Image != null)
-            imageUrl = await _files.SaveImageAsync(dto.Image, "posts");
+        if (dto.GroupId.HasValue)
+        {
+            var isMember = await _groupMembers.AnyAsync(m => m.GroupId == dto.GroupId.Value && m.UserId == currentUserId);
+            if (!isMember)
+                throw new ForbiddenException("You must be a member of this group to post in it.");
+        }
+
+        string? mediaUrl = null;
+        var mediaType = PostMediaType.Image;
+        if (dto.Media != null)
+        {
+            var isVideo = dto.Media.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase);
+            mediaUrl = isVideo
+                ? await _files.SaveVideoAsync(dto.Media, "posts")
+                : await _files.SaveImageAsync(dto.Media, "posts");
+            mediaType = isVideo ? PostMediaType.Video : PostMediaType.Image;
+        }
 
         var post = new Post
         {
             AuthorId = currentUserId,
             Text = string.IsNullOrWhiteSpace(dto.Text) ? null : dto.Text.Trim(),
-            ImageUrl = imageUrl,
-            Privacy = privacy
+            MediaUrl = mediaUrl,
+            MediaType = mediaType,
+            Privacy = privacy,
+            GroupId = dto.GroupId
         };
 
         await _posts.AddAsync(post);
@@ -91,8 +113,8 @@ public class PostService : IPostService
             throw new ForbiddenException("You can only edit your own posts.");
 
         var text = string.IsNullOrWhiteSpace(dto.Text) ? null : dto.Text.Trim();
-        if (text == null && post.ImageUrl == null)
-            throw new BadRequestException("A post must have either text or an image.");
+        if (text == null && post.MediaUrl == null)
+            throw new BadRequestException("A post must have either text or media.");
 
         post.Text = text;
         post.Privacy = ParsePrivacy(dto.Privacy);
@@ -114,7 +136,7 @@ public class PostService : IPostService
         _posts.Delete(post);
         await _posts.SaveChangesAsync();
 
-        _files.Delete(post.ImageUrl);
+        _files.Delete(post.MediaUrl);
         await _notifications.DeleteByPostAsync(postId);
         await _live.PostDeletedAsync(currentUserId, postId);
     }
@@ -134,7 +156,8 @@ public class PostService : IPostService
         var authorIds = await _friends.GetFriendIdsAsync(currentUserId);
         authorIds.Add(currentUserId);
 
-        return await GetPagedAsync(p => authorIds.Contains(p.AuthorId), currentUserId, page, pageSize);
+        // Group posts only appear on their group's own wall, not in the personal feed.
+        return await GetPagedAsync(p => authorIds.Contains(p.AuthorId) && p.GroupId == null, currentUserId, page, pageSize);
     }
 
     public async Task<PagedResult<GetPostDto>> GetUserPostsAsync(Guid profileUserId, Guid currentUserId, int page, int pageSize)
@@ -147,7 +170,7 @@ public class PostService : IPostService
         Expression<Func<Post, bool>> filter;
         if (canSeeEverything)
         {
-            filter = p => p.AuthorId == profileUserId;
+            filter = p => p.AuthorId == profileUserId && p.GroupId == null;
         }
         else if (owner.IsPrivateAccount)
         {
@@ -155,10 +178,18 @@ public class PostService : IPostService
         }
         else
         {
-            filter = p => p.AuthorId == profileUserId && p.Privacy == PostPrivacy.Public;
+            filter = p => p.AuthorId == profileUserId && p.GroupId == null && p.Privacy == PostPrivacy.Public;
         }
 
         return await GetPagedAsync(filter, currentUserId, page, pageSize);
+    }
+
+    public async Task<PagedResult<GetPostDto>> GetGroupPostsAsync(Guid groupId, Guid currentUserId, int page, int pageSize)
+    {
+        // Throws NotFoundException if the group doesn't exist or is private and the viewer isn't a member.
+        await _groupService.GetByIdAsync(currentUserId, groupId);
+
+        return await GetPagedAsync(p => p.GroupId == groupId, currentUserId, page, pageSize);
     }
 
     public async Task<GetLikeResultDto> ToggleLikeAsync(Guid currentUserId, Guid postId)

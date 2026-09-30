@@ -17,7 +17,7 @@ function savedPostHtml(post) {
         <button class="btn btn-sm btn-outline-danger rounded-pill" onclick="unsavePost('${post.id}', this)"><i class="bi bi-bookmark-x me-1"></i>Kaydı Kaldır</button>
       </div>
       ${post.text ? `<p class="mt-3 mb-2">${escapeHtml(post.text)}</p>` : ""}
-      ${post.imageUrl ? `<div class="rounded-3 overflow-hidden"><img src="${post.imageUrl}" class="w-100" style="max-height:420px;object-fit:cover;" alt=""></div>` : ""}
+      ${postMediaHtml(post)}
     </div>`;
 }
 

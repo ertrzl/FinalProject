@@ -138,14 +138,15 @@
 
         <div class="d-none mt-3 position-relative" id="composerPreview">
           <button type="button" class="btn btn-dark btn-sm rounded-circle position-absolute top-0 end-0 m-2" onclick="clearComposerImage()"><i class="bi bi-x"></i></button>
-          <img id="composerPreviewImg" src="" alt="" class="rounded-3 w-100" style="max-height:260px; object-fit:cover;">
+          <img id="composerPreviewImg" src="" alt="" class="rounded-3 w-100 d-none" style="max-height:260px; object-fit:cover;">
+          <video id="composerPreviewVideo" src="" class="rounded-3 w-100 d-none" style="max-height:260px; object-fit:cover;" controls></video>
         </div>
 
         <div class="d-flex align-items-center justify-content-between mt-3 pt-3 border-top">
           <div class="d-flex gap-2 align-items-center">
             <label class="attach-label m-0">
-              <i class="bi bi-image"></i> Fotoğraf Ekle
-              <input type="file" id="composerFile" class="d-none" accept="image/*" onchange="previewComposerImage(this)">
+              <i class="bi bi-image"></i> Fotoğraf/Video Ekle
+              <input type="file" id="composerFile" class="d-none" accept="image/*,video/*" onchange="previewComposerImage(this)">
             </label>
             <select id="composerPrivacy" class="form-select form-select-sm privacy-select">
               <option value="Public">🌐 Herkese Açık</option>

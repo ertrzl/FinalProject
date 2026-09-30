@@ -39,6 +39,12 @@ public class PostsController : ControllerBase
         return await _posts.GetUserPostsAsync(userId, User.GetUserId(), page, pageSize);
     }
 
+    [HttpGet("by-group/{groupId:guid}")]
+    public async Task<ActionResult<PagedResult<GetPostDto>>> GetByGroup(Guid groupId, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        return await _posts.GetGroupPostsAsync(groupId, User.GetUserId(), page, pageSize);
+    }
+
     [HttpGet("search")]
     public async Task<ActionResult<PagedResult<GetPostDto>>> Search([FromQuery] string term, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {

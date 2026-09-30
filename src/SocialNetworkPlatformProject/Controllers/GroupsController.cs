@@ -63,4 +63,23 @@ public class GroupsController : ControllerBase
         await _groups.DeleteAsync(User.GetUserId(), id);
         return NoContent();
     }
+
+    [HttpDelete("{id:guid}/members/{userId:guid}")]
+    public async Task<IActionResult> RemoveMember(Guid id, Guid userId)
+    {
+        await _groups.RemoveMemberAsync(User.GetUserId(), id, userId);
+        return NoContent();
+    }
+
+    [HttpPut("{id:guid}/members/{userId:guid}/role")]
+    public async Task<ActionResult<GetGroupDto>> SetMemberRole(Guid id, Guid userId, [FromBody] SetGroupMemberRoleDto dto)
+    {
+        return await _groups.SetMemberRoleAsync(User.GetUserId(), id, userId, dto.Role);
+    }
+
+    [HttpPost("{id:guid}/transfer-ownership/{userId:guid}")]
+    public async Task<ActionResult<GetGroupDto>> TransferOwnership(Guid id, Guid userId)
+    {
+        return await _groups.TransferOwnershipAsync(User.GetUserId(), id, userId);
+    }
 }

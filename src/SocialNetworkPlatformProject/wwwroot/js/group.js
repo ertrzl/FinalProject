@@ -11,7 +11,9 @@ if (!groupId) {
 
 function actionAreaHtml(group) {
   if (group.isCurrentUserAdmin) {
-    return `<button class="btn btn-outline-danger rounded-pill" onclick="deleteGroupPage()"><i class="bi bi-trash me-1"></i>Grubu Sil</button>`;
+    return `
+      <button class="btn btn-light border rounded-pill" data-bs-toggle="modal" data-bs-target="#editGroupModal"><i class="bi bi-pencil me-1"></i>Düzenle</button>
+      <button class="btn btn-outline-danger rounded-pill" onclick="deleteGroupPage()"><i class="bi bi-trash me-1"></i>Grubu Sil</button>`;
   }
   if (group.isCurrentUserMember) {
     return `<button class="btn btn-light border rounded-pill" onclick="leaveGroupPage()">Gruptan Ayrıl</button>`;
@@ -43,6 +45,152 @@ function renderGroup(group) {
   document.getElementById("groupNonMemberNotice").classList.toggle("d-none", group.isCurrentUserMember);
 
   renderMembers(group);
+
+  if (group.isCurrentUserAdmin) {
+    document.getElementById("editGroupName").value = group.name;
+    document.getElementById("editGroupDescription").value = group.description || "";
+    document.getElementById("editGroupPrivacy").value = group.privacy;
+    loadJoinRequests();
+    document.getElementById("groupInviteSection").classList.remove("d-none");
+    document.getElementById("groupInviteSearchInput").value = "";
+    document.getElementById("groupInviteResultsList").innerHTML = "";
+  } else {
+    document.getElementById("groupJoinRequestsSection").classList.add("d-none");
+    document.getElementById("groupInviteSection").classList.add("d-none");
+  }
+}
+
+// ---- Admin-only: edit group details ----
+
+async function saveGroupEdit() {
+  const name = document.getElementById("editGroupName").value.trim();
+  if (!name) {
+    document.getElementById("editGroupName").classList.add("is-invalid");
+    setTimeout(() => document.getElementById("editGroupName").classList.remove("is-invalid"), 1200);
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("description", document.getElementById("editGroupDescription").value.trim());
+    formData.append("privacy", document.getElementById("editGroupPrivacy").value);
+    const coverFile = document.getElementById("editGroupCoverInput").files[0];
+    if (coverFile) formData.append("coverImage", coverFile);
+
+    const group = await apiFetchForm(`/api/groups/${groupId}`, { method: "PUT", body: formData });
+    bootstrap.Modal.getInstance(document.getElementById("editGroupModal"))?.hide();
+    document.getElementById("editGroupCoverInput").value = "";
+    renderGroup(group);
+    toast("Grup güncellendi.");
+  } catch (err) {
+    toast(err.message || "Grup güncellenemedi.");
+  }
+}
+
+// ---- Admin-only: pending join requests for private groups ----
+
+function joinRequestRowHtml(r) {
+  return `
+    <div class="d-flex align-items-center gap-2 py-2 border-bottom" data-request-id="${r.userId}">
+      <a href="profile.html?id=${r.userId}"><img src="${r.avatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt=""></a>
+      <div class="flex-grow-1">
+        <a href="profile.html?id=${r.userId}" class="text-dark text-decoration-none fw-bold">${escapeHtml(r.fullName)}</a>
+        <div class="text-muted small">${timeAgo(r.requestedAt)}</div>
+      </div>
+      <div class="flex-shrink-0 d-flex gap-1">
+        <button class="btn btn-sm btn-success" onclick="approveJoinRequest('${r.userId}')" title="Onayla"><i class="bi bi-check-lg"></i></button>
+        <button class="btn btn-sm btn-outline-danger" onclick="rejectJoinRequest('${r.userId}')" title="Reddet"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </div>`;
+}
+
+async function loadJoinRequests() {
+  const section = document.getElementById("groupJoinRequestsSection");
+  const list = document.getElementById("groupJoinRequestsList");
+  try {
+    const requests = await apiFetch(`/api/groups/${groupId}/join-requests`);
+    section.classList.toggle("d-none", requests.length === 0);
+    list.innerHTML = requests.map(joinRequestRowHtml).join("");
+  } catch (err) {
+    section.classList.add("d-none");
+  }
+}
+
+// ---- Admin-only: search any real user and invite them (not limited to friends) ----
+
+let inviteSearchDebounce = null;
+
+function inviteSearchResultHtml(u, isMember) {
+  const action = isMember
+    ? `<span class="badge text-bg-light border text-muted fw-normal">Zaten üye</span>`
+    : `<button class="btn btn-sm btn-outline-primary" onclick="inviteUser('${u.id}', this)">Davet Et</button>`;
+  return `
+    <div class="d-flex align-items-center gap-2 py-2 border-bottom" data-invite-candidate="${u.id}">
+      <a href="profile.html?id=${u.id}"><img src="${u.avatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt=""></a>
+      <div class="flex-grow-1">
+        <div class="fw-bold">${escapeHtml(u.fullName)}</div>
+        <div class="text-muted small">@${escapeHtml(u.userName)}</div>
+      </div>
+      ${action}
+    </div>`;
+}
+
+function searchInviteCandidates(term) {
+  clearTimeout(inviteSearchDebounce);
+  const list = document.getElementById("groupInviteResultsList");
+  const trimmed = term.trim();
+  if (!trimmed) {
+    list.innerHTML = "";
+    return;
+  }
+
+  inviteSearchDebounce = setTimeout(async () => {
+    try {
+      const result = await apiFetch(`/api/users/search?term=${encodeURIComponent(trimmed)}&page=1&pageSize=10`);
+      const memberIds = new Set((currentGroup.members || []).map(m => m.userId));
+      const candidates = result.items.filter(u => u.id !== session.userId);
+      list.innerHTML = candidates.length
+        ? candidates.map(u => inviteSearchResultHtml(u, memberIds.has(u.id))).join("")
+        : `<div class="text-muted small text-center py-2">Kullanıcı bulunamadı.</div>`;
+    } catch (err) {
+      list.innerHTML = `<div class="text-danger small">${escapeHtml(err.message)}</div>`;
+    }
+  }, 350);
+}
+
+async function inviteUser(userId, btn) {
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/groups/${groupId}/invites/${userId}`, { method: "POST" });
+    toast("Davet gönderildi.");
+    // Not reloading the whole group here: an invite doesn't change membership (except the rare case
+    // where the user already had a pending join request, which just gets folded in silently).
+    btn.outerHTML = `<span class="badge text-bg-light border text-muted fw-normal">Davet gönderildi</span>`;
+  } catch (err) {
+    btn.disabled = false;
+    toast(err.message || "Davet gönderilemedi.");
+  }
+}
+
+async function approveJoinRequest(userId) {
+  try {
+    await apiFetch(`/api/groups/${groupId}/join-requests/${userId}/approve`, { method: "POST" });
+    toast("İstek onaylandı.");
+    await loadGroup();
+  } catch (err) {
+    toast(err.message || "Onaylanamadı.");
+  }
+}
+
+async function rejectJoinRequest(userId) {
+  try {
+    await apiFetch(`/api/groups/${groupId}/join-requests/${userId}/reject`, { method: "POST" });
+    toast("İstek reddedildi.");
+    document.querySelector(`[data-request-id="${userId}"]`)?.remove();
+  } catch (err) {
+    toast(err.message || "Reddedilemedi.");
+  }
 }
 
 // ---- Members list (modal): roles, kicking, and ownership transfer ----

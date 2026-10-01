@@ -14,22 +14,33 @@ public class GroupService : IGroupService
     // GetGroupDto.MemberCount is computed from the Members collection.
     private static readonly string[] MemberIncludes = { "Members" };
 
+    private static readonly string[] GroupAndInviteIncludes = { "Group" };
+
     private readonly IGroupRepository _groups;
     private readonly IGroupMemberRepository _members;
+    private readonly IGroupJoinRequestRepository _joinRequests;
+    private readonly IGroupInviteRepository _invites;
     private readonly IUserRepository _users;
+    private readonly INotificationService _notifications;
     private readonly IFileStorageService _files;
     private readonly IMapper _mapper;
 
     public GroupService(
         IGroupRepository groups,
         IGroupMemberRepository members,
+        IGroupJoinRequestRepository joinRequests,
+        IGroupInviteRepository invites,
         IUserRepository users,
+        INotificationService notifications,
         IFileStorageService files,
         IMapper mapper)
     {
         _groups = groups;
         _members = members;
+        _joinRequests = joinRequests;
+        _invites = invites;
         _users = users;
+        _notifications = notifications;
         _files = files;
         _mapper = mapper;
     }
@@ -55,6 +66,49 @@ public class GroupService : IGroupService
 
         await _groups.AddAsync(group);
         await _groups.SaveChangesAsync();
+
+        return await ToDtoAsync(group, currentUserId, includeMembers: false);
+    }
+
+    public async Task<GetGroupDto> UpdateAsync(Guid currentUserId, Guid groupId, PutGroupDto dto)
+    {
+        var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
+            ?? throw new NotFoundException("Group not found.");
+
+        EnsureAdmin(group, currentUserId);
+
+        if (!Enum.TryParse<GroupPrivacy>(dto.Privacy, out var privacy))
+            throw new BadRequestException("Privacy must be either 'Public' or 'Private'.");
+
+        if (dto.CoverImage != null)
+        {
+            _files.Delete(group.CoverImageUrl);
+            group.CoverImageUrl = await _files.SaveImageAsync(dto.CoverImage, "groups");
+        }
+        else if (dto.RemoveCoverImage)
+        {
+            _files.Delete(group.CoverImageUrl);
+            group.CoverImageUrl = null;
+        }
+
+        group.Name = dto.Name.Trim();
+        group.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
+
+        var wasPrivate = group.Privacy == GroupPrivacy.Private;
+        group.Privacy = privacy;
+        await _groups.SaveChangesAsync();
+
+        // Going public makes any pending requests moot — those users can just join directly now.
+        if (wasPrivate && privacy == GroupPrivacy.Public)
+        {
+            var pending = await _joinRequests.GetAll(r => r.GroupId == groupId).ToListAsync();
+            if (pending.Count > 0)
+            {
+                foreach (var request in pending)
+                    _joinRequests.Delete(request);
+                await _joinRequests.SaveChangesAsync();
+            }
+        }
 
         return await ToDtoAsync(group, currentUserId, includeMembers: false);
     }
@@ -88,9 +142,10 @@ public class GroupService : IGroupService
     {
         var term = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
 
+        // Private groups are listed too — just name/member-count/privacy, same as public ones.
+        // Their card offers a join *request* instead of an immediate join (see JoinAsync).
         var groups = await _groups.GetAll(
-                filter: g => g.Privacy == GroupPrivacy.Public
-                             && g.Members.All(m => m.UserId != currentUserId)
+                filter: g => g.Members.All(m => m.UserId != currentUserId)
                              && (term == null || g.Name.Contains(term)),
                 orderBy: g => g.CreatedAt,
                 isDescending: true,
@@ -98,7 +153,25 @@ public class GroupService : IGroupService
                 includes: MemberIncludes)
             .ToListAsync();
 
-        return (await Task.WhenAll(groups.Select(g => ToDtoAsync(g, currentUserId, includeMembers: false)))).ToList();
+        if (groups.Count == 0)
+            return new List<GetGroupDto>();
+
+        // ToDtoAsync's own awaits only run when includeMembers is true, so this Task.WhenAll stays safe:
+        // every task here resolves synchronously, never touching the shared DbContext concurrently.
+        var dtos = (await Task.WhenAll(groups.Select(g => ToDtoAsync(g, currentUserId, includeMembers: false)))).ToList();
+
+        // One batched query for "did I already request to join any of these" instead of one per group.
+        var groupIds = groups.Select(g => g.Id).ToList();
+        var pendingGroupIds = (await _joinRequests
+                .GetAll(r => r.UserId == currentUserId && groupIds.Contains(r.GroupId), asNoTracking: true)
+                .Select(r => r.GroupId)
+                .ToListAsync())
+            .ToHashSet();
+
+        foreach (var dto in dtos)
+            dto.HasPendingJoinRequest = pendingGroupIds.Contains(dto.Id);
+
+        return dtos;
     }
 
     public async Task<GetGroupDto> JoinAsync(Guid currentUserId, Guid groupId)
@@ -106,11 +179,24 @@ public class GroupService : IGroupService
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
             ?? throw new NotFoundException("Group not found.");
 
-        if (group.Privacy == GroupPrivacy.Private)
-            throw new ForbiddenException("This group is private.");
-
         if (group.Members.Any(m => m.UserId == currentUserId))
             throw new ConflictException("You are already a member of this group.");
+
+        if (group.Privacy == GroupPrivacy.Private)
+        {
+            if (await _joinRequests.AnyAsync(r => r.GroupId == groupId && r.UserId == currentUserId))
+                throw new ConflictException("You already requested to join this group.");
+
+            await _joinRequests.AddAsync(new GroupJoinRequest { GroupId = groupId, UserId = currentUserId });
+            await _joinRequests.SaveChangesAsync();
+
+            foreach (var adminId in group.Members.Where(m => m.Role == GroupMemberRole.Admin).Select(m => m.UserId))
+                await _notifications.CreateAsync(adminId, currentUserId, NotificationType.GroupJoinRequestReceived, groupId: groupId);
+
+            var pendingDto = await ToDtoAsync(group, currentUserId, includeMembers: false);
+            pendingDto.HasPendingJoinRequest = true;
+            return pendingDto;
+        }
 
         var member = new GroupMember { GroupId = groupId, UserId = currentUserId, Role = GroupMemberRole.Member };
         await _members.AddAsync(member);
@@ -118,6 +204,164 @@ public class GroupService : IGroupService
 
         // The tracked Members collection was fixed up by EF when the new row was added.
         return await ToDtoAsync(group, currentUserId, includeMembers: false);
+    }
+
+    public async Task<List<GetJoinRequestDto>> GetJoinRequestsAsync(Guid currentUserId, Guid groupId)
+    {
+        var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
+            ?? throw new NotFoundException("Group not found.");
+
+        EnsureAdmin(group, currentUserId);
+
+        var requests = await _joinRequests.GetAll(
+                filter: r => r.GroupId == groupId,
+                orderBy: r => r.CreatedAt,
+                asNoTracking: true)
+            .ToListAsync();
+
+        if (requests.Count == 0)
+            return new List<GetJoinRequestDto>();
+
+        var summaries = await _users.GetSummariesAsync(requests.Select(r => r.UserId));
+        return requests.Select(r =>
+        {
+            summaries.TryGetValue(r.UserId, out var summary);
+            return new GetJoinRequestDto
+            {
+                UserId = r.UserId,
+                FullName = summary?.FullName ?? "",
+                UserName = summary?.UserName ?? "",
+                AvatarUrl = summary?.AvatarUrl,
+                RequestedAt = r.CreatedAt
+            };
+        }).ToList();
+    }
+
+    public async Task ApproveJoinRequestAsync(Guid currentUserId, Guid groupId, Guid requesterUserId)
+    {
+        var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
+            ?? throw new NotFoundException("Group not found.");
+
+        EnsureAdmin(group, currentUserId);
+
+        var request = await _joinRequests.GetAll(r => r.GroupId == groupId && r.UserId == requesterUserId).FirstOrDefaultAsync()
+            ?? throw new NotFoundException("Join request not found.");
+
+        _joinRequests.Delete(request);
+        await _members.AddAsync(new GroupMember { GroupId = groupId, UserId = requesterUserId, Role = GroupMemberRole.Member });
+        await _joinRequests.SaveChangesAsync();
+
+        await _notifications.CreateAsync(requesterUserId, currentUserId, NotificationType.GroupJoinRequestApproved, groupId: groupId);
+    }
+
+    public async Task RejectJoinRequestAsync(Guid currentUserId, Guid groupId, Guid requesterUserId)
+    {
+        var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
+            ?? throw new NotFoundException("Group not found.");
+
+        EnsureAdmin(group, currentUserId);
+
+        var request = await _joinRequests.GetAll(r => r.GroupId == groupId && r.UserId == requesterUserId).FirstOrDefaultAsync()
+            ?? throw new NotFoundException("Join request not found.");
+
+        _joinRequests.Delete(request);
+        await _joinRequests.SaveChangesAsync();
+
+        await _notifications.CreateAsync(requesterUserId, currentUserId, NotificationType.GroupJoinRequestRejected, groupId: groupId);
+    }
+
+    public async Task InviteMemberAsync(Guid currentUserId, Guid groupId, Guid targetUserId)
+    {
+        var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
+            ?? throw new NotFoundException("Group not found.");
+
+        EnsureAdmin(group, currentUserId);
+
+        if (currentUserId == targetUserId)
+            throw new BadRequestException("Kendini davet edemezsin.");
+
+        if (!await _users.ExistsAsync(targetUserId))
+            throw new NotFoundException("User not found.");
+
+        if (group.Members.Any(m => m.UserId == targetUserId))
+            throw new ConflictException("This user is already a member.");
+
+        // Mutual intent already exists (they already asked to join) — just let them straight in.
+        var existingRequest = await _joinRequests.GetAll(r => r.GroupId == groupId && r.UserId == targetUserId).FirstOrDefaultAsync();
+        if (existingRequest != null)
+        {
+            _joinRequests.Delete(existingRequest);
+            await _members.AddAsync(new GroupMember { GroupId = groupId, UserId = targetUserId, Role = GroupMemberRole.Member });
+            await _joinRequests.SaveChangesAsync();
+            return;
+        }
+
+        if (await _invites.AnyAsync(i => i.GroupId == groupId && i.UserId == targetUserId))
+            throw new ConflictException("This user has already been invited.");
+
+        await _invites.AddAsync(new GroupInvite { GroupId = groupId, UserId = targetUserId, InvitedByUserId = currentUserId });
+        await _invites.SaveChangesAsync();
+
+        await _notifications.CreateAsync(targetUserId, currentUserId, NotificationType.GroupInviteReceived, groupId: groupId);
+    }
+
+    public async Task<List<GetGroupInviteDto>> GetMyInvitesAsync(Guid currentUserId)
+    {
+        var invites = await _invites.GetAll(
+                filter: i => i.UserId == currentUserId,
+                orderBy: i => i.CreatedAt,
+                isDescending: true,
+                asNoTracking: true,
+                includes: GroupAndInviteIncludes)
+            .ToListAsync();
+
+        if (invites.Count == 0)
+            return new List<GetGroupInviteDto>();
+
+        var inviters = await _users.GetSummariesAsync(invites.Select(i => i.InvitedByUserId));
+        return invites.Select(i =>
+        {
+            inviters.TryGetValue(i.InvitedByUserId, out var inviter);
+            return new GetGroupInviteDto
+            {
+                GroupId = i.GroupId,
+                GroupName = i.Group?.Name ?? "",
+                GroupCoverImageUrl = i.Group?.CoverImageUrl,
+                InvitedByUserId = i.InvitedByUserId,
+                InvitedByName = inviter?.FullName ?? "",
+                CreatedAt = i.CreatedAt
+            };
+        }).ToList();
+    }
+
+    public async Task AcceptInviteAsync(Guid currentUserId, Guid groupId)
+    {
+        var invite = await _invites.GetAll(i => i.GroupId == groupId && i.UserId == currentUserId).FirstOrDefaultAsync()
+            ?? throw new NotFoundException("Invite not found.");
+
+        var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
+            ?? throw new NotFoundException("Group not found.");
+
+        if (group.Members.Any(m => m.UserId == currentUserId))
+        {
+            // Already a member somehow (e.g. joined another way meanwhile) — just clear the stale invite.
+            _invites.Delete(invite);
+            await _invites.SaveChangesAsync();
+            return;
+        }
+
+        _invites.Delete(invite);
+        await _members.AddAsync(new GroupMember { GroupId = groupId, UserId = currentUserId, Role = GroupMemberRole.Member });
+        await _invites.SaveChangesAsync();
+    }
+
+    public async Task DeclineInviteAsync(Guid currentUserId, Guid groupId)
+    {
+        var invite = await _invites.GetAll(i => i.GroupId == groupId && i.UserId == currentUserId).FirstOrDefaultAsync()
+            ?? throw new NotFoundException("Invite not found.");
+
+        _invites.Delete(invite);
+        await _invites.SaveChangesAsync();
     }
 
     public async Task LeaveAsync(Guid currentUserId, Guid groupId)
@@ -193,6 +437,8 @@ public class GroupService : IGroupService
 
         _members.Delete(target);
         await _members.SaveChangesAsync();
+
+        await _notifications.CreateAsync(targetUserId, currentUserId, NotificationType.GroupMemberRemoved, groupId: groupId);
     }
 
     public async Task<GetGroupDto> SetMemberRoleAsync(Guid currentUserId, Guid groupId, Guid targetUserId, string role)
@@ -224,6 +470,8 @@ public class GroupService : IGroupService
         target.Role = newRole;
         await _groups.SaveChangesAsync();
 
+        await _notifications.CreateAsync(targetUserId, currentUserId, NotificationType.GroupRoleChanged, groupId: groupId);
+
         return await ToDtoAsync(group, currentUserId, includeMembers: true);
     }
 
@@ -246,6 +494,13 @@ public class GroupService : IGroupService
         await _groups.SaveChangesAsync();
 
         return await ToDtoAsync(group, currentUserId, includeMembers: true);
+    }
+
+    private static void EnsureAdmin(Group group, Guid currentUserId)
+    {
+        var isAdmin = group.Members.Any(m => m.UserId == currentUserId && m.Role == GroupMemberRole.Admin);
+        if (!isAdmin)
+            throw new ForbiddenException("Only a group admin can do this.");
     }
 
     private async Task<GetGroupDto> ToDtoAsync(Group group, Guid currentUserId, bool includeMembers)

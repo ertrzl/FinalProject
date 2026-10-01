@@ -14,23 +14,26 @@ public class NotificationService : INotificationService
 {
     private readonly INotificationRepository _notifications;
     private readonly IUserRepository _users;
+    private readonly IGroupRepository _groups;
     private readonly IRealTimeNotifier _notifier;
     private readonly IMapper _mapper;
 
     public NotificationService(
         INotificationRepository notifications,
         IUserRepository users,
+        IGroupRepository groups,
         IRealTimeNotifier notifier,
         IMapper mapper)
     {
         _notifications = notifications;
         _users = users;
+        _groups = groups;
         _notifier = notifier;
         _mapper = mapper;
     }
 
     public async Task CreateAsync(Guid recipientId, Guid actorId, NotificationType type,
-        Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null)
+        Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null, Guid? groupId = null)
     {
         if (recipientId == actorId)
             return;
@@ -38,7 +41,7 @@ public class NotificationService : INotificationService
         // Like -> unlike -> like again shouldn't spam the recipient with identical entries.
         var alreadyExists = await _notifications.AnyAsync(n =>
             n.RecipientId == recipientId && n.ActorId == actorId && n.Type == type &&
-            n.PostId == postId && n.CommentId == commentId && n.FriendRequestId == friendRequestId);
+            n.PostId == postId && n.CommentId == commentId && n.FriendRequestId == friendRequestId && n.GroupId == groupId);
         if (alreadyExists)
             return;
 
@@ -49,7 +52,8 @@ public class NotificationService : INotificationService
             Type = type,
             PostId = postId,
             CommentId = commentId,
-            FriendRequestId = friendRequestId
+            FriendRequestId = friendRequestId,
+            GroupId = groupId
         };
 
         await _notifications.AddAsync(notification);
@@ -59,6 +63,12 @@ public class NotificationService : INotificationService
         var dto = _mapper.Map<GetNotificationDto>(notification);
         dto.ActorName = actor?.FullName ?? string.Empty;
         dto.ActorAvatarUrl = actor?.AvatarUrl;
+
+        if (groupId.HasValue)
+        {
+            var group = await _groups.GetByIdAsync(groupId.Value);
+            dto.GroupName = group?.Name;
+        }
 
         await _notifier.SendNotificationAsync(recipientId, dto);
     }
@@ -80,6 +90,12 @@ public class NotificationService : INotificationService
             .ToListAsync();
 
         var actors = await _users.GetSummariesAsync(items.Select(n => n.ActorId));
+
+        var groupIds = items.Where(n => n.GroupId.HasValue).Select(n => n.GroupId!.Value).Distinct().ToList();
+        var groupNames = groupIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _groups.GetAll(g => groupIds.Contains(g.Id), asNoTracking: true).ToDictionaryAsync(g => g.Id, g => g.Name);
+
         var dtos = _mapper.Map<List<GetNotificationDto>>(items);
 
         for (var i = 0; i < dtos.Count; i++)
@@ -89,6 +105,9 @@ public class NotificationService : INotificationService
                 dtos[i].ActorName = actor.FullName;
                 dtos[i].ActorAvatarUrl = actor.AvatarUrl;
             }
+
+            if (items[i].GroupId.HasValue && groupNames.TryGetValue(items[i].GroupId!.Value, out var groupName))
+                dtos[i].GroupName = groupName;
         }
 
         return new PagedResult<GetNotificationDto> { Items = dtos, Page = page, PageSize = pageSize, TotalCount = total };

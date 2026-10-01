@@ -12,5 +12,15 @@ public class GroupConfiguration : IEntityTypeConfiguration<Group>
             .WithOne(m => m.Group)
             .HasForeignKey(m => m.GroupId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(g => g.JoinRequests)
+            .WithOne(r => r.Group)
+            .HasForeignKey(r => r.GroupId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(g => g.Invites)
+            .WithOne(i => i.Group)
+            .HasForeignKey(i => i.GroupId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

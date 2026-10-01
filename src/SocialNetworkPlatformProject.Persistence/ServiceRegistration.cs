@@ -54,6 +54,8 @@ public static class ServiceRegistration
         // Groups
         services.AddScoped<IGroupRepository, GroupRepository>();
         services.AddScoped<IGroupMemberRepository, GroupMemberRepository>();
+        services.AddScoped<IGroupJoinRequestRepository, GroupJoinRequestRepository>();
+        services.AddScoped<IGroupInviteRepository, GroupInviteRepository>();
 
         // Marketplace
         services.AddScoped<IMarketplaceListingRepository, MarketplaceListingRepository>();

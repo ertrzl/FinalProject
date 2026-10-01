@@ -2,10 +2,19 @@
 
 requireAuth();
 
+function discoverActionBtn(group) {
+  if (group.privacy === "Private") {
+    return group.hasPendingJoinRequest
+      ? `<button class="btn btn-outline-secondary w-100 rounded-pill" disabled>İstek Gönderildi</button>`
+      : `<button class="btn btn-outline-primary w-100 rounded-pill" onclick="joinGroup('${group.id}', this)">İstek Gönder</button>`;
+  }
+  return `<button class="btn btn-outline-primary w-100 rounded-pill" onclick="joinGroup('${group.id}', this)">Katıl</button>`;
+}
+
 function groupCardHtml(group, discoverMode) {
   const privacyLabel = group.privacy === "Private" ? "Gizli" : "Genel";
   const actionBtn = discoverMode
-    ? `<button class="btn btn-outline-primary w-100 rounded-pill" onclick="joinGroup('${group.id}', this)">Katıl</button>`
+    ? discoverActionBtn(group)
     : `<button class="btn btn-primary w-100 rounded-pill" onclick="leaveGroup('${group.id}', this)">Ayrıl</button>`;
 
   return `
@@ -50,8 +59,8 @@ async function loadDiscoverGroups() {
 async function joinGroup(groupId, btn) {
   btn.disabled = true;
   try {
-    await apiFetch(`/api/groups/${groupId}/join`, { method: "POST" });
-    toast("Gruba katıldın.");
+    const result = await apiFetch(`/api/groups/${groupId}/join`, { method: "POST" });
+    toast(result.hasPendingJoinRequest ? "Katılma isteği gönderildi." : "Gruba katıldın.");
     await Promise.all([loadMyGroups(), loadDiscoverGroups()]);
   } catch (err) {
     btn.disabled = false;
@@ -67,6 +76,48 @@ async function leaveGroup(groupId, btn) {
     await Promise.all([loadMyGroups(), loadDiscoverGroups()]);
   } catch (err) {
     btn.disabled = false;
+    toast(err.message || "İşlem gerçekleştirilemedi.");
+  }
+}
+
+function inviteCardHtml(invite) {
+  return `
+    <div class="col-md-4" data-group-id="${invite.groupId}">
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
+        <img src="${invite.groupCoverImageUrl || "https://picsum.photos/seed/" + invite.groupId + "/400/160"}" class="w-100" style="height:120px;object-fit:cover;" alt="">
+        <div class="p-3">
+          <div class="fw-bold">${escapeHtml(invite.groupName)}</div>
+          <div class="text-muted small mb-3"><b>${escapeHtml(invite.invitedByName)}</b> seni davet etti</div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary flex-fill rounded-pill" onclick="respondToInvite('${invite.groupId}', true, this)">Kabul Et</button>
+            <button class="btn btn-light border flex-fill rounded-pill" onclick="respondToInvite('${invite.groupId}', false, this)">Reddet</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function loadMyInvites() {
+  const grid = document.getElementById("myInvitesGrid");
+  try {
+    const invites = await apiFetch("/api/groups/invites/mine");
+    document.getElementById("myInvitesCount").textContent = invites.length;
+    grid.innerHTML = invites.length
+      ? invites.map(inviteCardHtml).join("")
+      : `<div class="col-12 text-muted small py-4 text-center">Bekleyen davetin yok.</div>`;
+  } catch (err) {
+    grid.innerHTML = `<div class="col-12"><div class="alert alert-danger small">${escapeHtml(err.message)}</div></div>`;
+  }
+}
+
+async function respondToInvite(groupId, accept, btn) {
+  btn.closest(".d-flex").querySelectorAll("button").forEach(b => b.disabled = true);
+  try {
+    await apiFetch(`/api/groups/${groupId}/invites/${accept ? "accept" : "decline"}`, { method: "POST" });
+    toast(accept ? "Davet kabul edildi." : "Davet reddedildi.");
+    await Promise.all([loadMyInvites(), loadMyGroups(), loadDiscoverGroups()]);
+  } catch (err) {
+    btn.closest(".d-flex").querySelectorAll("button").forEach(b => b.disabled = false);
     toast(err.message || "İşlem gerçekleştirilemedi.");
   }
 }
@@ -99,3 +150,4 @@ async function publishGroup() {
 
 loadMyGroups();
 loadDiscoverGroups();
+loadMyInvites();

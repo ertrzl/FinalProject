@@ -13,6 +13,7 @@ public class GetGroupDto
     public bool IsCurrentUserAdmin { get; set; }
     public bool IsCurrentUserModerator { get; set; }
     public bool IsCurrentUserOwner { get; set; }
+    public bool HasPendingJoinRequest { get; set; } // private groups only — set by JoinAsync/DiscoverAsync
     public DateTime CreatedAt { get; set; }
 
     // Only populated on the group-detail fetch (group.html), not on the mine/discover list cards.

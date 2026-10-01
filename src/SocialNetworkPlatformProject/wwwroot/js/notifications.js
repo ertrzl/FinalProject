@@ -7,7 +7,13 @@ const NOTIF_ICON = {
   FriendRequestAccepted: { badge: "bg-success", icon: "bi-check-lg" },
   PostLiked: { badge: "bg-danger", icon: "bi-heart-fill" },
   CommentAdded: { badge: "bg-primary", icon: "bi-chat-fill" },
-  CommentLiked: { badge: "bg-danger", icon: "bi-heart-fill" }
+  CommentLiked: { badge: "bg-danger", icon: "bi-heart-fill" },
+  GroupJoinRequestReceived: { badge: "bg-info", icon: "bi-people-fill" },
+  GroupInviteReceived: { badge: "bg-info", icon: "bi-envelope-fill" },
+  GroupMemberRemoved: { badge: "bg-danger", icon: "bi-person-dash-fill" },
+  GroupRoleChanged: { badge: "bg-warning", icon: "bi-award-fill" },
+  GroupJoinRequestApproved: { badge: "bg-success", icon: "bi-check-circle-fill" },
+  GroupJoinRequestRejected: { badge: "bg-secondary", icon: "bi-x-circle-fill" }
 };
 
 const NOTIF_TEXT = {
@@ -15,7 +21,13 @@ const NOTIF_TEXT = {
   FriendRequestAccepted: n => `<b>${escapeHtml(n.actorName)}</b> arkadaşlık isteğini kabul etti.`,
   PostLiked: n => `<b>${escapeHtml(n.actorName)}</b> gönderini beğendi.`,
   CommentAdded: n => `<b>${escapeHtml(n.actorName)}</b> gönderine yorum yaptı.`,
-  CommentLiked: n => `<b>${escapeHtml(n.actorName)}</b> yorumunu beğendi.`
+  CommentLiked: n => `<b>${escapeHtml(n.actorName)}</b> yorumunu beğendi.`,
+  GroupJoinRequestReceived: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubuna katılmak istiyor.`,
+  GroupInviteReceived: n => `<b>${escapeHtml(n.actorName)}</b> seni <b>${escapeHtml(n.groupName || "")}</b> grubuna davet etti.`,
+  GroupMemberRemoved: n => `<b>${escapeHtml(n.actorName)}</b> seni <b>${escapeHtml(n.groupName || "")}</b> grubundan çıkardı.`,
+  GroupRoleChanged: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubundaki rolünü değiştirdi.`,
+  GroupJoinRequestApproved: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubuna katılma isteğini onayladı.`,
+  GroupJoinRequestRejected: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubuna katılma isteğini reddetti.`
 };
 
 function notificationHtml(n) {
@@ -23,12 +35,23 @@ function notificationHtml(n) {
   const textFn = NOTIF_TEXT[n.type] || (x => escapeHtml(x.actorName));
   const unreadClass = n.isRead ? "" : "notif-unread";
 
-  const actions = n.type === "FriendRequestReceived" && !n.isRead
-    ? `<div class="d-flex gap-2 flex-shrink-0">
+  let actions = "";
+  if (n.type === "FriendRequestReceived" && !n.isRead) {
+    actions = `<div class="d-flex gap-2 flex-shrink-0">
          <button class="btn btn-primary btn-sm rounded-pill" onclick="respondFromNotification('${n.friendRequestId}', '${n.id}', true)">Kabul Et</button>
          <button class="btn btn-light btn-sm rounded-pill" onclick="respondFromNotification('${n.friendRequestId}', '${n.id}', false)">Reddet</button>
-       </div>`
-    : "";
+       </div>`;
+  } else if (n.type === "GroupJoinRequestReceived" && !n.isRead) {
+    actions = `<div class="d-flex gap-2 flex-shrink-0">
+         <button class="btn btn-primary btn-sm rounded-pill" onclick="respondToGroupRequest('${n.groupId}', '${n.actorId}', '${n.id}', true)">Onayla</button>
+         <button class="btn btn-light btn-sm rounded-pill" onclick="respondToGroupRequest('${n.groupId}', '${n.actorId}', '${n.id}', false)">Reddet</button>
+       </div>`;
+  } else if (n.type === "GroupInviteReceived" && !n.isRead) {
+    actions = `<div class="d-flex gap-2 flex-shrink-0">
+         <button class="btn btn-primary btn-sm rounded-pill" onclick="respondToGroupInvite('${n.groupId}', '${n.id}', true)">Kabul Et</button>
+         <button class="btn btn-light btn-sm rounded-pill" onclick="respondToGroupInvite('${n.groupId}', '${n.id}', false)">Reddet</button>
+       </div>`;
+  }
 
   return `
     <div class="d-flex align-items-start gap-3 p-3 rounded-3 ${unreadClass} mb-2" data-notification-id="${n.id}" onclick="markRead('${n.id}')">
@@ -92,6 +115,30 @@ async function respondFromNotification(requestId, notificationId, accepted) {
       await loadNotifications();
       return;
     }
+    toast(err.message || "İşlem gerçekleştirilemedi.");
+  }
+}
+
+async function respondToGroupRequest(groupId, requesterId, notificationId, approve) {
+  event.stopPropagation();
+  try {
+    await apiFetch(`/api/groups/${groupId}/join-requests/${requesterId}/${approve ? "approve" : "reject"}`, { method: "POST" });
+    toast(approve ? "İstek onaylandı." : "İstek reddedildi.");
+    await markRead(notificationId);
+    await loadNotifications();
+  } catch (err) {
+    toast(err.message || "İşlem gerçekleştirilemedi.");
+  }
+}
+
+async function respondToGroupInvite(groupId, notificationId, accept) {
+  event.stopPropagation();
+  try {
+    await apiFetch(`/api/groups/${groupId}/invites/${accept ? "accept" : "decline"}`, { method: "POST" });
+    toast(accept ? "Davet kabul edildi." : "Davet reddedildi.");
+    await markRead(notificationId);
+    await loadNotifications();
+  } catch (err) {
     toast(err.message || "İşlem gerçekleştirilemedi.");
   }
 }

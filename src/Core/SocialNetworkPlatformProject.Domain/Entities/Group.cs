@@ -13,4 +13,6 @@ public class Group : BaseEntity
     public Guid CreatedByUserId { get; set; }
 
     public ICollection<GroupMember> Members { get; set; } = new List<GroupMember>();
+    public ICollection<GroupJoinRequest> JoinRequests { get; set; } = new List<GroupJoinRequest>();
+    public ICollection<GroupInvite> Invites { get; set; } = new List<GroupInvite>();
 }

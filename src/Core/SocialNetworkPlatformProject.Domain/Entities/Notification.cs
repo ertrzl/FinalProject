@@ -13,6 +13,7 @@ public class Notification : BaseEntity
     public Guid? PostId { get; set; }
     public Guid? CommentId { get; set; }
     public Guid? FriendRequestId { get; set; }
+    public Guid? GroupId { get; set; }
 
     public bool IsRead { get; set; } = false;
 }

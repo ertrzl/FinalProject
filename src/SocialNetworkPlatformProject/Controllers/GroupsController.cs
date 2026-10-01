@@ -44,10 +44,36 @@ public class GroupsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = group.Id }, group);
     }
 
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<GetGroupDto>> Update(Guid id, [FromForm] PutGroupDto dto)
+    {
+        return await _groups.UpdateAsync(User.GetUserId(), id, dto);
+    }
+
     [HttpPost("{id:guid}/join")]
     public async Task<ActionResult<GetGroupDto>> Join(Guid id)
     {
         return await _groups.JoinAsync(User.GetUserId(), id);
+    }
+
+    [HttpGet("{id:guid}/join-requests")]
+    public async Task<ActionResult<List<GetJoinRequestDto>>> GetJoinRequests(Guid id)
+    {
+        return await _groups.GetJoinRequestsAsync(User.GetUserId(), id);
+    }
+
+    [HttpPost("{id:guid}/join-requests/{userId:guid}/approve")]
+    public async Task<IActionResult> ApproveJoinRequest(Guid id, Guid userId)
+    {
+        await _groups.ApproveJoinRequestAsync(User.GetUserId(), id, userId);
+        return NoContent();
+    }
+
+    [HttpPost("{id:guid}/join-requests/{userId:guid}/reject")]
+    public async Task<IActionResult> RejectJoinRequest(Guid id, Guid userId)
+    {
+        await _groups.RejectJoinRequestAsync(User.GetUserId(), id, userId);
+        return NoContent();
     }
 
     [HttpPost("{id:guid}/leave")]
@@ -81,5 +107,32 @@ public class GroupsController : ControllerBase
     public async Task<ActionResult<GetGroupDto>> TransferOwnership(Guid id, Guid userId)
     {
         return await _groups.TransferOwnershipAsync(User.GetUserId(), id, userId);
+    }
+
+    [HttpPost("{id:guid}/invites/{userId:guid}")]
+    public async Task<IActionResult> InviteMember(Guid id, Guid userId)
+    {
+        await _groups.InviteMemberAsync(User.GetUserId(), id, userId);
+        return NoContent();
+    }
+
+    [HttpGet("invites/mine")]
+    public async Task<ActionResult<List<GetGroupInviteDto>>> GetMyInvites()
+    {
+        return await _groups.GetMyInvitesAsync(User.GetUserId());
+    }
+
+    [HttpPost("{id:guid}/invites/accept")]
+    public async Task<IActionResult> AcceptInvite(Guid id)
+    {
+        await _groups.AcceptInviteAsync(User.GetUserId(), id);
+        return NoContent();
+    }
+
+    [HttpPost("{id:guid}/invites/decline")]
+    public async Task<IActionResult> DeclineInvite(Guid id)
+    {
+        await _groups.DeclineInviteAsync(User.GetUserId(), id);
+        return NoContent();
     }
 }

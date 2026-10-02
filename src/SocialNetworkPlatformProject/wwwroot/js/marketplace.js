@@ -49,7 +49,7 @@ function isOwnListing(item) {
 }
 
 function coverOf(item) {
-  return item.imageUrl || "https://picsum.photos/seed/" + item.id + "/500/400";
+  return item.imageUrl || NO_PHOTO;
 }
 
 function remember(items) {
@@ -575,7 +575,7 @@ function offerCardHtml(o) {
   return `
     <div class="card border-0 shadow-sm rounded-4 p-3 mb-3" data-offer-id="${o.id}">
       <div class="d-flex gap-3">
-        <img src="${o.listingImageUrl || "https://picsum.photos/seed/" + o.listingId + "/200/200"}" class="rounded-3 flex-shrink-0" style="width:84px;height:84px;object-fit:cover;" alt="" role="button" onclick="openListingById('${o.listingId}')">
+        <img src="${o.listingImageUrl || NO_PHOTO}" class="rounded-3 flex-shrink-0" style="width:84px;height:84px;object-fit:cover;" alt="" role="button" onclick="openListingById('${o.listingId}')">
         <div class="flex-grow-1 overflow-hidden">
           <div class="d-flex justify-content-between align-items-start gap-2">
             <a href="#" class="fw-bold text-body text-decoration-none text-truncate" onclick="openListingById('${o.listingId}'); return false;">${escapeHtml(o.listingTitle)}</a>

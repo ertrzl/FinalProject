@@ -21,7 +21,7 @@ function eventCardHtml(ev) {
   return `
     <div class="col-md-6" data-event-id="${ev.id}">
       <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
-        <img src="${ev.coverImageUrl || "https://picsum.photos/seed/" + ev.id + "/500/220"}" class="w-100" style="height:150px;object-fit:cover;" alt="">
+        <img src="${ev.coverImageUrl || NO_PHOTO}" class="w-100" style="height:150px;object-fit:cover;" alt="">
         <div class="p-3">
           <div class="text-danger fw-bold small mb-1"><i class="bi bi-calendar3 me-1"></i>${formatEventDate(ev.startsAt)}</div>
           <div class="fw-bold fs-6">${escapeHtml(ev.title)}</div>

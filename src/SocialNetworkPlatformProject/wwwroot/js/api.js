@@ -191,6 +191,10 @@ function timeAgo(isoDate) {
 
 const DEFAULT_AVATAR = "/images/default-avatar.png";
 
+// Shown where an item has no photo of its own (listing, group cover, event cover): a neutral grey "no photo"
+// picture, so nobody mistakes a stand-in for the real product.
+const NO_PHOTO = "/images/no-photo.svg";
+
 // Yellow star row for a rating out of 5 (full / half / empty stars, rounded to the nearest half):
 // starsHtml(4.3) shows four full stars and one half star.
 function starsHtml(value) {

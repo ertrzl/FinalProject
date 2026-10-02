@@ -771,6 +771,10 @@ document.addEventListener("realtime:notification", e => {
   if (e.detail && e.detail.type && e.detail.type.startsWith("MarketplaceOffer")) loadOffers();
 });
 
+// Same city/country autocomplete as profile edit and settings, for the sell form and the location filter.
+enableLocationAutocomplete(document.getElementById("sellLocation"));
+enableLocationAutocomplete(document.getElementById("filterLocation"));
+
 renderSellPhotos();
 loadCategories().then(() => {
   if (new URLSearchParams(window.location.search).get("view") === "offers") {

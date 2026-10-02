@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SocialNetworkPlatformProject.Application.Common;
@@ -7,6 +6,7 @@ using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Domain.Entities;
+using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
@@ -41,12 +41,58 @@ public class MarketplaceService : IMarketplaceService
             Title = dto.Title.Trim(),
             Price = dto.Price,
             Category = dto.Category.Trim(),
-            Location = dto.Location?.Trim(),
-            Description = dto.Description?.Trim(),
+            Location = NullIfBlank(dto.Location),
+            Description = NullIfBlank(dto.Description),
             ImageUrl = imageUrl
         };
 
         await _listings.AddAsync(listing);
+        await _listings.SaveChangesAsync();
+
+        return (await BuildDtosAsync(new[] { listing }))[0];
+    }
+
+    public async Task<GetMarketplaceListingDto> UpdateAsync(Guid currentUserId, Guid listingId, PutMarketplaceListingDto dto)
+    {
+        var listing = await GetOwnedListingAsync(currentUserId, listingId, "You can only edit your own listings.");
+
+        var oldImageUrl = listing.ImageUrl;
+        var replacesImage = false;
+
+        // The new file is saved first so a rejected upload leaves the old photo untouched.
+        if (dto.Image != null)
+        {
+            listing.ImageUrl = await _files.SaveImageAsync(dto.Image, "marketplace");
+            replacesImage = true;
+        }
+        else if (dto.RemoveImage)
+        {
+            listing.ImageUrl = null;
+            replacesImage = true;
+        }
+
+        listing.Title = dto.Title.Trim();
+        listing.Price = dto.Price;
+        listing.Category = dto.Category.Trim();
+        listing.Location = NullIfBlank(dto.Location);
+        listing.Description = NullIfBlank(dto.Description);
+
+        await _listings.SaveChangesAsync();
+
+        if (replacesImage)
+            _files.Delete(oldImageUrl);
+
+        return (await BuildDtosAsync(new[] { listing }))[0];
+    }
+
+    public async Task<GetMarketplaceListingDto> SetStatusAsync(Guid currentUserId, Guid listingId, PutListingStatusDto dto)
+    {
+        if (!Enum.TryParse<ListingStatus>(dto.Status, out var status))
+            throw new BadRequestException("Status must be either 'Active' or 'Sold'.");
+
+        var listing = await GetOwnedListingAsync(currentUserId, listingId, "You can only change the status of your own listings.");
+
+        listing.Status = status;
         await _listings.SaveChangesAsync();
 
         return (await BuildDtosAsync(new[] { listing }))[0];
@@ -60,32 +106,47 @@ public class MarketplaceService : IMarketplaceService
         return (await BuildDtosAsync(new[] { listing }))[0];
     }
 
-    public async Task<PagedResult<GetMarketplaceListingDto>> GetListingsAsync(string? category, string? search, int page, int pageSize)
+    public async Task<PagedResult<GetMarketplaceListingDto>> GetListingsAsync(MarketplaceListingQuery query)
     {
-        page = Math.Max(page, 1);
-        pageSize = Math.Clamp(pageSize, 1, 50);
+        var page = Math.Max(query.Page, 1);
+        var pageSize = Math.Clamp(query.PageSize, 1, 50);
 
-        var categoryFilter = string.IsNullOrWhiteSpace(category) ? null : category.Trim();
-        var term = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
+        var category = NullIfBlank(query.Category);
+        var term = NullIfBlank(query.Search);
+        var location = NullIfBlank(query.Location);
 
-        Expression<Func<MarketplaceListing, bool>> filter = l =>
-            (categoryFilter == null || l.Category == categoryFilter) &&
-            (term == null || l.Title.Contains(term) || (l.Description != null && l.Description.Contains(term)));
+        var listings = _listings.GetAll(l => l.Status == ListingStatus.Active, asNoTracking: true);
 
-        var total = await _listings.GetAll(filter).CountAsync();
+        if (category != null)
+            listings = listings.Where(l => l.Category == category);
 
-        var listings = await _listings.GetAll(
-                filter: filter,
-                orderBy: l => l.CreatedAt,
-                isDescending: true,
-                asNoTracking: true,
-                page: page,
-                take: pageSize)
-            .ToListAsync();
+        if (term != null)
+            listings = listings.Where(l => l.Title.Contains(term) || (l.Description != null && l.Description.Contains(term)));
+
+        if (location != null)
+            listings = listings.Where(l => l.Location != null && l.Location.Contains(location));
+
+        if (query.MinPrice.HasValue)
+            listings = listings.Where(l => l.Price >= query.MinPrice.Value);
+
+        if (query.MaxPrice.HasValue)
+            listings = listings.Where(l => l.Price <= query.MaxPrice.Value);
+
+        var total = await listings.CountAsync();
+
+        // Id is the final tie-breaker so paging stays stable when prices or timestamps collide.
+        var ordered = query.Sort switch
+        {
+            MarketplaceSort.PriceAsc => listings.OrderBy(l => l.Price).ThenByDescending(l => l.CreatedAt).ThenBy(l => l.Id),
+            MarketplaceSort.PriceDesc => listings.OrderByDescending(l => l.Price).ThenByDescending(l => l.CreatedAt).ThenBy(l => l.Id),
+            _ => listings.OrderByDescending(l => l.CreatedAt).ThenBy(l => l.Id)
+        };
+
+        var items = await ordered.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
         return new PagedResult<GetMarketplaceListingDto>
         {
-            Items = await BuildDtosAsync(listings),
+            Items = await BuildDtosAsync(items),
             Page = page,
             PageSize = pageSize,
             TotalCount = total
@@ -106,16 +167,28 @@ public class MarketplaceService : IMarketplaceService
 
     public async Task DeleteAsync(Guid currentUserId, Guid listingId)
     {
-        var listing = await _listings.GetByIdAsync(listingId)
-            ?? throw new NotFoundException("Listing not found.");
-
-        if (listing.SellerId != currentUserId)
-            throw new ForbiddenException("You can only delete your own listings.");
+        var listing = await GetOwnedListingAsync(currentUserId, listingId, "You can only delete your own listings.");
 
         _listings.Delete(listing);
         await _listings.SaveChangesAsync();
 
         _files.Delete(listing.ImageUrl);
+    }
+
+    private async Task<MarketplaceListing> GetOwnedListingAsync(Guid currentUserId, Guid listingId, string forbiddenMessage)
+    {
+        var listing = await _listings.GetByIdAsync(listingId)
+            ?? throw new NotFoundException("Listing not found.");
+
+        if (listing.SellerId != currentUserId)
+            throw new ForbiddenException(forbiddenMessage);
+
+        return listing;
+    }
+
+    private static string? NullIfBlank(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     private async Task<List<GetMarketplaceListingDto>> BuildDtosAsync(IEnumerable<MarketplaceListing> listings)

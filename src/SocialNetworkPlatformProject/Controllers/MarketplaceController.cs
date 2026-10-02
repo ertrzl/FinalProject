@@ -21,10 +21,15 @@ public class MarketplaceController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<PagedResult<GetMarketplaceListingDto>>> GetListings(
-        [FromQuery] string? category, [FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public async Task<ActionResult<PagedResult<GetMarketplaceListingDto>>> GetListings([FromQuery] MarketplaceListingQuery query)
     {
-        return await _marketplace.GetListingsAsync(category, search, page, pageSize);
+        return await _marketplace.GetListingsAsync(query);
+    }
+
+    [HttpGet("categories")]
+    public ActionResult<IReadOnlyList<string>> GetCategories()
+    {
+        return Ok(MarketplaceCategories.All);
     }
 
     [HttpGet("mine")]
@@ -44,6 +49,18 @@ public class MarketplaceController : ControllerBase
     {
         var listing = await _marketplace.CreateAsync(User.GetUserId(), dto);
         return CreatedAtAction(nameof(GetById), new { id = listing.Id }, listing);
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<ActionResult<GetMarketplaceListingDto>> Update(Guid id, [FromForm] PutMarketplaceListingDto dto)
+    {
+        return await _marketplace.UpdateAsync(User.GetUserId(), id, dto);
+    }
+
+    [HttpPut("{id:guid}/status")]
+    public async Task<ActionResult<GetMarketplaceListingDto>> SetStatus(Guid id, PutListingStatusDto dto)
+    {
+        return await _marketplace.SetStatusAsync(User.GetUserId(), id, dto);
     }
 
     [HttpDelete("{id:guid}")]

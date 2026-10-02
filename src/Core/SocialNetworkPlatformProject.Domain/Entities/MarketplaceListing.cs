@@ -1,4 +1,5 @@
 using SocialNetworkPlatformProject.Domain.Common;
+using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Domain.Entities;
 
@@ -12,4 +13,5 @@ public class MarketplaceListing : BaseEntity
     public string? Location { get; set; }
     public string? Description { get; set; }
     public string? ImageUrl { get; set; }
+    public ListingStatus Status { get; set; } = ListingStatus.Active;
 }

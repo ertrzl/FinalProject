@@ -9,6 +9,7 @@ public class MarketplaceListingProfile : Profile
     public MarketplaceListingProfile()
     {
         CreateMap<MarketplaceListing, GetMarketplaceListingDto>()
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.SellerName, opt => opt.Ignore())
             .ForMember(dest => dest.SellerAvatarUrl, opt => opt.Ignore());
     }

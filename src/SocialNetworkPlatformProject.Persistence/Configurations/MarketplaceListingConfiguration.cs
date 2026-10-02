@@ -10,5 +10,9 @@ public class MarketplaceListingConfiguration : IEntityTypeConfiguration<Marketpl
     {
         builder.Property(m => m.Price)
             .HasColumnType("decimal(18,2)");
+
+        // The public grid always filters on Status and sorts newest-first; "İlanlarım" filters on SellerId.
+        builder.HasIndex(m => new { m.Status, m.CreatedAt });
+        builder.HasIndex(m => m.SellerId);
     }
 }

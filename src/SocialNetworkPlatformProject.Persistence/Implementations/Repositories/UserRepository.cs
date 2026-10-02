@@ -113,7 +113,7 @@ public class UserRepository : IUserRepository
         var files = new List<string>();
         files.AddRange(await myPosts.Where(p => p.MediaUrl != null).Select(p => p.MediaUrl!).ToListAsync());
         files.AddRange(await _context.Set<Story>().Where(s => s.UserId == userId).Select(s => s.MediaUrl).ToListAsync());
-        files.AddRange(await _context.Set<MarketplaceListing>().Where(l => l.SellerId == userId && l.ImageUrl != null).Select(l => l.ImageUrl!).ToListAsync());
+        files.AddRange(await _context.Set<ListingImage>().Where(i => i.Listing!.SellerId == userId).Select(i => i.Url).ToListAsync());
         files.AddRange(await _context.Set<Group>().Where(g => g.CreatedByUserId == userId && g.CoverImageUrl != null).Select(g => g.CoverImageUrl!).ToListAsync());
         files.AddRange(await _context.Set<Event>().Where(e => e.CreatedByUserId == userId && e.CoverImageUrl != null).Select(e => e.CoverImageUrl!).ToListAsync());
 
@@ -140,6 +140,11 @@ public class UserRepository : IUserRepository
 
         await _context.Set<Conversation>().Where(c => myConversationIds.Contains(c.Id)).ExecuteDeleteAsync();
 
+        // Marketplace trail: reviews written by or about the user, their offers on other people's listings
+        // (their own listings' offers go with the listings) and their favourites.
+        await _context.Set<SellerRating>().Where(r => r.BuyerId == userId || r.SellerId == userId).ExecuteDeleteAsync();
+        await _context.Set<ListingOffer>().Where(o => o.BuyerId == userId).ExecuteDeleteAsync();
+        await _context.Set<SavedListing>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<MarketplaceListing>().Where(l => l.SellerId == userId).ExecuteDeleteAsync();
 
         await _context.Set<EventAttendee>().Where(a => a.UserId == userId).ExecuteDeleteAsync();

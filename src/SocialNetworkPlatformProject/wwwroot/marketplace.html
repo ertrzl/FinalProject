@@ -54,25 +54,60 @@
       <div class="card border-0 shadow-sm rounded-4 p-3">
         <button class="btn btn-primary w-100 rounded-pill mb-3" data-bs-toggle="modal" data-bs-target="#sellModal"><i class="bi bi-plus-lg me-1"></i>Ürün Sat</button>
 
-        <div class="mb-3">
-          <div class="d-flex align-items-center bg-body-tertiary rounded-pill px-3 py-2">
-            <i class="bi bi-search text-muted me-2"></i>
-            <input type="text" id="marketSearch" class="form-control form-control-sm border-0 bg-transparent p-0 shadow-none" placeholder="Ürün ara..." oninput="renderListings()">
+        <div id="browseFilters">
+          <div class="mb-3">
+            <div class="d-flex align-items-center bg-body-tertiary rounded-pill px-3 py-2">
+              <i class="bi bi-search text-muted me-2"></i>
+              <input type="text" id="marketSearch" class="form-control form-control-sm border-0 bg-transparent p-0 shadow-none" placeholder="Ürün ara..." oninput="onFilterInput()">
+            </div>
           </div>
-        </div>
 
-        <div class="fw-bold small text-muted mb-2">KATEGORİLER</div>
-        <div id="categoryList" class="d-flex flex-column gap-1"></div>
+          <div class="fw-bold small text-muted mb-2">KATEGORİLER</div>
+          <div id="categoryList" class="d-flex flex-column gap-1 mb-3"></div>
+
+          <div class="fw-bold small text-muted mb-2">FİYAT (₺)</div>
+          <div class="d-flex gap-2 mb-3">
+            <input type="number" min="0" id="filterMinPrice" class="form-control form-control-sm" placeholder="En az" oninput="onFilterInput()">
+            <input type="number" min="0" id="filterMaxPrice" class="form-control form-control-sm" placeholder="En çok" oninput="onFilterInput()">
+          </div>
+
+          <div class="fw-bold small text-muted mb-2">KONUM</div>
+          <input type="text" id="filterLocation" class="form-control form-control-sm mb-3" placeholder="Şehir..." oninput="onFilterInput()" onchange="onFilterInput()">
+
+          <div class="fw-bold small text-muted mb-2">SIRALAMA</div>
+          <select id="filterSort" class="form-select form-select-sm mb-3" onchange="renderListings()">
+            <option value="newest">En yeni</option>
+            <option value="price_asc">Fiyat: artan</option>
+            <option value="price_desc">Fiyat: azalan</option>
+          </select>
+
+          <button type="button" class="btn btn-sm btn-light w-100 rounded-pill" onclick="clearFilters()">Filtreleri Temizle</button>
+        </div>
       </div>
     </aside>
 
     <!-- Listings grid -->
     <main class="col-lg-9">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h5 fw-bold mb-0">Marketplace</h1>
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <ul class="nav nav-pills gap-2">
+          <li class="nav-item"><button type="button" id="tabAll" class="nav-link active" onclick="setView('all')">Tüm İlanlar</button></li>
+          <li class="nav-item"><button type="button" id="tabMine" class="nav-link text-muted" onclick="setView('mine')">İlanlarım</button></li>
+          <li class="nav-item"><button type="button" id="tabSaved" class="nav-link text-muted" onclick="setView('saved')"><i class="bi bi-heart me-1"></i>Kaydedilenler</button></li>
+          <li class="nav-item"><button type="button" id="tabOffers" class="nav-link text-muted" onclick="setView('offers')"><i class="bi bi-tag me-1"></i>Tekliflerim <span class="badge text-bg-danger rounded-pill d-none" id="offersBadge">0</span></button></li>
+        </ul>
         <div class="text-muted small" id="resultCount"></div>
       </div>
+      <div class="d-none" id="offersPanel">
+        <ul class="nav nav-pills gap-2 mb-3">
+          <li class="nav-item"><button type="button" id="offersTabReceived" class="nav-link active" onclick="setOffersSide('received')">Gelen Teklifler (<span id="offersCountReceived">0</span>)</button></li>
+          <li class="nav-item"><button type="button" id="offersTabSent" class="nav-link text-muted" onclick="setOffersSide('sent')">Verdiğim Teklifler (<span id="offersCountSent">0</span>)</button></li>
+        </ul>
+        <div id="offersList"></div>
+      </div>
       <div class="row g-3" id="listingsGrid"></div>
+      <div class="text-center mt-4 d-none" id="loadMoreWrap">
+        <button type="button" class="btn btn-light border rounded-pill px-4" id="loadMoreBtn" onclick="loadMore()">Daha fazla yükle</button>
+      </div>
     </main>
 
   </div>
@@ -83,17 +118,15 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4">
       <div class="modal-header">
-        <h5 class="modal-title fw-bold">Ürün Sat</h5>
+        <h5 class="modal-title fw-bold" id="sellModalTitle">Ürün Sat</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div class="mb-3 text-center">
-          <div class="d-none position-relative mb-2" id="sellPreviewWrap">
-            <img id="sellPreviewImg" src="" class="w-100 rounded-3" style="max-height:180px;object-fit:cover;" alt="">
-          </div>
-          <label class="avatar-upload-btn m-0 d-inline-block">
-            <i class="bi bi-camera me-1"></i>Fotoğraf Ekle
-            <input type="file" id="sellImageInput" class="d-none" accept="image/*" onchange="previewSellImage(this)">
+        <div class="mb-3">
+          <div class="d-flex flex-wrap gap-2 mb-2" id="sellPhotoGrid"></div>
+          <label class="avatar-upload-btn m-0 d-inline-block" id="sellAddPhotoLabel">
+            <i class="bi bi-camera me-1"></i>Fotoğraf Ekle <span class="text-muted small" id="sellPhotoCounter"></span>
+            <input type="file" id="sellImageInput" class="d-none" accept="image/*" multiple onchange="addSellPhotos(this)">
           </label>
         </div>
         <div class="mb-3 d-none" id="sellError"></div>
@@ -108,14 +141,7 @@
           </div>
           <div class="col-6">
             <label class="form-label fw-semibold small">Kategori</label>
-            <select id="sellCategory" class="form-select">
-              <option>Elektronik</option>
-              <option>Ev Eşyası</option>
-              <option>Giyim</option>
-              <option>Kitap</option>
-              <option>Spor</option>
-              <option>Araç</option>
-            </select>
+            <select id="sellCategory" class="form-select"></select>
           </div>
         </div>
         <div class="mb-3">
@@ -129,7 +155,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>
-        <button type="button" class="btn btn-primary rounded-pill" onclick="publishListing()">Yayınla</button>
+        <button type="button" class="btn btn-primary rounded-pill" id="sellSubmitBtn" onclick="submitListing()">Yayınla</button>
       </div>
     </div>
   </div>
@@ -146,24 +172,106 @@
       <div class="modal-body">
         <div class="row g-3">
           <div class="col-md-6">
-            <img id="listingModalImage" src="" class="w-100 rounded-3" style="max-height:280px;object-fit:cover;" alt="">
+            <div id="listingCarousel" class="carousel slide rounded-3 overflow-hidden">
+              <div class="carousel-inner" id="listingCarouselInner"></div>
+              <button class="carousel-control-prev" type="button" data-bs-target="#listingCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
+              <button class="carousel-control-next" type="button" data-bs-target="#listingCarousel" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+            </div>
           </div>
           <div class="col-md-6">
-            <div class="fs-4 fw-bold text-primary mb-2" id="listingModalPrice"></div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <div class="fs-4 fw-bold text-primary" id="listingModalPrice"></div>
+              <span class="badge text-bg-secondary d-none" id="listingModalSoldBadge">Satıldı</span>
+              <button type="button" class="btn btn-sm btn-light border rounded-circle ms-auto" onclick="copyListingLink()" title="Bağlantıyı kopyala"><i class="bi bi-link-45deg"></i></button>
+              <button type="button" id="listingModalSaveBtn" class="btn btn-sm btn-light border rounded-circle d-none" onclick="toggleSave(selectedListing.id, event)" title="Kaydet"><i class="bi bi-heart"></i></button>
+            </div>
             <div class="text-muted small mb-3" id="listingModalMeta"></div>
             <p id="listingModalDescription"></p>
             <hr>
-            <div class="d-flex align-items-center gap-2 mb-3">
+            <a id="listingModalSellerLink" href="#" class="d-flex align-items-center gap-2 mb-1 text-decoration-none text-body">
               <img id="listingModalSellerAvatar" src="" class="avatar-sm" alt="">
               <div>
                 <div class="fw-bold small">Satıcı</div>
                 <div class="small" id="listingModalSellerName"></div>
               </div>
-            </div>
+            </a>
+            <div id="listingModalSellerRating" class="small mb-3" role="button" onclick="openSellerReviews(selectedListing.sellerId)"></div>
+            <button type="button" id="listingModalOfferBtn" class="btn btn-success rounded-pill w-100 mb-2 d-none" onclick="onOfferButton()"></button>
+            <button type="button" id="listingModalOwnerOffersBtn" class="btn btn-warning rounded-pill w-100 mb-2 d-none" onclick="goToOffers('received')"></button>
             <a id="listingModalMessageLink" href="#" class="btn btn-primary rounded-pill w-100 mb-2"><i class="bi bi-chat-dots-fill me-1"></i>Satıcıya Mesaj Gönder</a>
-            <button id="listingModalDeleteBtn" type="button" class="btn btn-outline-danger rounded-pill w-100 d-none" onclick="deleteListing()">İlanı Kaldır</button>
+            <div id="listingOwnerActions" class="d-none flex-column gap-2">
+              <button type="button" class="btn btn-light border rounded-pill w-100" onclick="openEditListing()"><i class="bi bi-pencil me-1"></i>Düzenle</button>
+              <button type="button" id="listingModalStatusBtn" class="btn btn-outline-success rounded-pill w-100" onclick="toggleListingSold()"></button>
+              <button type="button" class="btn btn-outline-danger rounded-pill w-100" onclick="deleteListing()">İlanı Kaldır</button>
+            </div>
           </div>
         </div>
+        <div id="sellerOtherSection" class="d-none mt-4 pt-3 border-top">
+          <div class="fw-bold small text-muted mb-2">BU SATICININ DİĞER İLANLARI</div>
+          <div class="row g-2" id="sellerOtherList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Rate-the-seller modal -->
+<div class="modal fade" id="rateModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Satıcıyı Puanla</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="small text-muted mb-1" id="rateModalSeller"></div>
+        <div class="fs-1 lh-1 mb-1" id="rateStarInput" role="radiogroup" aria-label="Puan"></div>
+        <div class="small text-muted mb-3" id="rateStarLabel"></div>
+        <textarea id="rateComment" class="form-control" rows="3" maxlength="500" placeholder="Yorum yaz (isteğe bağlı)"></textarea>
+        <div class="text-danger small mt-2 d-none" id="rateError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="rateDeleteBtn" class="btn btn-outline-danger rounded-pill me-auto d-none" onclick="deleteRating()">Puanı Sil</button>
+        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>
+        <button type="button" id="rateSubmitBtn" class="btn btn-warning rounded-pill" onclick="submitRating()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Seller reviews modal -->
+<div class="modal fade" id="sellerReviewsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Satıcı Değerlendirmeleri</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="sellerReviewsBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Offer / counter-offer modal -->
+<div class="modal fade" id="offerModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="offerModalTitle">Teklif Ver</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="fw-semibold small mb-1" id="offerModalListing"></div>
+        <div class="text-muted small mb-3" id="offerModalHint"></div>
+        <div class="input-group">
+          <input type="number" min="0" step="0.01" id="offerPriceInput" class="form-control" placeholder="Fiyat" onkeydown="if(event.key==='Enter') submitOfferModal()">
+          <span class="input-group-text">₺</span>
+        </div>
+        <div class="text-danger small mt-2 d-none" id="offerModalError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>
+        <button type="button" class="btn btn-success rounded-pill" id="offerModalSubmit" onclick="submitOfferModal()">Gönder</button>
       </div>
     </div>
   </div>
@@ -187,6 +295,7 @@
 <script src="js/chat-data.js"></script>
 <script src="js/chat-composer.js"></script>
 <script src="js/chat-dock.js"></script>
+<script src="js/location-autocomplete.js"></script>
 <script src="js/marketplace.js"></script>
 </body>
 </html>

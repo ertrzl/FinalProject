@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using SocialNetworkPlatformProject.Application.Exceptions.Base;
 
 namespace SocialNetworkPlatformProject.Middlewares;
@@ -24,6 +25,12 @@ public class GlobalExceptionMiddleware
         catch (BaseException ex)
         {
             await WriteErrorAsync(context, ex.StatusCode, ex.Message);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Someone else changed (or deleted) the same row between our read and our save.
+            await WriteErrorAsync(context, StatusCodes.Status409Conflict,
+                "This was just changed by someone else. Please refresh and try again.");
         }
         catch (Exception ex)
         {

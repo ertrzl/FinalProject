@@ -13,6 +13,24 @@ function monthYear(isoDate) {
   return new Date(isoDate).toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
 }
 
+// Marketplace seller rating next to the handle (hidden until the user has been rated); links to the reviews.
+async function loadSellerRatingBadge(userId) {
+  const slot = document.getElementById("profileSellerRating");
+  try {
+    const summary = await apiFetch(`/api/marketplace/sellers/${userId}/rating-summary`);
+    if (!summary.count) {
+      slot.classList.add("d-none");
+      return;
+    }
+    slot.innerHTML = `<a href="marketplace.html?sellerReviews=${userId}" class="text-decoration-none text-body">
+        ${starsHtml(summary.average)} <b>${summary.average.toFixed(1)}</b>
+        <span class="text-muted">(${summary.count} satıcı değerlendirmesi)</span></a>`;
+    slot.classList.remove("d-none");
+  } catch (err) {
+    slot.classList.add("d-none"); // a missing badge is not worth an error on the profile page
+  }
+}
+
 async function loadProfile() {
   try {
     currentProfile = await apiFetch(`/api/users/${profileUserId}`);
@@ -30,6 +48,8 @@ async function loadProfile() {
   const onlineDot = document.getElementById("profileOnlineDot");
   onlineDot.dataset.presenceUser = p.id;
   onlineDot.classList.toggle("d-none", !p.isOnline);
+
+  loadSellerRatingBadge(p.id);
 
   const cover = document.getElementById("profileCover");
   if (p.coverPhotoUrl) {

@@ -1,4 +1,5 @@
 using SocialNetworkPlatformProject.Domain.Common;
+using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Domain.Entities;
 
@@ -11,5 +12,10 @@ public class MarketplaceListing : BaseEntity
     public string Category { get; set; } = string.Empty;
     public string? Location { get; set; }
     public string? Description { get; set; }
-    public string? ImageUrl { get; set; }
+    public ListingStatus Status { get; set; } = ListingStatus.Active;
+
+    // Concurrency token: two people changing the same listing at once (e.g. two accepted offers) can't both win.
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
+    public ICollection<ListingImage> Images { get; set; } = new List<ListingImage>();
 }

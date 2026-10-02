@@ -47,7 +47,19 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    // The pages and scripts share helpers (api.js, app.js...) and change often. Without an explicit header the
+    // browser decides on its own how long to keep them, so a user could run a new page against an old helper
+    // file and hit "x is not defined". "no-cache" means: always ask the server, which answers 304 (no body)
+    // while the file is unchanged. Uploaded media keeps the default (its file names never change).
+    OnPrepareResponse = context =>
+    {
+        var extension = Path.GetExtension(context.File.Name);
+        if (extension is ".js" or ".css" or ".html")
+            context.Context.Response.Headers.CacheControl = "no-cache";
+    }
+});
 
 app.UseHttpsRedirection();
 

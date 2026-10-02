@@ -15,6 +15,10 @@ public class GetNotificationDto
     public Guid? FriendRequestId { get; set; }
     public Guid? GroupId { get; set; }
     public string? GroupName { get; set; }
+    public Guid? OfferId { get; set; }
+    public decimal? Amount { get; set; }
+    public Guid? ListingId { get; set; }
+    public string? ListingTitle { get; set; }
 
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; }

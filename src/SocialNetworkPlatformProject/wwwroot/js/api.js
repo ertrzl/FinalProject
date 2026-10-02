@@ -191,6 +191,22 @@ function timeAgo(isoDate) {
 
 const DEFAULT_AVATAR = "/images/default-avatar.png";
 
+// Shown where an item has no photo of its own (listing, group cover, event cover): a neutral grey "no photo"
+// picture, so nobody mistakes a stand-in for the real product.
+const NO_PHOTO = "/images/no-photo.svg";
+
+// Yellow star row for a rating out of 5 (full / half / empty stars, rounded to the nearest half):
+// starsHtml(4.3) shows four full stars and one half star.
+function starsHtml(value) {
+  const rounded = Math.round((value || 0) * 2) / 2;
+  let stars = "";
+  for (let i = 1; i <= 5; i++) {
+    const icon = rounded >= i ? "bi-star-fill" : rounded >= i - 0.5 ? "bi-star-half" : "bi-star";
+    stars += `<i class="bi ${icon} rating-star"></i>`;
+  }
+  return `<span class="rating-stars" title="${value} / 5">${stars}</span>`;
+}
+
 // Post card media block: an <img> for photo posts, a <video> for video posts.
 function postMediaHtml(post) {
   if (!post.mediaUrl) return "";

@@ -14,5 +14,8 @@ public class MarketplaceListing : BaseEntity
     public string? Description { get; set; }
     public ListingStatus Status { get; set; } = ListingStatus.Active;
 
+    // Concurrency token: two people changing the same listing at once (e.g. two accepted offers) can't both win.
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public ICollection<ListingImage> Images { get; set; } = new List<ListingImage>();
 }

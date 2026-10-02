@@ -9,6 +9,7 @@ public class ListingOfferConfiguration : IEntityTypeConfiguration<ListingOffer>
     public void Configure(EntityTypeBuilder<ListingOffer> builder)
     {
         builder.Property(o => o.CurrentPrice).HasColumnType("decimal(18,2)");
+        builder.Property(o => o.RowVersion).IsRowVersion();
 
         // Deleting a listing removes its negotiations (and, through them, their rounds).
         builder.HasOne(o => o.Listing)

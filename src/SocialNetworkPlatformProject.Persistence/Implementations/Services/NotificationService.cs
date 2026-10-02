@@ -83,6 +83,7 @@ public class NotificationService : INotificationService
         if (offerId.HasValue)
         {
             var offer = await _offers.GetAll(o => o.Id == offerId.Value, asNoTracking: true, includes: "Listing").FirstOrDefaultAsync();
+            dto.ListingId = offer?.ListingId;
             dto.ListingTitle = offer?.Listing?.Title;
         }
 
@@ -114,11 +115,11 @@ public class NotificationService : INotificationService
 
         // Marketplace notifications show the listing's title: one batched lookup for the whole page.
         var offerIds = items.Where(n => n.OfferId.HasValue).Select(n => n.OfferId!.Value).Distinct().ToList();
-        var listingTitles = offerIds.Count == 0
-            ? new Dictionary<Guid, string>()
+        var offerListings = offerIds.Count == 0
+            ? new Dictionary<Guid, (Guid ListingId, string Title)>()
             : (await _offers.GetAll(o => offerIds.Contains(o.Id), asNoTracking: true, includes: "Listing").ToListAsync())
                 .Where(o => o.Listing != null)
-                .ToDictionary(o => o.Id, o => o.Listing!.Title);
+                .ToDictionary(o => o.Id, o => (o.ListingId, o.Listing!.Title));
 
         var dtos = _mapper.Map<List<GetNotificationDto>>(items);
 
@@ -133,8 +134,11 @@ public class NotificationService : INotificationService
             if (items[i].GroupId.HasValue && groupNames.TryGetValue(items[i].GroupId!.Value, out var groupName))
                 dtos[i].GroupName = groupName;
 
-            if (items[i].OfferId.HasValue && listingTitles.TryGetValue(items[i].OfferId!.Value, out var listingTitle))
-                dtos[i].ListingTitle = listingTitle;
+            if (items[i].OfferId.HasValue && offerListings.TryGetValue(items[i].OfferId!.Value, out var offerListing))
+            {
+                dtos[i].ListingId = offerListing.ListingId;
+                dtos[i].ListingTitle = offerListing.Title;
+            }
         }
 
         return new PagedResult<GetNotificationDto> { Items = dtos, Page = page, PageSize = pageSize, TotalCount = total };

@@ -17,6 +17,7 @@ public class GetNotificationDto
     public string? GroupName { get; set; }
     public Guid? OfferId { get; set; }
     public decimal? Amount { get; set; }
+    public Guid? ListingId { get; set; }
     public string? ListingTitle { get; set; }
 
     public bool IsRead { get; set; }

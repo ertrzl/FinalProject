@@ -15,6 +15,7 @@ public class NotificationProfile : Profile
             .ForMember(dest => dest.ActorName, opt => opt.Ignore())
             .ForMember(dest => dest.ActorAvatarUrl, opt => opt.Ignore())
             .ForMember(dest => dest.GroupName, opt => opt.Ignore())
+            .ForMember(dest => dest.ListingId, opt => opt.Ignore())
             .ForMember(dest => dest.ListingTitle, opt => opt.Ignore());
     }
 }

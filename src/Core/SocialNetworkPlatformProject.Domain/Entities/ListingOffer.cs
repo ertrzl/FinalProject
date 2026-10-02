@@ -18,5 +18,8 @@ public class ListingOffer : BaseEntity
     public Guid LastProposerId { get; set; }
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    // Concurrency token: an answer made on a stale view of the thread (e.g. accept vs. withdraw) is rejected.
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
     public ICollection<ListingOfferRound> Rounds { get; set; } = new List<ListingOfferRound>();
 }

@@ -26,8 +26,10 @@ function offerMoney(n) {
   return n == null ? "" : n.toLocaleString("tr-TR", { maximumFractionDigits: 2 }) + " ₺";
 }
 
+// The title links to the listing itself; once the listing is deleted there is nothing left to link to.
 function offerListing(n) {
-  return `<b>${escapeHtml(n.listingTitle || "silinmiş bir")}</b>`; // the listing may have been deleted since
+  if (!n.listingId) return `<b>silinmiş bir</b>`;
+  return `<a href="marketplace.html?listing=${n.listingId}" class="fw-bold text-decoration-none" onclick="event.stopPropagation()">${escapeHtml(n.listingTitle || "ilan")}</a>`;
 }
 
 const NOTIF_TEXT = {

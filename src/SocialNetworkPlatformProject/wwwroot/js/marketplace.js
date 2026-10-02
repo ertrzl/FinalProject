@@ -662,7 +662,25 @@ async function openListingById(id) {
     remember([await apiFetch(`/api/marketplace/${id}`)]); // always fresh: status / offer hints may have moved on
     openListing(id);
   } catch (err) {
-    toast(err.message || "İlan açılamadı.");
+    toast("İlan bulunamadı ya da kaldırılmış olabilir.");
+  }
+}
+
+// ---- Sharing: marketplace.html?listing=<id> opens that listing's modal straight away ----
+
+function listingLink(id) {
+  return `${window.location.origin}${window.location.pathname}?listing=${id}`;
+}
+
+async function copyListingLink() {
+  if (!selectedListing) return;
+  const link = listingLink(selectedListing.id);
+  try {
+    await navigator.clipboard.writeText(link);
+    toast("İlan bağlantısı kopyalandı.");
+  } catch (err) {
+    // Clipboard access can be blocked (insecure origin, permissions): show the link so it can be copied by hand.
+    window.prompt("Bağlantıyı kopyala:", link);
   }
 }
 
@@ -777,10 +795,18 @@ enableLocationAutocomplete(document.getElementById("filterLocation"));
 
 renderSellPhotos();
 loadCategories().then(() => {
-  if (new URLSearchParams(window.location.search).get("view") === "offers") {
+  const params = new URLSearchParams(window.location.search);
+  const sharedListingId = params.get("listing");
+
+  if (params.get("view") === "offers" && !sharedListingId) {
     setView("offers");
   } else {
     renderListings();
     loadOffers(); // fills the "Tekliflerim" badge
+  }
+
+  if (sharedListingId) {
+    openListingById(sharedListingId);
+    window.history.replaceState(null, "", window.location.pathname); // a refresh shouldn't pop the modal again
   }
 });

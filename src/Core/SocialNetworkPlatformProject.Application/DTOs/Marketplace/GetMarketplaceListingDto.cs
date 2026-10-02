@@ -8,6 +8,8 @@ public class GetMarketplaceListingDto
     public Guid SellerId { get; set; }
     public string SellerName { get; set; } = string.Empty;
     public string? SellerAvatarUrl { get; set; }
+    public double? SellerRatingAverage { get; set; } // null until the seller has been rated
+    public int SellerRatingCount { get; set; }
 
     public string Title { get; set; } = string.Empty;
     public decimal Price { get; set; }

@@ -140,6 +140,7 @@ function listingCardHtml(item) {
           <div class="fw-bold text-primary">${priceLabel(item.price)}${item.openOfferCount > 0 ? ` <span class="badge text-bg-warning fw-normal">${item.openOfferCount} teklif</span>` : ""}</div>
           <div class="small text-truncate">${escapeHtml(item.title)}</div>
           <div class="text-muted small text-truncate"><i class="bi bi-geo-alt"></i> ${escapeHtml(item.location || "Belirtilmedi")}</div>
+          ${item.sellerRatingCount > 0 ? `<div class="small"><i class="bi bi-star-fill rating-star"></i> <b>${item.sellerRatingAverage.toFixed(1)}</b> <span class="text-muted">(${item.sellerRatingCount})</span></div>` : ""}
         </div>
       </div>
     </div>`;
@@ -290,6 +291,9 @@ function openListing(id) {
   document.getElementById("listingModalSellerAvatar").src = item.sellerAvatarUrl || DEFAULT_AVATAR;
   document.getElementById("listingModalSellerName").textContent = item.sellerName;
   document.getElementById("listingModalSellerLink").href = `profile.html?id=${item.sellerId}`;
+  document.getElementById("listingModalSellerRating").innerHTML = item.sellerRatingCount > 0
+    ? `${starsHtml(item.sellerRatingAverage)} <b>${item.sellerRatingAverage.toFixed(1)}</b> <span class="text-muted">(${item.sellerRatingCount} değerlendirme)</span>`
+    : `<span class="text-muted">Henüz değerlendirilmedi</span>`;
 
   const mine = isOwnListing(item);
   const messageLink = document.getElementById("listingModalMessageLink");
@@ -587,6 +591,7 @@ function offerCardHtml(o) {
             <span class="text-muted small ms-1">son teklif: ${escapeHtml(who(o.lastProposerId))}</span>
           </div>
           <div class="small mt-1 text-muted">${history}</div>
+          ${offerRatingHtml(o)}
           <div class="d-flex flex-wrap gap-2 mt-2">${offerActionsHtml(o)}</div>
         </div>
       </div>
@@ -784,6 +789,194 @@ async function respondOffer(offerId, action) {
   }
 }
 
+// ---- Seller ratings: yellow stars out of 5 ----
+
+const STAR_LABELS = ["", "Çok kötü", "Kötü", "Fena değil", "İyi", "Mükemmel"];
+let ratingState = null; // { offerId, stars, hadRating } — what the rate modal is editing
+let reviewsState = null; // { sellerId, page, total } — what the reviews modal is showing
+
+function ratingQuote(rating) {
+  return rating.comment ? ` <span class="text-muted">“${escapeHtml(rating.comment)}”</span>` : "";
+}
+
+// The rating part of an accepted negotiation card: the buyer rates (or edits), the seller sees the buyer's verdict.
+function offerRatingHtml(o) {
+  if (o.status !== "Accepted") return "";
+
+  if (o.isCurrentUserBuyer) {
+    return o.rating
+      ? `<div class="small mt-2">Puanın: ${starsHtml(o.rating.stars)}${ratingQuote(o.rating)}
+           <button class="btn btn-link btn-sm p-0 ms-1" onclick="openRateModal('${o.id}')">Düzenle</button></div>`
+      : `<button class="btn btn-warning btn-sm rounded-pill mt-2" onclick="openRateModal('${o.id}')"><i class="bi bi-star-fill me-1"></i>Satıcıyı Puanla</button>`;
+  }
+  return o.rating
+    ? `<div class="small mt-2">Alıcının puanı: ${starsHtml(o.rating.stars)}${ratingQuote(o.rating)}</div>`
+    : `<div class="small mt-2 text-muted">Alıcı henüz puan vermedi.</div>`;
+}
+
+// The five stars are created once and only their classes change while hovering. Rebuilding them on every
+// mouseover would replace the element under the cursor between mousedown and mouseup and lose the click.
+function renderStarInput(hover = 0) {
+  const box = document.getElementById("rateStarInput");
+  if (!box.children.length) {
+    box.innerHTML = [1, 2, 3, 4, 5]
+      .map(i => `<i class="bi bi-star rating-star" role="radio" data-star="${i}" style="cursor:pointer;"></i>`)
+      .join(" ");
+  }
+
+  const value = ratingState ? ratingState.stars : 0;
+  const shown = hover || value;
+  box.querySelectorAll("[data-star]").forEach(star => {
+    const n = Number(star.dataset.star);
+    star.className = `bi ${n <= shown ? "bi-star-fill" : "bi-star"} rating-star`;
+    star.setAttribute("aria-checked", String(n === value));
+  });
+  document.getElementById("rateStarLabel").textContent = shown ? `${shown} / 5 · ${STAR_LABELS[shown]}` : "Bir puan seç";
+}
+
+(() => {
+  const input = document.getElementById("rateStarInput");
+  input.addEventListener("mouseover", e => { if (e.target.dataset.star) renderStarInput(Number(e.target.dataset.star)); });
+  input.addEventListener("mouseleave", () => renderStarInput());
+  input.addEventListener("click", e => {
+    if (!e.target.dataset.star) return;
+    ratingState.stars = Number(e.target.dataset.star);
+    renderStarInput();
+  });
+})();
+
+function openRateModal(offerId) {
+  const o = offerLists.sent.find(x => x.id === offerId);
+  if (!o) return;
+
+  ratingState = { offerId, stars: o.rating ? o.rating.stars : 0, hadRating: !!o.rating };
+  document.getElementById("rateModalSeller").textContent = `${o.sellerName} · ${o.listingTitle}`;
+  document.getElementById("rateComment").value = o.rating && o.rating.comment ? o.rating.comment : "";
+  document.getElementById("rateError").classList.add("d-none");
+  document.getElementById("rateDeleteBtn").classList.toggle("d-none", !ratingState.hadRating);
+  renderStarInput();
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("rateModal")).show();
+}
+
+async function submitRating() {
+  if (!ratingState) return;
+  const errorBox = document.getElementById("rateError");
+  if (!ratingState.stars) {
+    errorBox.textContent = "Lütfen 1 ile 5 arasında bir puan seç.";
+    errorBox.classList.remove("d-none");
+    return;
+  }
+
+  const btn = document.getElementById("rateSubmitBtn");
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/marketplace/offers/${ratingState.offerId}/rating`, {
+      method: "PUT",
+      body: { stars: ratingState.stars, comment: document.getElementById("rateComment").value.trim() }
+    });
+    bootstrap.Modal.getInstance(document.getElementById("rateModal"))?.hide();
+    toast(ratingState.hadRating ? "Puanın güncellendi." : "Puanın kaydedildi, teşekkürler!");
+    await loadOffers();
+  } catch (err) {
+    errorBox.textContent = err.message || "Puan kaydedilemedi.";
+    errorBox.classList.remove("d-none");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteRating() {
+  if (!ratingState || !confirm("Verdiğin puanı silmek istediğine emin misin?")) return;
+  try {
+    await apiFetch(`/api/marketplace/offers/${ratingState.offerId}/rating`, { method: "DELETE" });
+    bootstrap.Modal.getInstance(document.getElementById("rateModal"))?.hide();
+    toast("Puanın silindi.");
+    await loadOffers();
+  } catch (err) {
+    toast(err.message || "Puan silinemedi.");
+  }
+}
+
+function reviewHtml(r) {
+  return `
+    <div class="d-flex gap-2 py-3 border-top">
+      <a href="profile.html?id=${r.reviewerId}"><img src="${r.reviewerAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt=""></a>
+      <div class="flex-grow-1">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <a href="profile.html?id=${r.reviewerId}" class="fw-semibold text-body text-decoration-none">${escapeHtml(r.reviewerName)}</a>
+          <span class="text-muted small flex-shrink-0">${timeAgo(r.createdAt)}</span>
+        </div>
+        <div>${starsHtml(r.stars)}</div>
+        ${r.comment ? `<div class="small mt-1">${escapeHtml(r.comment)}</div>` : ""}
+        <div class="text-muted small mt-1"><i class="bi bi-tag me-1"></i>${escapeHtml(r.listingTitle)}</div>
+      </div>
+    </div>`;
+}
+
+function reviewsHeaderHtml(summary) {
+  if (!summary.count) {
+    return `<div class="text-center py-3"><div class="fw-bold">${escapeHtml(summary.sellerName)}</div><div class="text-muted small">Henüz değerlendirilmedi.</div></div>`;
+  }
+
+  const bars = [5, 4, 3, 2, 1].map(star => {
+    const count = summary.distribution[star - 1];
+    const percent = Math.round(count / summary.count * 100);
+    return `<div class="d-flex align-items-center gap-2 small">
+        <span style="width:14px;">${star}</span><i class="bi bi-star-fill rating-star"></i>
+        <div class="progress flex-grow-1" style="height:8px;"><div class="progress-bar bg-warning" style="width:${percent}%"></div></div>
+        <span class="text-muted text-end" style="width:28px;">${count}</span>
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="d-flex align-items-center gap-3 mb-3">
+      <img src="${summary.sellerAvatarUrl || DEFAULT_AVATAR}" class="avatar-md rounded-circle" style="width:56px;height:56px;object-fit:cover;" alt="">
+      <div class="flex-grow-1">
+        <a href="profile.html?id=${summary.sellerId}" class="fw-bold text-body text-decoration-none">${escapeHtml(summary.sellerName)}</a>
+        <div class="d-flex align-items-center gap-2">
+          <span class="fs-3 fw-bold">${summary.average.toFixed(1)}</span>
+          <div><div class="fs-5 lh-1">${starsHtml(summary.average)}</div><div class="text-muted small">${summary.count} değerlendirme</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex flex-column gap-1 mb-2">${bars}</div>`;
+}
+
+async function openSellerReviews(sellerId) {
+  reviewsState = { sellerId, page: 1, total: 0 };
+  const body = document.getElementById("sellerReviewsBody");
+  body.innerHTML = `<div class="text-center text-muted small py-4">Yükleniyor...</div>`;
+  openModalAfterListingModal("sellerReviewsModal");
+
+  try {
+    const [summary, reviews] = await Promise.all([
+      apiFetch(`/api/marketplace/sellers/${sellerId}/rating-summary`),
+      apiFetch(`/api/marketplace/sellers/${sellerId}/ratings?page=1&pageSize=10`)
+    ]);
+    reviewsState.total = reviews.totalCount;
+    body.innerHTML = `${reviewsHeaderHtml(summary)}
+      <div id="reviewsList">${reviews.items.map(reviewHtml).join("")}</div>
+      <div class="text-center mt-2 ${reviews.items.length >= reviews.totalCount ? "d-none" : ""}" id="reviewsMoreWrap">
+        <button class="btn btn-light border btn-sm rounded-pill" onclick="loadMoreReviews()">Daha fazla göster</button>
+      </div>`;
+  } catch (err) {
+    body.innerHTML = `<div class="alert alert-danger small">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function loadMoreReviews() {
+  if (!reviewsState) return;
+  try {
+    const next = await apiFetch(`/api/marketplace/sellers/${reviewsState.sellerId}/ratings?page=${reviewsState.page + 1}&pageSize=10`);
+    reviewsState.page += 1;
+    document.getElementById("reviewsList").insertAdjacentHTML("beforeend", next.items.map(reviewHtml).join(""));
+    const shown = document.querySelectorAll("#reviewsList > div").length;
+    document.getElementById("reviewsMoreWrap").classList.toggle("d-none", shown >= next.totalCount);
+  } catch (err) {
+    toast(err.message || "Değerlendirmeler yüklenemedi.");
+  }
+}
+
 // A negotiation moved on the other side (counter, accept, ...): the notification arrives live, so refresh quietly.
 document.addEventListener("realtime:notification", e => {
   if (e.detail && e.detail.type && e.detail.type.startsWith("MarketplaceOffer")) loadOffers();
@@ -805,8 +998,12 @@ loadCategories().then(() => {
     loadOffers(); // fills the "Tekliflerim" badge
   }
 
-  if (sharedListingId) {
-    openListingById(sharedListingId);
+  const reviewsOfSeller = params.get("sellerReviews"); // from a profile's rating badge or a "you were rated" notification
+
+  if (sharedListingId) openListingById(sharedListingId);
+  else if (reviewsOfSeller) openSellerReviews(reviewsOfSeller);
+
+  if (sharedListingId || reviewsOfSeller) {
     window.history.replaceState(null, "", window.location.pathname); // a refresh shouldn't pop the modal again
   }
 });

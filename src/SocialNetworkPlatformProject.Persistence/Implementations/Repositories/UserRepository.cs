@@ -140,6 +140,11 @@ public class UserRepository : IUserRepository
 
         await _context.Set<Conversation>().Where(c => myConversationIds.Contains(c.Id)).ExecuteDeleteAsync();
 
+        // Marketplace trail: reviews written by or about the user, their offers on other people's listings
+        // (their own listings' offers go with the listings) and their favourites.
+        await _context.Set<SellerRating>().Where(r => r.BuyerId == userId || r.SellerId == userId).ExecuteDeleteAsync();
+        await _context.Set<ListingOffer>().Where(o => o.BuyerId == userId).ExecuteDeleteAsync();
+        await _context.Set<SavedListing>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<MarketplaceListing>().Where(l => l.SellerId == userId).ExecuteDeleteAsync();
 
         await _context.Set<EventAttendee>().Where(a => a.UserId == userId).ExecuteDeleteAsync();

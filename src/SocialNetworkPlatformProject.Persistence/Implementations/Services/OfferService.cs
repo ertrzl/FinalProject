@@ -17,6 +17,7 @@ public class OfferService : IOfferService
     private readonly IListingOfferRepository _offers;
     private readonly IListingOfferRoundRepository _rounds;
     private readonly IMarketplaceListingRepository _listings;
+    private readonly ISellerRatingRepository _ratings;
     private readonly IUserRepository _users;
     private readonly INotificationService _notifications;
 
@@ -24,12 +25,14 @@ public class OfferService : IOfferService
         IListingOfferRepository offers,
         IListingOfferRoundRepository rounds,
         IMarketplaceListingRepository listings,
+        ISellerRatingRepository ratings,
         IUserRepository users,
         INotificationService notifications)
     {
         _offers = offers;
         _rounds = rounds;
         _listings = listings;
+        _ratings = ratings;
         _users = users;
         _notifications = notifications;
     }
@@ -268,6 +271,13 @@ public class OfferService : IOfferService
         var list = offers.ToList();
         var people = await _users.GetSummariesAsync(list.SelectMany(o => new[] { o.BuyerId, o.SellerId }));
 
+        // Only accepted deals can carry a rating: one batched lookup for the whole inbox.
+        var acceptedIds = list.Where(o => o.Status == OfferStatus.Accepted).Select(o => o.Id).ToList();
+        var ratings = acceptedIds.Count == 0
+            ? new Dictionary<Guid, SellerRating>()
+            : (await _ratings.GetAll(r => acceptedIds.Contains(r.OfferId), asNoTracking: true).ToListAsync())
+                .ToDictionary(r => r.OfferId);
+
         return list.Select(o =>
         {
             people.TryGetValue(o.BuyerId, out var buyer);
@@ -294,6 +304,9 @@ public class OfferService : IOfferService
                 IsCurrentUserBuyer = o.BuyerId == currentUserId,
                 IsMyTurn = isOpen && o.LastProposerId != currentUserId,
                 CanWithdraw = isOpen && o.LastProposerId == currentUserId,
+                Rating = ratings.TryGetValue(o.Id, out var rating)
+                    ? new GetOfferRatingDto { Stars = rating.Stars, Comment = rating.Comment, UpdatedAt = rating.UpdatedAt }
+                    : null,
                 Rounds = o.Rounds
                     .OrderBy(r => r.CreatedAt)
                     .Select(r => new GetOfferRoundDto { ProposerId = r.ProposerId, Price = r.Price, CreatedAt = r.CreatedAt })

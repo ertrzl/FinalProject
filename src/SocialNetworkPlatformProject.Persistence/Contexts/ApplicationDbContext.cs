@@ -46,6 +46,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<MarketplaceListing> MarketplaceListings => Set<MarketplaceListing>();
     public DbSet<ListingImage> ListingImages => Set<ListingImage>();
     public DbSet<SavedListing> SavedListings => Set<SavedListing>();
+    public DbSet<SellerRating> SellerRatings => Set<SellerRating>();
     public DbSet<ListingOffer> ListingOffers => Set<ListingOffer>();
     public DbSet<ListingOfferRound> ListingOfferRounds => Set<ListingOfferRound>();
 

@@ -17,6 +17,8 @@ public class MarketplaceListingProfile : Profile
             .ForMember(dest => dest.IsSavedByCurrentUser, opt => opt.Ignore())
             .ForMember(dest => dest.MyOpenOfferId, opt => opt.Ignore())
             .ForMember(dest => dest.OpenOfferCount, opt => opt.Ignore())
+            .ForMember(dest => dest.SellerRatingAverage, opt => opt.Ignore())
+            .ForMember(dest => dest.SellerRatingCount, opt => opt.Ignore())
             .ForMember(dest => dest.SellerName, opt => opt.Ignore())
             .ForMember(dest => dest.SellerAvatarUrl, opt => opt.Ignore());
     }

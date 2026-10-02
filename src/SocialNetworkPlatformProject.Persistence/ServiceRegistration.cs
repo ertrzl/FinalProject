@@ -61,6 +61,7 @@ public static class ServiceRegistration
         services.AddScoped<IMarketplaceListingRepository, MarketplaceListingRepository>();
         services.AddScoped<IListingImageRepository, ListingImageRepository>();
         services.AddScoped<ISavedListingRepository, SavedListingRepository>();
+        services.AddScoped<ISellerRatingRepository, SellerRatingRepository>();
         services.AddScoped<IListingOfferRepository, ListingOfferRepository>();
         services.AddScoped<IListingOfferRoundRepository, ListingOfferRoundRepository>();
 
@@ -85,6 +86,7 @@ public static class ServiceRegistration
         services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<IMarketplaceService, MarketplaceService>();
         services.AddScoped<IOfferService, OfferService>();
+        services.AddScoped<ISellerRatingService, SellerRatingService>();
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<ILiveUpdateService, LiveUpdateService>();
 

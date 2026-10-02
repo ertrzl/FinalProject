@@ -25,6 +25,7 @@ public class GetListingOfferDto
     public bool IsCurrentUserBuyer { get; set; }
     public bool IsMyTurn { get; set; }    // open, and the last proposal came from the other side: accept / counter / reject
     public bool CanWithdraw { get; set; } // open, and the last proposal is mine
+    public GetOfferRatingDto? Rating { get; set; } // the buyer's rating of this deal, once given
 
     public List<GetOfferRoundDto> Rounds { get; set; } = new();
     public DateTime CreatedAt { get; set; }

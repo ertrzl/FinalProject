@@ -21,6 +21,7 @@ public class MarketplaceService : IMarketplaceService
     private readonly IListingImageRepository _images;
     private readonly ISavedListingRepository _saved;
     private readonly IListingOfferRepository _offers;
+    private readonly ISellerRatingRepository _ratings;
     private readonly IOfferService _offerService;
     private readonly IUserRepository _users;
     private readonly IFileStorageService _files;
@@ -31,6 +32,7 @@ public class MarketplaceService : IMarketplaceService
         IListingImageRepository images,
         ISavedListingRepository saved,
         IListingOfferRepository offers,
+        ISellerRatingRepository ratings,
         IOfferService offerService,
         IUserRepository users,
         IFileStorageService files,
@@ -40,6 +42,7 @@ public class MarketplaceService : IMarketplaceService
         _images = images;
         _saved = saved;
         _offers = offers;
+        _ratings = ratings;
         _offerService = offerService;
         _users = users;
         _files = files;
@@ -309,9 +312,23 @@ public class MarketplaceService : IMarketplaceService
             .Select(o => new { o.Id, o.ListingId, o.BuyerId })
             .ToListAsync();
 
+        // Average + count per distinct seller of this page, grouped in SQL (never one query per listing).
+        var sellerIds = list.Select(l => l.SellerId).Distinct().ToList();
+        var sellerRatings = (await _ratings.GetAll(r => sellerIds.Contains(r.SellerId), asNoTracking: true)
+                .GroupBy(r => r.SellerId)
+                .Select(g => new { SellerId = g.Key, Average = g.Average(r => (double)r.Stars), Count = g.Count() })
+                .ToListAsync())
+            .ToDictionary(x => x.SellerId);
+
         var dtos = _mapper.Map<List<GetMarketplaceListingDto>>(list);
         for (var i = 0; i < dtos.Count; i++)
         {
+            if (sellerRatings.TryGetValue(list[i].SellerId, out var rated))
+            {
+                dtos[i].SellerRatingAverage = rated.Average;
+                dtos[i].SellerRatingCount = rated.Count;
+            }
+
             dtos[i].IsSavedByCurrentUser = savedIds.Contains(list[i].Id);
             dtos[i].MyOpenOfferId = openOffers.FirstOrDefault(o => o.ListingId == list[i].Id && o.BuyerId == currentUserId)?.Id;
             if (list[i].SellerId == currentUserId)

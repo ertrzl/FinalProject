@@ -19,5 +19,6 @@ public enum NotificationType
     MarketplaceOfferAccepted = 13,
     MarketplaceOfferRejected = 14,
     MarketplaceOfferWithdrawn = 15,
-    MarketplaceOfferClosed = 16     // the listing was sold while the negotiation was open
+    MarketplaceOfferClosed = 16,    // the listing was sold while the negotiation was open
+    MarketplaceRatingReceived = 17  // to the seller; Notification.Amount carries the star count
 }

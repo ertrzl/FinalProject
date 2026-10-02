@@ -188,13 +188,14 @@
             <div class="text-muted small mb-3" id="listingModalMeta"></div>
             <p id="listingModalDescription"></p>
             <hr>
-            <a id="listingModalSellerLink" href="#" class="d-flex align-items-center gap-2 mb-3 text-decoration-none text-body">
+            <a id="listingModalSellerLink" href="#" class="d-flex align-items-center gap-2 mb-1 text-decoration-none text-body">
               <img id="listingModalSellerAvatar" src="" class="avatar-sm" alt="">
               <div>
                 <div class="fw-bold small">Satıcı</div>
                 <div class="small" id="listingModalSellerName"></div>
               </div>
             </a>
+            <div id="listingModalSellerRating" class="small mb-3" role="button" onclick="openSellerReviews(selectedListing.sellerId)"></div>
             <button type="button" id="listingModalOfferBtn" class="btn btn-success rounded-pill w-100 mb-2 d-none" onclick="onOfferButton()"></button>
             <button type="button" id="listingModalOwnerOffersBtn" class="btn btn-warning rounded-pill w-100 mb-2 d-none" onclick="goToOffers('received')"></button>
             <a id="listingModalMessageLink" href="#" class="btn btn-primary rounded-pill w-100 mb-2"><i class="bi bi-chat-dots-fill me-1"></i>Satıcıya Mesaj Gönder</a>
@@ -210,6 +211,43 @@
           <div class="row g-2" id="sellerOtherList"></div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Rate-the-seller modal -->
+<div class="modal fade" id="rateModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Satıcıyı Puanla</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="small text-muted mb-1" id="rateModalSeller"></div>
+        <div class="fs-1 lh-1 mb-1" id="rateStarInput" role="radiogroup" aria-label="Puan"></div>
+        <div class="small text-muted mb-3" id="rateStarLabel"></div>
+        <textarea id="rateComment" class="form-control" rows="3" maxlength="500" placeholder="Yorum yaz (isteğe bağlı)"></textarea>
+        <div class="text-danger small mt-2 d-none" id="rateError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="rateDeleteBtn" class="btn btn-outline-danger rounded-pill me-auto d-none" onclick="deleteRating()">Puanı Sil</button>
+        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>
+        <button type="button" id="rateSubmitBtn" class="btn btn-warning rounded-pill" onclick="submitRating()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Seller reviews modal -->
+<div class="modal fade" id="sellerReviewsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Satıcı Değerlendirmeleri</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="sellerReviewsBody"></div>
     </div>
   </div>
 </div>

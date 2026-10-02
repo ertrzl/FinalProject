@@ -14,6 +14,8 @@ public class Notification : BaseEntity
     public Guid? CommentId { get; set; }
     public Guid? FriendRequestId { get; set; }
     public Guid? GroupId { get; set; }
+    public Guid? OfferId { get; set; }
+    public decimal? Amount { get; set; } // the price involved in a marketplace offer event
 
     public bool IsRead { get; set; } = false;
 }

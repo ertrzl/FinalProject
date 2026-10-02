@@ -23,7 +23,7 @@ public class MarketplaceController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<PagedResult<GetMarketplaceListingDto>>> GetListings([FromQuery] MarketplaceListingQuery query)
     {
-        return await _marketplace.GetListingsAsync(query);
+        return await _marketplace.GetListingsAsync(User.GetUserId(), query);
     }
 
     [HttpGet("categories")]
@@ -38,10 +38,16 @@ public class MarketplaceController : ControllerBase
         return await _marketplace.GetMyListingsAsync(User.GetUserId());
     }
 
+    [HttpGet("saved")]
+    public async Task<ActionResult<List<GetMarketplaceListingDto>>> GetSavedListings()
+    {
+        return await _marketplace.GetSavedListingsAsync(User.GetUserId());
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<GetMarketplaceListingDto>> GetById(Guid id)
     {
-        return await _marketplace.GetByIdAsync(id);
+        return await _marketplace.GetByIdAsync(User.GetUserId(), id);
     }
 
     [HttpPost]
@@ -61,6 +67,12 @@ public class MarketplaceController : ControllerBase
     public async Task<ActionResult<GetMarketplaceListingDto>> SetStatus(Guid id, PutListingStatusDto dto)
     {
         return await _marketplace.SetStatusAsync(User.GetUserId(), id, dto);
+    }
+
+    [HttpPost("{id:guid}/save")]
+    public async Task<ActionResult<bool>> ToggleSave(Guid id)
+    {
+        return await _marketplace.ToggleSaveAsync(User.GetUserId(), id);
     }
 
     [HttpDelete("{id:guid}")]

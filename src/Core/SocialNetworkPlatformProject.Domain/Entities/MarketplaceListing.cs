@@ -12,6 +12,7 @@ public class MarketplaceListing : BaseEntity
     public string Category { get; set; } = string.Empty;
     public string? Location { get; set; }
     public string? Description { get; set; }
-    public string? ImageUrl { get; set; }
     public ListingStatus Status { get; set; } = ListingStatus.Active;
+
+    public ICollection<ListingImage> Images { get; set; } = new List<ListingImage>();
 }

@@ -13,5 +13,11 @@ public enum NotificationType
     GroupMemberRemoved = 7, // kicked
     GroupRoleChanged = 8,
     GroupJoinRequestApproved = 9,
-    GroupJoinRequestRejected = 10
+    GroupJoinRequestRejected = 10,
+    MarketplaceOfferReceived = 11,  // to the seller: a buyer made an offer
+    MarketplaceOfferCountered = 12, // to the other party: a counter-offer
+    MarketplaceOfferAccepted = 13,
+    MarketplaceOfferRejected = 14,
+    MarketplaceOfferWithdrawn = 15,
+    MarketplaceOfferClosed = 16     // the listing was sold while the negotiation was open
 }

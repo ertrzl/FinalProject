@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SocialNetworkPlatformProject.Persistence.Contexts;
 
@@ -11,9 +12,11 @@ using SocialNetworkPlatformProject.Persistence.Contexts;
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261002163629_AddListingImages")]
+    partial class AddListingImages
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -506,74 +509,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.ToTable("ListingImages");
                 });
 
-            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.ListingOffer", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("BuyerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("CurrentPrice")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid>("LastProposerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("SellerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BuyerId", "Status");
-
-                    b.HasIndex("ListingId", "BuyerId")
-                        .IsUnique()
-                        .HasFilter("[Status] = 0");
-
-                    b.HasIndex("SellerId", "Status");
-
-                    b.ToTable("ListingOffers");
-                });
-
-            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.ListingOfferRound", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("OfferId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid>("ProposerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OfferId");
-
-                    b.ToTable("ListingOfferRounds");
-                });
-
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.MarketplaceListing", b =>
                 {
                     b.Property<Guid>("Id")
@@ -659,9 +594,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<Guid>("ActorId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal?>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<Guid?>("CommentId")
                         .HasColumnType("uniqueidentifier");
 
@@ -676,9 +608,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
-
-                    b.Property<Guid?>("OfferId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("PostId")
                         .HasColumnType("uniqueidentifier");
@@ -1135,28 +1064,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Listing");
                 });
 
-            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.ListingOffer", b =>
-                {
-                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.MarketplaceListing", "Listing")
-                        .WithMany()
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Listing");
-                });
-
-            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.ListingOfferRound", b =>
-                {
-                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.ListingOffer", "Offer")
-                        .WithMany("Rounds")
-                        .HasForeignKey("OfferId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Offer");
-                });
-
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Message", b =>
                 {
                     b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Conversation", "Conversation")
@@ -1261,11 +1168,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Hashtag", b =>
                 {
                     b.Navigation("Posts");
-                });
-
-            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.ListingOffer", b =>
-                {
-                    b.Navigation("Rounds");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.MarketplaceListing", b =>

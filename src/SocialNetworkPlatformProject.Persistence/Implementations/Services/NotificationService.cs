@@ -15,6 +15,7 @@ public class NotificationService : INotificationService
     private readonly INotificationRepository _notifications;
     private readonly IUserRepository _users;
     private readonly IGroupRepository _groups;
+    private readonly IListingOfferRepository _offers;
     private readonly IRealTimeNotifier _notifier;
     private readonly IMapper _mapper;
 
@@ -22,28 +23,35 @@ public class NotificationService : INotificationService
         INotificationRepository notifications,
         IUserRepository users,
         IGroupRepository groups,
+        IListingOfferRepository offers,
         IRealTimeNotifier notifier,
         IMapper mapper)
     {
         _notifications = notifications;
         _users = users;
         _groups = groups;
+        _offers = offers;
         _notifier = notifier;
         _mapper = mapper;
     }
 
     public async Task CreateAsync(Guid recipientId, Guid actorId, NotificationType type,
-        Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null, Guid? groupId = null)
+        Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null, Guid? groupId = null,
+        Guid? offerId = null, decimal? amount = null)
     {
         if (recipientId == actorId)
             return;
 
         // Like -> unlike -> like again shouldn't spam the recipient with identical entries.
-        var alreadyExists = await _notifications.AnyAsync(n =>
-            n.RecipientId == recipientId && n.ActorId == actorId && n.Type == type &&
-            n.PostId == postId && n.CommentId == commentId && n.FriendRequestId == friendRequestId && n.GroupId == groupId);
-        if (alreadyExists)
-            return;
+        // Marketplace offer events are the exception: every counter-offer is a genuinely new event.
+        if (offerId == null)
+        {
+            var alreadyExists = await _notifications.AnyAsync(n =>
+                n.RecipientId == recipientId && n.ActorId == actorId && n.Type == type &&
+                n.PostId == postId && n.CommentId == commentId && n.FriendRequestId == friendRequestId && n.GroupId == groupId);
+            if (alreadyExists)
+                return;
+        }
 
         var notification = new Notification
         {
@@ -53,7 +61,9 @@ public class NotificationService : INotificationService
             PostId = postId,
             CommentId = commentId,
             FriendRequestId = friendRequestId,
-            GroupId = groupId
+            GroupId = groupId,
+            OfferId = offerId,
+            Amount = amount
         };
 
         await _notifications.AddAsync(notification);
@@ -68,6 +78,12 @@ public class NotificationService : INotificationService
         {
             var group = await _groups.GetByIdAsync(groupId.Value);
             dto.GroupName = group?.Name;
+        }
+
+        if (offerId.HasValue)
+        {
+            var offer = await _offers.GetAll(o => o.Id == offerId.Value, asNoTracking: true, includes: "Listing").FirstOrDefaultAsync();
+            dto.ListingTitle = offer?.Listing?.Title;
         }
 
         await _notifier.SendNotificationAsync(recipientId, dto);
@@ -96,6 +112,14 @@ public class NotificationService : INotificationService
             ? new Dictionary<Guid, string>()
             : await _groups.GetAll(g => groupIds.Contains(g.Id), asNoTracking: true).ToDictionaryAsync(g => g.Id, g => g.Name);
 
+        // Marketplace notifications show the listing's title: one batched lookup for the whole page.
+        var offerIds = items.Where(n => n.OfferId.HasValue).Select(n => n.OfferId!.Value).Distinct().ToList();
+        var listingTitles = offerIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : (await _offers.GetAll(o => offerIds.Contains(o.Id), asNoTracking: true, includes: "Listing").ToListAsync())
+                .Where(o => o.Listing != null)
+                .ToDictionary(o => o.Id, o => o.Listing!.Title);
+
         var dtos = _mapper.Map<List<GetNotificationDto>>(items);
 
         for (var i = 0; i < dtos.Count; i++)
@@ -108,6 +132,9 @@ public class NotificationService : INotificationService
 
             if (items[i].GroupId.HasValue && groupNames.TryGetValue(items[i].GroupId!.Value, out var groupName))
                 dtos[i].GroupName = groupName;
+
+            if (items[i].OfferId.HasValue && listingTitles.TryGetValue(items[i].OfferId!.Value, out var listingTitle))
+                dtos[i].ListingTitle = listingTitle;
         }
 
         return new PagedResult<GetNotificationDto> { Items = dtos, Page = page, PageSize = pageSize, TotalCount = total };

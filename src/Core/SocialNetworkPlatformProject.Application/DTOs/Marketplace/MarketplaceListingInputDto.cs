@@ -10,5 +10,5 @@ public abstract class MarketplaceListingInputDto
     public string Category { get; set; } = string.Empty;
     public string? Location { get; set; }
     public string? Description { get; set; }
-    public IFormFile? Image { get; set; }
+    public List<IFormFile> Images { get; set; } = new(); // new photos (several allowed, see MarketplaceLimits)
 }

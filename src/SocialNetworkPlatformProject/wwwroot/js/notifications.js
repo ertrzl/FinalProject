@@ -13,8 +13,22 @@ const NOTIF_ICON = {
   GroupMemberRemoved: { badge: "bg-danger", icon: "bi-person-dash-fill" },
   GroupRoleChanged: { badge: "bg-warning", icon: "bi-award-fill" },
   GroupJoinRequestApproved: { badge: "bg-success", icon: "bi-check-circle-fill" },
-  GroupJoinRequestRejected: { badge: "bg-secondary", icon: "bi-x-circle-fill" }
+  GroupJoinRequestRejected: { badge: "bg-secondary", icon: "bi-x-circle-fill" },
+  MarketplaceOfferReceived: { badge: "bg-warning", icon: "bi-tag-fill" },
+  MarketplaceOfferCountered: { badge: "bg-info", icon: "bi-arrow-left-right" },
+  MarketplaceOfferAccepted: { badge: "bg-success", icon: "bi-check-lg" },
+  MarketplaceOfferRejected: { badge: "bg-danger", icon: "bi-x-lg" },
+  MarketplaceOfferWithdrawn: { badge: "bg-secondary", icon: "bi-arrow-counterclockwise" },
+  MarketplaceOfferClosed: { badge: "bg-secondary", icon: "bi-lock-fill" }
 };
+
+function offerMoney(n) {
+  return n == null ? "" : n.toLocaleString("tr-TR", { maximumFractionDigits: 2 }) + " ₺";
+}
+
+function offerListing(n) {
+  return `<b>${escapeHtml(n.listingTitle || "silinmiş bir")}</b>`; // the listing may have been deleted since
+}
 
 const NOTIF_TEXT = {
   FriendRequestReceived: n => `<b>${escapeHtml(n.actorName)}</b> sana arkadaşlık isteği gönderdi.`,
@@ -27,7 +41,13 @@ const NOTIF_TEXT = {
   GroupMemberRemoved: n => `<b>${escapeHtml(n.actorName)}</b> seni <b>${escapeHtml(n.groupName || "")}</b> grubundan çıkardı.`,
   GroupRoleChanged: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubundaki rolünü değiştirdi.`,
   GroupJoinRequestApproved: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubuna katılma isteğini onayladı.`,
-  GroupJoinRequestRejected: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubuna katılma isteğini reddetti.`
+  GroupJoinRequestRejected: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubuna katılma isteğini reddetti.`,
+  MarketplaceOfferReceived: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} ilanına <b>${offerMoney(n.amount)}</b> teklif verdi.`,
+  MarketplaceOfferCountered: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} ilanında <b>${offerMoney(n.amount)}</b> karşı teklif yaptı.`,
+  MarketplaceOfferAccepted: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} ilanındaki <b>${offerMoney(n.amount)}</b> teklifi kabul etti.`,
+  MarketplaceOfferRejected: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} ilanındaki teklifini reddetti.`,
+  MarketplaceOfferWithdrawn: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} ilanındaki teklifini geri çekti.`,
+  MarketplaceOfferClosed: n => `${offerListing(n)} ilanı satıldığı için teklifin kapandı.`
 };
 
 function notificationHtml(n) {
@@ -46,6 +66,8 @@ function notificationHtml(n) {
          <button class="btn btn-primary btn-sm rounded-pill" onclick="respondToGroupRequest('${n.groupId}', '${n.actorId}', '${n.id}', true)">Onayla</button>
          <button class="btn btn-light btn-sm rounded-pill" onclick="respondToGroupRequest('${n.groupId}', '${n.actorId}', '${n.id}', false)">Reddet</button>
        </div>`;
+  } else if (n.type.startsWith("MarketplaceOffer")) {
+    actions = `<a href="marketplace.html?view=offers" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Teklifleri Gör</a>`;
   } else if (n.type === "GroupInviteReceived" && !n.isRead) {
     actions = `<div class="d-flex gap-2 flex-shrink-0">
          <button class="btn btn-primary btn-sm rounded-pill" onclick="respondToGroupInvite('${n.groupId}', '${n.id}', true)">Kabul Et</button>

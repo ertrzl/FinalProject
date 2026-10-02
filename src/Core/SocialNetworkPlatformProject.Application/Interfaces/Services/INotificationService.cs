@@ -9,7 +9,8 @@ public interface INotificationService
     // Called by other services when a like/comment/friend event happens; saves, then pushes over SignalR.
     // Does nothing when actor and recipient are the same person.
     Task CreateAsync(Guid recipientId, Guid actorId, NotificationType type,
-        Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null, Guid? groupId = null);
+        Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null, Guid? groupId = null,
+        Guid? offerId = null, decimal? amount = null);
 
     Task<PagedResult<GetNotificationDto>> GetMyNotificationsAsync(Guid currentUserId, int page, int pageSize);
 

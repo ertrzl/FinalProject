@@ -8,6 +8,7 @@ public class MarketplaceListingQuery
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
     public string? Location { get; set; }
+    public Guid? SellerId { get; set; } // "Bu satıcının diğer ilanları"
     public string Sort { get; set; } = MarketplaceSort.Newest;
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;

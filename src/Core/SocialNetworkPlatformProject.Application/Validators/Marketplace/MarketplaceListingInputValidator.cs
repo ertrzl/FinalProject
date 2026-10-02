@@ -25,5 +25,9 @@ public abstract class MarketplaceListingInputValidator<T> : AbstractValidator<T>
 
         RuleFor(x => x.Location).MaximumLength(200);
         RuleFor(x => x.Description).MaximumLength(2000);
+
+        RuleFor(x => x.Images.Count)
+            .LessThanOrEqualTo(MarketplaceLimits.MaxImagesPerListing)
+            .WithMessage($"A listing can have at most {MarketplaceLimits.MaxImagesPerListing} photos.");
     }
 }

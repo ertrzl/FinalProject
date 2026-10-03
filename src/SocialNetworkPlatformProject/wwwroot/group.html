@@ -71,6 +71,14 @@
 
     <hr class="mb-4">
 
+    <ul class="nav nav-pills gap-2 mb-3 d-none" id="groupTabs">
+      <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#groupTabPosts">Gönderiler</button></li>
+      <li class="nav-item"><button class="nav-link text-muted" data-bs-toggle="pill" data-bs-target="#groupTabEvents" onclick="loadGroupEvents()">Etkinlikler</button></li>
+    </ul>
+
+    <div class="tab-content">
+    <div class="tab-pane fade show active" id="groupTabPosts">
+
     <!-- Composer, only shown to members -->
     <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 composer d-none" id="groupComposerWrap">
       <div class="d-flex gap-3">
@@ -94,6 +102,17 @@
     <div id="groupNonMemberNotice" class="alert alert-light border small d-none">Bu grubun gönderilerini görmek/paylaşmak için üye olman gerekiyor.</div>
 
     <div id="groupPostsList"></div>
+
+    </div>
+
+    <div class="tab-pane fade" id="groupTabEvents">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="text-muted small">Sadece grup üyelerinin gördüğü etkinlikler</div>
+        <button class="btn btn-primary btn-sm rounded-pill d-none" id="groupEventCreateBtn" onclick="createGroupEvent()"><i class="bi bi-plus-lg me-1"></i>Etkinlik Oluştur</button>
+      </div>
+      <div id="groupEventsList"><div class="text-muted small">Yükleniyor...</div></div>
+    </div>
+    </div>
 
   </div>
 
@@ -181,6 +200,8 @@
 <script src="js/chat-composer.js"></script>
 <script src="js/chat-dock.js"></script>
 <script src="js/live-posts.js"></script>
+<script src="js/location-autocomplete.js"></script>
+<script src="js/event-form.js"></script>
 <script src="js/group.js"></script>
 </body>
 </html>

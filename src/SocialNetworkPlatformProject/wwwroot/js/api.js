@@ -207,6 +207,27 @@ function starsHtml(value) {
   return `<span class="rating-stars" title="${value} / 5">${stars}</span>`;
 }
 
+// Event start time, e.g. "6 Ekim Salı · 18:00". Shared by events.html and event.html.
+function formatEventDate(isoDate) {
+  // Unlike post/story timestamps, startsAt is the plain local time the organizer typed in
+  // ("başlıyor saat 18:00"), not UTC — so it must NOT get a "Z" appended before parsing.
+  const date = new Date(isoDate);
+  return date.toLocaleDateString("tr-TR", { day: "numeric", month: "long", weekday: "long" })
+    + " · " + date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+}
+
+// "Çevrimiçi" or the place of an event, with its icon.
+function eventPlaceHtml(ev) {
+  return ev.isOnline
+    ? `<i class="bi bi-camera-video me-1"></i>Çevrimiçi`
+    : `<i class="bi bi-geo-alt me-1"></i>${escapeHtml(ev.location || "Belirtilmedi")}`;
+}
+
+// "12 katılımcı", or "12 / 50 katılımcı" when the event has a limit.
+function eventAttendanceText(ev) {
+  return ev.capacity != null ? `${ev.goingCount} / ${ev.capacity} katılımcı` : `${ev.goingCount} katılımcı`;
+}
+
 // Post card media block: an <img> for photo posts, a <video> for video posts.
 function postMediaHtml(post) {
   if (!post.mediaUrl) return "";

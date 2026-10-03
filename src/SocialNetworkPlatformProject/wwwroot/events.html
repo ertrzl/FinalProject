@@ -50,12 +50,14 @@
 
   <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
     <h1 class="h4 mb-0 fw-bold">Etkinlikler</h1>
-    <button class="btn btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#createEventModal"><i class="bi bi-plus-lg me-1"></i>Etkinlik Oluştur</button>
+    <button class="btn btn-primary rounded-pill" onclick="openEventModal()"><i class="bi bi-plus-lg me-1"></i>Etkinlik Oluştur</button>
   </div>
 
   <ul class="nav nav-pills gap-2 mb-4">
     <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#panel-upcoming">Yaklaşan</button></li>
     <li class="nav-item"><button class="nav-link text-muted" data-bs-toggle="pill" data-bs-target="#panel-going">Katıldıklarım</button></li>
+    <li class="nav-item"><button class="nav-link text-muted" data-bs-toggle="pill" data-bs-target="#panel-mine">Etkinliklerim</button></li>
+    <li class="nav-item"><button class="nav-link text-muted" data-bs-toggle="pill" data-bs-target="#panel-invites">Davetler (<span id="invitesCount">0</span>)</button></li>
   </ul>
 
   <div class="tab-content">
@@ -72,47 +74,37 @@
       </div>
     </div>
 
-  </div>
-</div>
-
-<!-- Create event modal -->
-<div class="modal fade" id="createEventModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content rounded-4">
-      <div class="modal-header">
-        <h5 class="modal-title fw-bold">Etkinlik Oluştur</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="mb-3 d-none" id="eventError"></div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold small">Etkinlik Adı</label>
-          <input type="text" id="eventTitle" class="form-control" placeholder="Örn. Sahil Voleybolu">
-        </div>
-        <div class="row g-3 mb-3">
-          <div class="col-6">
-            <label class="form-label fw-semibold small">Tarih</label>
-            <input type="date" id="eventDate" class="form-control">
-          </div>
-          <div class="col-6">
-            <label class="form-label fw-semibold small">Saat</label>
-            <input type="time" id="eventTime" class="form-control">
-          </div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label fw-semibold small">Konum</label>
-          <input type="text" id="eventLocation" class="form-control" placeholder="Örn. Caddebostan Sahili">
-        </div>
-        <div class="mb-1">
-          <label class="form-label fw-semibold small">Açıklama</label>
-          <textarea id="eventDescription" class="form-control" rows="3" placeholder="Etkinlik hakkında bilgi ver..."></textarea>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>
-        <button type="button" class="btn btn-primary rounded-pill" onclick="publishEvent()">Oluştur</button>
+    <div class="tab-pane fade" id="panel-invites">
+      <div id="invitesGrid" class="row g-3"></div>
+      <div class="text-center text-muted py-5 d-none" id="invitesEmptyState">
+        <i class="bi bi-envelope-heart" style="font-size: 42px;"></i>
+        <p class="mt-2 mb-0">Bekleyen davetin yok.</p>
       </div>
     </div>
+
+    <div class="tab-pane fade" id="panel-mine">
+      <ul class="nav nav-pills gap-2 mb-3">
+        <li class="nav-item"><button class="nav-link active py-1 px-3 small" data-bs-toggle="pill" data-bs-target="#mine-created">Oluşturduklarım</button></li>
+        <li class="nav-item"><button class="nav-link text-muted py-1 px-3 small" data-bs-toggle="pill" data-bs-target="#mine-past">Geçmiş Etkinliklerim</button></li>
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="mine-created">
+          <div id="createdGrid" class="row g-3"></div>
+          <div class="text-center text-muted py-5 d-none" id="createdEmptyState">
+            <i class="bi bi-calendar-plus" style="font-size: 42px;"></i>
+            <p class="mt-2 mb-0">Henüz bir etkinlik oluşturmadın.</p>
+          </div>
+        </div>
+        <div class="tab-pane fade" id="mine-past">
+          <div id="pastGrid" class="row g-3"></div>
+          <div class="text-center text-muted py-5 d-none" id="pastEmptyState">
+            <i class="bi bi-calendar-check" style="font-size: 42px;"></i>
+            <p class="mt-2 mb-0">Katıldığın geçmiş etkinlikler burada görünecek.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -134,6 +126,8 @@
 <script src="js/chat-data.js"></script>
 <script src="js/chat-composer.js"></script>
 <script src="js/chat-dock.js"></script>
+<script src="js/location-autocomplete.js"></script>
+<script src="js/event-form.js"></script>
 <script src="js/events.js"></script>
 </body>
 </html>

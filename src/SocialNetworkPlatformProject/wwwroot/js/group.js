@@ -46,6 +46,11 @@ function renderGroup(group) {
 
   renderMembers(group);
 
+  // Events are for members only: non-members never see the tab. Admins and moderators may create group events.
+  document.getElementById("groupTabs").classList.toggle("d-none", !group.isCurrentUserMember);
+  document.getElementById("groupEventCreateBtn").classList.toggle("d-none", !(group.isCurrentUserAdmin || group.isCurrentUserModerator));
+  groupEventsLoaded = false;
+
   if (group.isCurrentUserAdmin) {
     document.getElementById("editGroupName").value = group.name;
     document.getElementById("editGroupDescription").value = group.description || "";
@@ -58,6 +63,40 @@ function renderGroup(group) {
     document.getElementById("groupJoinRequestsSection").classList.add("d-none");
     document.getElementById("groupInviteSection").classList.add("d-none");
   }
+}
+
+// ---- Events tab: upcoming events of this group (members only) ----
+
+let groupEventsLoaded = false;
+
+function groupEventRowHtml(ev) {
+  return `
+    <a href="event.html?id=${ev.id}" class="d-flex gap-3 text-decoration-none text-dark p-2 rounded-3 border mb-2 align-items-center">
+      <img src="${ev.coverImageUrl || NO_PHOTO}" class="rounded-3 flex-shrink-0" style="width:72px;height:72px;object-fit:cover;" alt="">
+      <div style="min-width:0;">
+        <div class="text-danger fw-bold small"><i class="bi bi-calendar3 me-1"></i>${formatEventDate(ev.startsAt)}</div>
+        <div class="fw-bold text-truncate">${escapeHtml(ev.title)}</div>
+        <div class="text-muted small text-truncate">${eventPlaceHtml(ev)} · ${eventAttendanceText(ev)}${ev.isFull ? " · Dolu" : ""}${ev.currentUserStatus === "Going" ? " · katılıyorsun" : ev.currentUserStatus === "Interested" ? " · ilgileniyorsun" : ""}</div>
+      </div>
+    </a>`;
+}
+
+async function loadGroupEvents(force) {
+  if (groupEventsLoaded && !force) return;
+  const box = document.getElementById("groupEventsList");
+  try {
+    const events = await apiFetch(`/api/events/group/${groupId}`);
+    box.innerHTML = events.length
+      ? events.map(groupEventRowHtml).join("")
+      : `<div class="text-muted small text-center py-4">Yaklaşan grup etkinliği yok.</div>`;
+    groupEventsLoaded = true;
+  } catch (err) {
+    box.innerHTML = `<div class="alert alert-danger small">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function createGroupEvent() {
+  openEventForm(null, () => loadGroupEvents(true), { group: { id: groupId, name: currentGroup.name } });
 }
 
 // ---- Admin-only: edit group details ----

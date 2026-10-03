@@ -20,5 +20,9 @@ public enum NotificationType
     MarketplaceOfferRejected = 14,
     MarketplaceOfferWithdrawn = 15,
     MarketplaceOfferClosed = 16,    // the listing was sold while the negotiation was open
-    MarketplaceRatingReceived = 17  // to the seller; Notification.Amount carries the star count
+    MarketplaceRatingReceived = 17, // to the seller; Notification.Amount carries the star count
+    EventUpdated = 18,              // to everyone going/interested: the organizer changed the title, time or place
+    EventCancelled = 19,            // the organizer deleted the event; Notification.Subject carries its title
+    EventInviteReceived = 20,       // someone invited you to an event
+    EventAnnouncement = 21          // the organizer posted an announcement on an event you're going to / interested in
 }

@@ -250,6 +250,12 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("AttendanceVersion")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Capacity")
+                        .HasColumnType("int");
+
                     b.Property<string>("CoverImageUrl")
                         .HasColumnType("nvarchar(max)");
 
@@ -262,8 +268,24 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsOnline")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Location")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OnlineLink")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<DateTime>("StartsAt")
                         .HasColumnType("datetime2");
@@ -273,6 +295,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
 
                     b.ToTable("Events");
                 });
@@ -301,6 +325,64 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .IsUnique();
 
                     b.ToTable("EventAttendees");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.EventComment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsAnnouncement")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId", "CreatedAt");
+
+                    b.ToTable("EventComments");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.EventInvite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("InvitedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("InvitedUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvitedUserId");
+
+                    b.HasIndex("EventId", "InvitedUserId")
+                        .IsUnique();
+
+                    b.ToTable("EventInvites");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.FriendRequest", b =>
@@ -680,6 +762,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("FriendRequestId")
                         .HasColumnType("uniqueidentifier");
 
@@ -697,6 +782,10 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.Property<Guid>("RecipientId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -1138,10 +1227,42 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Conversation");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Event", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Group");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.EventAttendee", b =>
                 {
                     b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Event", "Event")
                         .WithMany("Attendees")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.EventComment", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Event", "Event")
+                        .WithMany("Comments")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.EventInvite", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Event", "Event")
+                        .WithMany("Invites")
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1305,6 +1426,10 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Event", b =>
                 {
                     b.Navigation("Attendees");
+
+                    b.Navigation("Comments");
+
+                    b.Navigation("Invites");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Group", b =>

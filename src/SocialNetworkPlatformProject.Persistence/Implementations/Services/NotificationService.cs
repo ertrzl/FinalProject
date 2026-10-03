@@ -16,6 +16,7 @@ public class NotificationService : INotificationService
     private readonly IUserRepository _users;
     private readonly IGroupRepository _groups;
     private readonly IListingOfferRepository _offers;
+    private readonly IEventRepository _events;
     private readonly IRealTimeNotifier _notifier;
     private readonly IMapper _mapper;
 
@@ -24,6 +25,7 @@ public class NotificationService : INotificationService
         IUserRepository users,
         IGroupRepository groups,
         IListingOfferRepository offers,
+        IEventRepository events,
         IRealTimeNotifier notifier,
         IMapper mapper)
     {
@@ -31,20 +33,22 @@ public class NotificationService : INotificationService
         _users = users;
         _groups = groups;
         _offers = offers;
+        _events = events;
         _notifier = notifier;
         _mapper = mapper;
     }
 
     public async Task CreateAsync(Guid recipientId, Guid actorId, NotificationType type,
         Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null, Guid? groupId = null,
-        Guid? offerId = null, decimal? amount = null)
+        Guid? offerId = null, decimal? amount = null, Guid? eventId = null, string? subject = null)
     {
         if (recipientId == actorId)
             return;
 
         // Like -> unlike -> like again shouldn't spam the recipient with identical entries.
-        // Marketplace offer events are the exception: every counter-offer is a genuinely new event.
-        if (offerId == null)
+        // Marketplace offer and event-update notifications are the exception: every counter-offer
+        // or edit is a genuinely new event.
+        if (offerId == null && eventId == null && subject == null)
         {
             var alreadyExists = await _notifications.AnyAsync(n =>
                 n.RecipientId == recipientId && n.ActorId == actorId && n.Type == type &&
@@ -63,6 +67,8 @@ public class NotificationService : INotificationService
             FriendRequestId = friendRequestId,
             GroupId = groupId,
             OfferId = offerId,
+            EventId = eventId,
+            Subject = subject,
             Amount = amount
         };
 
@@ -85,6 +91,15 @@ public class NotificationService : INotificationService
             var offer = await _offers.GetAll(o => o.Id == offerId.Value, asNoTracking: true, includes: "Listing").FirstOrDefaultAsync();
             dto.ListingId = offer?.ListingId;
             dto.ListingTitle = offer?.Listing?.Title;
+        }
+
+        if (subject != null)
+            dto.EventTitle = subject;
+
+        if (eventId.HasValue)
+        {
+            var linkedEvent = await _events.GetByIdAsync(eventId.Value);
+            dto.EventTitle = linkedEvent?.Title;
         }
 
         await _notifier.SendNotificationAsync(recipientId, dto);
@@ -121,6 +136,11 @@ public class NotificationService : INotificationService
                 .Where(o => o.Listing != null)
                 .ToDictionary(o => o.Id, o => (o.ListingId, o.Listing!.Title));
 
+        var eventIds = items.Where(n => n.EventId.HasValue).Select(n => n.EventId!.Value).Distinct().ToList();
+        var eventTitles = eventIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _events.GetAll(e => eventIds.Contains(e.Id), asNoTracking: true).ToDictionaryAsync(e => e.Id, e => e.Title);
+
         var dtos = _mapper.Map<List<GetNotificationDto>>(items);
 
         for (var i = 0; i < dtos.Count; i++)
@@ -133,6 +153,12 @@ public class NotificationService : INotificationService
 
             if (items[i].GroupId.HasValue && groupNames.TryGetValue(items[i].GroupId!.Value, out var groupName))
                 dtos[i].GroupName = groupName;
+
+            if (items[i].Subject != null)
+                dtos[i].EventTitle = items[i].Subject;
+
+            if (items[i].EventId.HasValue && eventTitles.TryGetValue(items[i].EventId!.Value, out var eventTitle))
+                dtos[i].EventTitle = eventTitle;
 
             if (items[i].OfferId.HasValue && offerListings.TryGetValue(items[i].OfferId!.Value, out var offerListing))
             {
@@ -176,6 +202,18 @@ public class NotificationService : INotificationService
     public async Task DeleteByPostAsync(Guid postId)
     {
         var related = await _notifications.GetAll(n => n.PostId == postId).ToListAsync();
+        if (related.Count == 0)
+            return;
+
+        foreach (var notification in related)
+            _notifications.Delete(notification);
+
+        await _notifications.SaveChangesAsync();
+    }
+
+    public async Task DeleteByEventAsync(Guid eventId)
+    {
+        var related = await _notifications.GetAll(n => n.EventId == eventId).ToListAsync();
         if (related.Count == 0)
             return;
 

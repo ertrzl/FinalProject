@@ -53,6 +53,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     // Events
     public DbSet<Event> Events => Set<Event>();
     public DbSet<EventAttendee> EventAttendees => Set<EventAttendee>();
+    public DbSet<EventInvite> EventInvites => Set<EventInvite>();
+    public DbSet<EventComment> EventComments => Set<EventComment>();
 
     // Auth: refresh tokens
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();

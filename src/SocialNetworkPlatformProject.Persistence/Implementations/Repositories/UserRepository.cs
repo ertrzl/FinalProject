@@ -115,10 +115,18 @@ public class UserRepository : IUserRepository
         files.AddRange(await _context.Set<Story>().Where(s => s.UserId == userId).Select(s => s.MediaUrl).ToListAsync());
         files.AddRange(await _context.Set<ListingImage>().Where(i => i.Listing!.SellerId == userId).Select(i => i.Url).ToListAsync());
         files.AddRange(await _context.Set<Group>().Where(g => g.CreatedByUserId == userId && g.CoverImageUrl != null).Select(g => g.CoverImageUrl!).ToListAsync());
-        files.AddRange(await _context.Set<Event>().Where(e => e.CreatedByUserId == userId && e.CoverImageUrl != null).Select(e => e.CoverImageUrl!).ToListAsync());
+        // Events the user organized, plus events of groups the user owns (those disappear with the group).
+        files.AddRange(await _context.Set<Event>()
+            .Where(e => (e.CreatedByUserId == userId || e.Group!.CreatedByUserId == userId) && e.CoverImageUrl != null)
+            .Select(e => e.CoverImageUrl!)
+            .ToListAsync());
+
+        var myEventIds = _context.Set<Event>().Where(e => e.CreatedByUserId == userId || e.Group!.CreatedByUserId == userId).Select(e => e.Id);
 
         await _context.Set<Notification>()
-            .Where(n => n.RecipientId == userId || n.ActorId == userId || (n.PostId != null && myPostIds.Contains(n.PostId.Value)))
+            .Where(n => n.RecipientId == userId || n.ActorId == userId
+                || (n.PostId != null && myPostIds.Contains(n.PostId.Value))
+                || (n.EventId != null && myEventIds.Contains(n.EventId.Value)))
             .ExecuteDeleteAsync();
 
         await _context.Set<PostLike>().Where(l => l.UserId == userId).ExecuteDeleteAsync();
@@ -147,6 +155,8 @@ public class UserRepository : IUserRepository
         await _context.Set<SavedListing>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<MarketplaceListing>().Where(l => l.SellerId == userId).ExecuteDeleteAsync();
 
+        await _context.Set<EventComment>().Where(c => c.AuthorId == userId).ExecuteDeleteAsync();
+        await _context.Set<EventInvite>().Where(i => i.InvitedUserId == userId || i.InvitedByUserId == userId).ExecuteDeleteAsync();
         await _context.Set<EventAttendee>().Where(a => a.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<Event>().Where(e => e.CreatedByUserId == userId).ExecuteDeleteAsync();
 

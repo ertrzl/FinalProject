@@ -1,13 +1,8 @@
-using Microsoft.AspNetCore.Http;
-
 namespace SocialNetworkPlatformProject.Application.DTOs.Events;
 
 // "Etkinlik Oluştur" modal on events.html
-public class PostEventDto
+public class PostEventDto : EventInputDto
 {
-    public string Title { get; set; } = string.Empty;
-    public string? Description { get; set; }
-    public string? Location { get; set; }
-    public DateTime StartsAt { get; set; }
-    public IFormFile? CoverImage { get; set; }
+    // Set to make a group event: only that group's members can see it, and only its admins/moderators may create one.
+    public Guid? GroupId { get; set; }
 }

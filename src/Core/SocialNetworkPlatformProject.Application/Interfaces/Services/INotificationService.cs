@@ -10,7 +10,7 @@ public interface INotificationService
     // Does nothing when actor and recipient are the same person.
     Task CreateAsync(Guid recipientId, Guid actorId, NotificationType type,
         Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null, Guid? groupId = null,
-        Guid? offerId = null, decimal? amount = null);
+        Guid? offerId = null, decimal? amount = null, Guid? eventId = null, string? subject = null);
 
     Task<PagedResult<GetNotificationDto>> GetMyNotificationsAsync(Guid currentUserId, int page, int pageSize);
 
@@ -22,4 +22,7 @@ public interface INotificationService
 
     // Cleans up notifications that point at a post that no longer exists.
     Task DeleteByPostAsync(Guid postId);
+
+    // Same for notifications pointing at an event that was deleted.
+    Task DeleteByEventAsync(Guid eventId);
 }

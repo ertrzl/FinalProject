@@ -22,6 +22,7 @@ public class GroupService : IGroupService
     private readonly IGroupInviteRepository _invites;
     private readonly IUserRepository _users;
     private readonly INotificationService _notifications;
+    private readonly IEventRepository _events;
     private readonly IFileStorageService _files;
     private readonly IMapper _mapper;
 
@@ -32,9 +33,11 @@ public class GroupService : IGroupService
         IGroupInviteRepository invites,
         IUserRepository users,
         INotificationService notifications,
+        IEventRepository events,
         IFileStorageService files,
         IMapper mapper)
     {
+        _events = events;
         _groups = groups;
         _members = members;
         _joinRequests = joinRequests;
@@ -404,10 +407,21 @@ public class GroupService : IGroupService
         if (!isAdmin)
             throw new ForbiddenException("Only a group admin can delete the group.");
 
+        // The group's events go with it (the database cascades), so collect what needs cleaning up first.
+        var groupEvents = await _events.GetAll(e => e.GroupId == groupId, asNoTracking: true)
+            .Select(e => new { e.Id, e.CoverImageUrl })
+            .ToListAsync();
+
         _groups.Delete(group);
         await _groups.SaveChangesAsync();
 
         _files.Delete(group.CoverImageUrl);
+
+        foreach (var groupEvent in groupEvents)
+        {
+            _files.Delete(groupEvent.CoverImageUrl);
+            await _notifications.DeleteByEventAsync(groupEvent.Id);
+        }
     }
 
     public async Task RemoveMemberAsync(Guid currentUserId, Guid groupId, Guid targetUserId)

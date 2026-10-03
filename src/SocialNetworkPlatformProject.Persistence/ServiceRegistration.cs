@@ -68,6 +68,8 @@ public static class ServiceRegistration
         // Events
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IEventAttendeeRepository, EventAttendeeRepository>();
+        services.AddScoped<IEventInviteRepository, EventInviteRepository>();
+        services.AddScoped<IEventCommentRepository, EventCommentRepository>();
 
         // Users (Identity-backed, so not a generic IRepository<T>)
         services.AddScoped<IUserRepository, UserRepository>();
@@ -88,6 +90,9 @@ public static class ServiceRegistration
         services.AddScoped<IOfferService, OfferService>();
         services.AddScoped<ISellerRatingService, SellerRatingService>();
         services.AddScoped<IEventService, EventService>();
+        services.AddScoped<IEventAccessService, EventAccessService>();
+        services.AddScoped<IEventInviteService, EventInviteService>();
+        services.AddScoped<IEventCommentService, EventCommentService>();
         services.AddScoped<ILiveUpdateService, LiveUpdateService>();
 
         return services;

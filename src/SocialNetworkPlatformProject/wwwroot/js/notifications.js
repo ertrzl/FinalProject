@@ -20,7 +20,11 @@ const NOTIF_ICON = {
   MarketplaceOfferRejected: { badge: "bg-danger", icon: "bi-x-lg" },
   MarketplaceOfferWithdrawn: { badge: "bg-secondary", icon: "bi-arrow-counterclockwise" },
   MarketplaceOfferClosed: { badge: "bg-secondary", icon: "bi-lock-fill" },
-  MarketplaceRatingReceived: { badge: "bg-warning", icon: "bi-star-fill" }
+  MarketplaceRatingReceived: { badge: "bg-warning", icon: "bi-star-fill" },
+  EventUpdated: { badge: "bg-info", icon: "bi-calendar-event-fill" },
+  EventCancelled: { badge: "bg-danger", icon: "bi-calendar-x-fill" },
+  EventInviteReceived: { badge: "bg-info", icon: "bi-calendar-plus-fill" },
+  EventAnnouncement: { badge: "bg-warning", icon: "bi-megaphone-fill" }
 };
 
 function offerMoney(n) {
@@ -51,7 +55,11 @@ const NOTIF_TEXT = {
   MarketplaceOfferRejected: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} ilanındaki teklifini reddetti.`,
   MarketplaceOfferWithdrawn: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} ilanındaki teklifini geri çekti.`,
   MarketplaceOfferClosed: n => `${offerListing(n)} ilanı satıldığı için teklifin kapandı.`,
-  MarketplaceRatingReceived: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} satışı için seni puanladı: ${starsHtml(n.amount)}`
+  MarketplaceRatingReceived: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} satışı için seni puanladı: ${starsHtml(n.amount)}`,
+  EventUpdated: n => `<b>${escapeHtml(n.actorName)}</b>, katıldığın <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğini güncelledi.`,
+  EventCancelled: n => `<b>${escapeHtml(n.actorName)}</b>, katılacağın <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğini iptal etti.`,
+  EventInviteReceived: n => `<b>${escapeHtml(n.actorName)}</b> seni <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğine davet etti.`,
+  EventAnnouncement: n => `<b>${escapeHtml(n.actorName)}</b>, <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğinde yeni bir duyuru yaptı.`
 };
 
 function notificationHtml(n) {
@@ -72,6 +80,8 @@ function notificationHtml(n) {
        </div>`;
   } else if (n.type === "MarketplaceRatingReceived") {
     actions = `<a href="marketplace.html?sellerReviews=${getSession().userId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Değerlendirmeleri Gör</a>`;
+  } else if (["EventUpdated", "EventInviteReceived", "EventAnnouncement"].includes(n.type)) {
+    actions = `<a href="event.html?id=${n.eventId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Etkinliği Gör</a>`;
   } else if (n.type.startsWith("MarketplaceOffer")) {
     actions = `<a href="marketplace.html?view=offers" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Teklifleri Gör</a>`;
   } else if (n.type === "GroupInviteReceived" && !n.isRead) {

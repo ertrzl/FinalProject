@@ -5,7 +5,8 @@ public class GetEventInviteDto
 {
     public Guid EventId { get; set; }
     public string Title { get; set; } = string.Empty;
-    public DateTime StartsAt { get; set; }
+    public DateTime StartsAt { get; set; } // UTC
+    public DateTime EndsAt { get; set; }
     public string? CoverImageUrl { get; set; }
     public bool IsOnline { get; set; }
     public string? Location { get; set; }

@@ -1,13 +1,9 @@
-using FluentValidation;
 using SocialNetworkPlatformProject.Application.DTOs.Events;
 
 namespace SocialNetworkPlatformProject.Application.Validators.Events;
 
+// What the start time may be depends on whether the event has already started (an ongoing event keeps its start),
+// so that rule lives in EventService.UpdateAsync rather than here.
 public class PutEventDtoValidator : EventInputValidator<PutEventDto>
 {
-    public PutEventDtoValidator()
-    {
-        RuleFor(x => x.StartsAt)
-            .Must(startsAt => startsAt > DateTime.UtcNow).WithMessage("Event start date must be in the future.");
-    }
 }

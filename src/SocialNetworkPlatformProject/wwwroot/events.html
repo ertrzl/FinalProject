@@ -63,7 +63,28 @@
   <div class="tab-content">
 
     <div class="tab-pane fade show active" id="panel-upcoming">
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <div class="d-flex align-items-center bg-body-tertiary rounded-pill px-3 py-2 flex-grow-1" style="min-width: 220px;">
+          <i class="bi bi-search text-muted me-2"></i>
+          <input type="text" id="eventSearch" maxlength="100" class="form-control form-control-sm border-0 bg-transparent p-0 shadow-none" placeholder="Etkinlik, konum veya açıklama ara..." oninput="onEventFilterChange(true)">
+        </div>
+        <select id="eventWhen" class="form-select form-select-sm rounded-pill w-auto" onchange="onEventFilterChange(false)">
+          <option value="">Tüm tarihler</option>
+          <option value="today">Bugün</option>
+          <option value="week">Bu hafta</option>
+          <option value="month">Bu ay</option>
+        </select>
+        <select id="eventFormat" class="form-select form-select-sm rounded-pill w-auto" onchange="onEventFilterChange(false)">
+          <option value="">Yüz yüze ve çevrimiçi</option>
+          <option value="inperson">Sadece yüz yüze</option>
+          <option value="online">Sadece çevrimiçi</option>
+        </select>
+      </div>
       <div id="upcomingGrid" class="row g-3"><div class="text-muted small">Yükleniyor...</div></div>
+      <div class="text-center mt-3 d-none" id="upcomingMoreWrap">
+        <button class="btn btn-light border rounded-pill" onclick="loadMoreUpcoming()">Daha fazla göster</button>
+      </div>
+      <div class="text-center text-muted small mt-2" id="upcomingCount"></div>
     </div>
 
     <div class="tab-pane fade" id="panel-going">

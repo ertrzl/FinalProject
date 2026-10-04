@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
@@ -12,12 +13,21 @@ public class EventAccessService : IEventAccessService
     private readonly IEventRepository _events;
     private readonly IGroupRepository _groups;
     private readonly IGroupMemberRepository _members;
+    private readonly IEventAttendeeRepository _attendees;
+    private readonly IEventInviteRepository _invites;
 
-    public EventAccessService(IEventRepository events, IGroupRepository groups, IGroupMemberRepository members)
+    public EventAccessService(
+        IEventRepository events,
+        IGroupRepository groups,
+        IGroupMemberRepository members,
+        IEventAttendeeRepository attendees,
+        IEventInviteRepository invites)
     {
         _events = events;
         _groups = groups;
         _members = members;
+        _attendees = attendees;
+        _invites = invites;
     }
 
     public async Task<Event> GetViewableAsync(Guid viewerId, Guid eventId, params string[] includes)
@@ -29,7 +39,21 @@ public class EventAccessService : IEventAccessService
         if (found.GroupId.HasValue && !await IsGroupMemberAsync(found.GroupId.Value, viewerId))
             throw new NotFoundException("Event not found.");
 
+        if (found.IsPrivate && !await CanSeePrivateEventAsync(found, viewerId))
+            throw new NotFoundException("Event not found.");
+
         return found;
+    }
+
+    public async Task<Expression<Func<Event, bool>>> GetVisibilityFilterAsync(Guid viewerId)
+    {
+        var myGroupIds = await GetMyGroupIdsAsync(viewerId);
+
+        return e => (e.GroupId == null || myGroupIds.Contains(e.GroupId.Value))
+            && (!e.IsPrivate
+                || e.CreatedByUserId == viewerId
+                || e.Attendees.Any(a => a.UserId == viewerId)
+                || e.Invites.Any(i => i.InvitedUserId == viewerId));
     }
 
     public async Task<List<Guid>> GetMyGroupIdsAsync(Guid viewerId)
@@ -49,6 +73,14 @@ public class EventAccessService : IEventAccessService
         return await _members.GetAll(m => m.GroupId == groupId && ids.Contains(m.UserId), asNoTracking: true)
             .Select(m => m.UserId)
             .ToListAsync();
+    }
+
+    // Having been invited is enough to see (and accept) a private event, so an invitation never leads to a 404.
+    private async Task<bool> CanSeePrivateEventAsync(Event ev, Guid viewerId)
+    {
+        return ev.CreatedByUserId == viewerId
+            || await _attendees.AnyAsync(a => a.EventId == ev.Id && a.UserId == viewerId)
+            || await _invites.AnyAsync(i => i.EventId == ev.Id && i.InvitedUserId == viewerId);
     }
 
     public Task<bool> IsGroupMemberAsync(Guid groupId, Guid userId)

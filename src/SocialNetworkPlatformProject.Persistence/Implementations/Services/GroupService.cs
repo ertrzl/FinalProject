@@ -23,6 +23,7 @@ public class GroupService : IGroupService
     private readonly IUserRepository _users;
     private readonly INotificationService _notifications;
     private readonly IEventRepository _events;
+    private readonly IEventService _eventService;
     private readonly IFileStorageService _files;
     private readonly IMapper _mapper;
 
@@ -34,10 +35,12 @@ public class GroupService : IGroupService
         IUserRepository users,
         INotificationService notifications,
         IEventRepository events,
+        IEventService eventService,
         IFileStorageService files,
         IMapper mapper)
     {
         _events = events;
+        _eventService = eventService;
         _groups = groups;
         _members = members;
         _joinRequests = joinRequests;
@@ -380,9 +383,7 @@ public class GroupService : IGroupService
         if (others.Count == 0)
         {
             // Last member out: nothing left to keep.
-            _groups.Delete(group);
-            await _groups.SaveChangesAsync();
-            _files.Delete(group.CoverImageUrl);
+            await DeleteGroupWithEventsAsync(group);
             return;
         }
 
@@ -396,6 +397,8 @@ public class GroupService : IGroupService
 
         _members.Delete(membership);
         await _members.SaveChangesAsync();
+
+        await _eventService.RemoveUserFromGroupEventsAsync(currentUserId, groupId, group.CreatedByUserId);
     }
 
     public async Task DeleteAsync(Guid currentUserId, Guid groupId)
@@ -407,8 +410,14 @@ public class GroupService : IGroupService
         if (!isAdmin)
             throw new ForbiddenException("Only a group admin can delete the group.");
 
-        // The group's events go with it (the database cascades), so collect what needs cleaning up first.
-        var groupEvents = await _events.GetAll(e => e.GroupId == groupId, asNoTracking: true)
+        await DeleteGroupWithEventsAsync(group);
+    }
+
+    // Deletes the group. Its events go with it (the database cascades), but their cover files and notifications are
+    // not the database's to clean up, so collect them first and remove them afterwards.
+    private async Task DeleteGroupWithEventsAsync(Group group)
+    {
+        var groupEvents = await _events.GetAll(e => e.GroupId == group.Id, asNoTracking: true)
             .Select(e => new { e.Id, e.CoverImageUrl })
             .ToListAsync();
 
@@ -451,6 +460,8 @@ public class GroupService : IGroupService
 
         _members.Delete(target);
         await _members.SaveChangesAsync();
+
+        await _eventService.RemoveUserFromGroupEventsAsync(targetUserId, groupId, group.CreatedByUserId);
 
         await _notifications.CreateAsync(targetUserId, currentUserId, NotificationType.GroupMemberRemoved, groupId: groupId);
     }

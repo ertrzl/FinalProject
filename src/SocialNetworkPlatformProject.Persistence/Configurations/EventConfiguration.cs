@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SocialNetworkPlatformProject.Domain.Entities;
+using SocialNetworkPlatformProject.Persistence.Converters;
 
 namespace SocialNetworkPlatformProject.Persistence.Configurations;
 
@@ -8,6 +9,12 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
 {
     public void Configure(EntityTypeBuilder<Event> builder)
     {
+        builder.Property(e => e.StartsAt).HasConversion<UtcDateTimeConverter>();
+        builder.Property(e => e.EndsAt).HasConversion<UtcDateTimeConverter>();
+
+        // The "Yaklaşan" list and every "has it finished?" check filter on EndsAt.
+        builder.HasIndex(e => e.EndsAt);
+
         builder.Property(e => e.RowVersion).IsRowVersion();
         builder.Property(e => e.OnlineLink).HasMaxLength(500);
 

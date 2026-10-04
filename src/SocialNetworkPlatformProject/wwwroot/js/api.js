@@ -114,6 +114,27 @@ async function apiFetch(path, options = {}) {
   return handleResponse(response, !!token);
 }
 
+// Authenticated file download: a plain <a href> can't send the bearer token, so fetch the file and save the blob.
+// The file name comes from the response's Content-Disposition (fallbackName if it is missing).
+async function downloadApiFile(path, fallbackName) {
+  const token = await getValidAccessToken();
+  const response = await fetch(path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!response.ok) await handleResponse(response, !!token); // throws with the server's message
+
+  const disposition = response.headers.get("content-disposition") || "";
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+  const fileName = match ? decodeURIComponent(match[1]) : fallbackName;
+
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 // multipart/form-data requests (endpoints with [FromForm], e.g. file uploads): pass a FormData body as-is.
 async function apiFetchForm(path, options = {}) {
   const headers = { ...(options.headers || {}) };
@@ -207,13 +228,48 @@ function starsHtml(value) {
   return `<span class="rating-stars" title="${value} / 5">${stars}</span>`;
 }
 
-// Event start time, e.g. "6 Ekim Salı · 18:00". Shared by events.html and event.html.
+// Event times (startsAt / endsAt) arrive as UTC ("...Z"), so `new Date` shows them in the viewer's own time zone.
+// "6 Ekim Salı · 18:00". Shared by events.html, event.html and group.html.
 function formatEventDate(isoDate) {
-  // Unlike post/story timestamps, startsAt is the plain local time the organizer typed in
-  // ("başlıyor saat 18:00"), not UTC — so it must NOT get a "Z" appended before parsing.
   const date = new Date(isoDate);
   return date.toLocaleDateString("tr-TR", { day: "numeric", month: "long", weekday: "long" })
     + " · " + date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatEventTime(date) {
+  return date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+}
+
+// "6 Ekim Salı · 18:00 – 21:00", or "6 Ekim · 22:00 → 7 Ekim · 02:00" when the event runs past midnight.
+function formatEventRange(startsAt, endsAt) {
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  if (start.toDateString() === end.toDateString()) {
+    return `${formatEventDate(startsAt)} – ${formatEventTime(end)}`;
+  }
+  const short = d => `${d.toLocaleDateString("tr-TR", { day: "numeric", month: "long" })} · ${formatEventTime(d)}`;
+  return `${short(start)} → ${short(end)}`;
+}
+
+// UTC instant -> the value an <input type="date" | "time" | "datetime-local"> wants, in the viewer's time zone.
+function toLocalInputValue(isoDate, kind) {
+  const d = new Date(isoDate);
+  const pad = n => String(n).padStart(2, "0");
+  const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return kind === "date" ? date : kind === "time" ? time : `${date}T${time}`;
+}
+
+// The other direction: what the viewer typed (local, no offset) -> a UTC ISO string for the API.
+function localInputToIso(value) {
+  return new Date(value).toISOString();
+}
+
+// Small pills for an event's state: "Devam ediyor" (started, not finished) and "Özel" (invite-only).
+function eventStateBadgeHtml(ev) {
+  const ongoing = ev.isOngoing ? `<span class="badge bg-success-subtle text-success-emphasis rounded-pill">Devam ediyor</span>` : "";
+  const isPrivate = ev.isPrivate ? `<span class="badge bg-dark-subtle text-dark-emphasis rounded-pill"><i class="bi bi-lock-fill me-1"></i>Özel</span>` : "";
+  return `${ongoing} ${isPrivate}`.trim();
 }
 
 // "Çevrimiçi" or the place of an event, with its icon.
@@ -221,6 +277,26 @@ function eventPlaceHtml(ev) {
   return ev.isOnline
     ? `<i class="bi bi-camera-video me-1"></i>Çevrimiçi`
     : `<i class="bi bi-geo-alt me-1"></i>${escapeHtml(ev.location || "Belirtilmedi")}`;
+}
+
+// The main button of an event. "Katılıyorum" -> "Katılıyorsun"; on a full event it becomes "Bekleme listesine katıl"
+// -> "Sıradasın (3.)". status is what pressing it asks the server for; pressing it again undoes it.
+function eventPrimaryAction(ev) {
+  switch (ev.currentUserStatus) {
+    case "Going":
+      return { label: "Katılıyorsun", css: "btn-primary joined", status: "Going" };
+    case "Waitlisted":
+      return { label: `Sıradasın (${ev.myWaitlistPosition}.)`, css: "btn-warning", status: "Waitlisted" };
+    default:
+      return ev.isFull
+        ? { label: "Bekleme listesine katıl", css: "btn-outline-primary", status: "Waitlisted" }
+        : { label: "Katılıyorum", css: "btn-primary", status: "Going" };
+  }
+}
+
+// "3 kişi bekliyor" for a full event with a waiting list, otherwise nothing.
+function eventWaitlistText(ev) {
+  return ev.waitlistCount > 0 ? `${ev.waitlistCount} kişi bekliyor` : "";
 }
 
 // "12 katılımcı", or "12 / 50 katılımcı" when the event has a limit.

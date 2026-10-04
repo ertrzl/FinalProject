@@ -1,6 +1,5 @@
-using System.Linq.Expressions;
-using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Events;
 using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
@@ -12,47 +11,38 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class EventService : IEventService
 {
-    // GetEventDto's Going/Interested counts are computed from the Attendees collection.
+    // The attendee list drives capacity checks and who gets notified.
     private static readonly string[] AttendeeIncludes = { "Attendees" };
-
-    // "Etkinliklerim" shows the most recent N; there is no paging UI for it.
-    private const int MaxMineEvents = 100;
-
-    // The attendee tab lists at most this many people; the counts on the event itself stay exact.
-    private const int MaxAttendeesListed = 200;
 
     private const int MaxOnlineLinkLength = 500; // matches the OnlineLink column
 
     private readonly IEventRepository _events;
     private readonly IEventAttendeeRepository _attendees;
     private readonly IEventInviteRepository _invites;
-    private readonly IGroupRepository _groups;
     private readonly IEventAccessService _access;
+    private readonly IEventDtoBuilder _builder;
     private readonly IFileStorageService _files;
     private readonly INotificationService _notifications;
-    private readonly IUserRepository _users;
-    private readonly IMapper _mapper;
+    private readonly IEventNotifier _notifier;
 
     public EventService(
         IEventRepository events,
         IEventAttendeeRepository attendees,
         IEventInviteRepository invites,
-        IGroupRepository groups,
         IEventAccessService access,
+        IEventDtoBuilder builder,
         IFileStorageService files,
         INotificationService notifications,
-        IUserRepository users,
-        IMapper mapper)
+        IEventNotifier notifier)
     {
         _events = events;
         _attendees = attendees;
         _invites = invites;
-        _groups = groups;
         _access = access;
+        _builder = builder;
         _files = files;
         _notifications = notifications;
-        _users = users;
-        _mapper = mapper;
+        _notifier = notifier;
     }
 
     public async Task<GetEventDto> CreateAsync(Guid currentUserId, PostEventDto dto)
@@ -65,126 +55,29 @@ public class EventService : IEventService
         if (dto.CoverImage != null)
             coverUrl = await _files.SaveImageAsync(dto.CoverImage, "events");
 
+        var (startsAt, endsAt) = ResolveTimes(dto);
+
         var newEvent = new Event
         {
             Title = dto.Title.Trim(),
             Description = dto.Description?.Trim(),
             Location = dto.Location?.Trim(),
             CoverImageUrl = coverUrl,
-            StartsAt = dto.StartsAt,
+            StartsAt = startsAt,
+            EndsAt = endsAt,
             Capacity = dto.Capacity,
             IsOnline = dto.IsOnline,
             OnlineLink = CleanOnlineLink(dto),
+            IsPrivate = dto.IsPrivate,
             GroupId = dto.GroupId,
             CreatedByUserId = currentUserId
         };
+        newEvent.ResetReminders(DateTime.UtcNow);
 
         await _events.AddAsync(newEvent);
         await _events.SaveChangesAsync();
 
-        return await ToDetailDtoAsync(newEvent, currentUserId);
-    }
-
-    public async Task<GetEventDto> GetByIdAsync(Guid currentUserId, Guid eventId)
-    {
-        var found = await _access.GetViewableAsync(currentUserId, eventId, AttendeeIncludes);
-
-        return await ToDetailDtoAsync(found, currentUserId);
-    }
-
-    public async Task<List<GetEventAttendeeDto>> GetAttendeesAsync(Guid currentUserId, Guid eventId, string? status)
-    {
-        EventAttendeeStatus? wanted = null;
-        if (!string.IsNullOrWhiteSpace(status))
-        {
-            if (!Enum.TryParse<EventAttendeeStatus>(status, out var parsed))
-                throw new BadRequestException("Status must be either 'Going' or 'Interested'.");
-            wanted = parsed;
-        }
-
-        var found = await _access.GetViewableAsync(currentUserId, eventId);
-
-        var attendees = await _attendees.GetAll(
-                filter: a => a.EventId == eventId && (wanted == null || a.Status == wanted),
-                orderBy: a => a.CreatedAt,
-                asNoTracking: true)
-            .ToListAsync();
-
-        // Going first, then interested; within each group, whoever signed up first.
-        var listed = attendees
-            .OrderBy(a => a.Status == EventAttendeeStatus.Going ? 0 : 1)
-            .Take(MaxAttendeesListed)
-            .ToList();
-
-        var people = await _users.GetSummariesAsync(listed.Select(a => a.UserId));
-
-        return listed
-            .Where(a => people.ContainsKey(a.UserId))
-            .Select(a => new GetEventAttendeeDto
-            {
-                UserId = a.UserId,
-                FullName = people[a.UserId].FullName,
-                AvatarUrl = people[a.UserId].AvatarUrl,
-                Status = a.Status.ToString(),
-                IsOrganizer = a.UserId == found.CreatedByUserId
-            })
-            .ToList();
-    }
-
-    public async Task<List<GetEventDto>> GetUpcomingAsync(Guid currentUserId)
-    {
-        var now = DateTime.UtcNow;
-        var myGroupIds = await _access.GetMyGroupIdsAsync(currentUserId);
-
-        // Group events show up only for that group's members.
-        var upcoming = await _events.GetAll(
-                filter: e => e.StartsAt >= now && (e.GroupId == null || myGroupIds.Contains(e.GroupId.Value)),
-                orderBy: e => e.StartsAt,
-                asNoTracking: true,
-                includes: AttendeeIncludes)
-            .ToListAsync();
-
-        return await ToDtosAsync(upcoming, currentUserId);
-    }
-
-    public async Task<List<GetEventDto>> GetGroupEventsAsync(Guid currentUserId, Guid groupId)
-    {
-        if (!await _access.IsGroupMemberAsync(groupId, currentUserId))
-            throw new ForbiddenException("Grubun etkinliklerini görmek için üye olmalısın.");
-
-        var now = DateTime.UtcNow;
-
-        var upcoming = await _events.GetAll(
-                filter: e => e.GroupId == groupId && e.StartsAt >= now,
-                orderBy: e => e.StartsAt,
-                asNoTracking: true,
-                includes: AttendeeIncludes)
-            .ToListAsync();
-
-        return await ToDtosAsync(upcoming, currentUserId);
-    }
-
-    public async Task<List<GetEventDto>> GetMineAsync(Guid currentUserId, string scope)
-    {
-        var now = DateTime.UtcNow;
-
-        // "created": everything I organized, upcoming or finished. "past": finished events I was going to / interested in.
-        Expression<Func<Event, bool>> filter = scope switch
-        {
-            "created" => e => e.CreatedByUserId == currentUserId,
-            "past" => e => e.StartsAt < now && e.Attendees.Any(a => a.UserId == currentUserId),
-            _ => throw new BadRequestException("Scope must be either 'created' or 'past'.")
-        };
-
-        var myGroupIds = await _access.GetMyGroupIdsAsync(currentUserId);
-
-        var mine = await _events.GetAll(filter: filter, asNoTracking: true, includes: AttendeeIncludes)
-            .Where(e => e.GroupId == null || myGroupIds.Contains(e.GroupId.Value))
-            .OrderByDescending(e => e.StartsAt)
-            .Take(MaxMineEvents)
-            .ToListAsync();
-
-        return await ToDtosAsync(mine, currentUserId);
+        return await _builder.BuildDetailAsync(newEvent, currentUserId);
     }
 
     public async Task<GetEventDto> UpdateAsync(Guid currentUserId, Guid eventId, PutEventDto dto)
@@ -194,11 +87,21 @@ public class EventService : IEventService
         if (found.CreatedByUserId != currentUserId)
             throw new ForbiddenException("Only the creator can edit this event.");
 
-        if (found.StartsAt <= DateTime.UtcNow)
-            throw new BadRequestException("This event has already started and can no longer be edited.");
+        var now = DateTime.UtcNow;
+        if (found.EndsAt <= now)
+            throw new BadRequestException("Sona ermiş bir etkinlik düzenlenemez.");
+
+        var (startsAt, endsAt) = ResolveTimes(dto);
+        var hasStarted = found.StartsAt <= now;
+        ValidateReschedule(found, startsAt, endsAt, hasStarted, now);
+        if (hasStarted)
+            startsAt = found.StartsAt; // the rounded value the form re-sent is not a change
+
+        if (dto.IsPrivate && found.GroupId.HasValue)
+            throw new BadRequestException("Grup etkinlikleri zaten sadece grup üyelerine açıktır, ayrıca özel yapılamaz.");
 
         // The limit can't drop below the people who already said they're coming.
-        var goingNow = found.Attendees.Count(a => a.Status == EventAttendeeStatus.Going);
+        var goingNow = found.GoingCount;
         if (dto.Capacity.HasValue && dto.Capacity.Value < goingNow)
             throw new BadRequestException($"Kontenjan, katılacağını söyleyen {goingNow} kişiden az olamaz.");
 
@@ -207,8 +110,8 @@ public class EventService : IEventService
         var onlineLink = CleanOnlineLink(dto);
 
         // Only changes that affect whether people can still make it are worth a notification.
-        var importantChange = found.Title != title || found.StartsAt != dto.StartsAt || found.Location != location
-            || found.IsOnline != dto.IsOnline || found.OnlineLink != onlineLink;
+        var importantChange = found.Title != title || found.StartsAt != startsAt || found.EndsAt != endsAt
+            || found.Location != location || found.IsOnline != dto.IsOnline || found.OnlineLink != onlineLink;
 
         var oldCoverUrl = found.CoverImageUrl;
         if (dto.CoverImage != null)
@@ -216,26 +119,33 @@ public class EventService : IEventService
         else if (dto.RemoveCoverImage)
             found.CoverImageUrl = null;
 
+        var startMoved = found.StartsAt != startsAt;
+
         found.Title = title;
         found.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
         found.Location = location;
-        found.StartsAt = dto.StartsAt;
+        found.StartsAt = startsAt;
+        found.EndsAt = endsAt;
+        if (startMoved)
+            found.ResetReminders(now); // the reminders are for the new time
         found.Capacity = dto.Capacity;
         found.IsOnline = dto.IsOnline;
         found.OnlineLink = onlineLink;
+        found.IsPrivate = dto.IsPrivate; // switching to private keeps the people already in; everyone else loses sight of it
+
+        // A bigger (or removed) limit opens spots for the people waiting. Same save as the edit itself.
+        var promoted = found.PromoteWaitlist();
         await _events.SaveChangesAsync();
 
         if (found.CoverImageUrl != oldCoverUrl)
             _files.Delete(oldCoverUrl);
 
         if (importantChange)
-        {
-            var audience = await _access.FilterViewersAsync(found, found.Attendees.Select(a => a.UserId).Where(id => id != currentUserId));
-            foreach (var userId in audience)
-                await _notifications.CreateAsync(userId, currentUserId, NotificationType.EventUpdated, eventId: eventId);
-        }
+            await _notifier.UpdatedAsync(found, currentUserId);
 
-        return await ToDetailDtoAsync(found, currentUserId);
+        await _notifier.PromotedAsync(found, promoted, currentUserId);
+
+        return await _builder.BuildDetailAsync(found, currentUserId);
     }
 
     public async Task<GetEventDto> SetStatusAsync(Guid currentUserId, Guid eventId, PutEventStatusDto dto)
@@ -243,12 +153,15 @@ public class EventService : IEventService
         var found = await _access.GetViewableAsync(currentUserId, eventId, AttendeeIncludes);
 
         var existing = found.Attendees.FirstOrDefault(a => a.UserId == currentUserId);
+        var wasGoing = existing?.Status == EventAttendeeStatus.Going;
 
-        // Leaving ("None") is always fine; joining an event that has already started is not.
-        if (dto.Status != "None" && found.StartsAt <= DateTime.UtcNow)
-            throw new BadRequestException("This event has already started.");
+        // Leaving ("None") is always fine; joining is open until the event has finished (an ongoing event can still be joined).
+        if (dto.Status != "None" && found.EndsAt <= DateTime.UtcNow)
+            throw new BadRequestException("Bu etkinlik sona erdi.");
 
-        if (dto.Status == "None")
+        var newStatus = dto.Status == "None" ? (EventAttendeeStatus?)null : Enum.Parse<EventAttendeeStatus>(dto.Status);
+
+        if (newStatus == null)
         {
             if (existing != null)
             {
@@ -258,38 +171,47 @@ public class EventService : IEventService
         }
         else
         {
-            var status = Enum.Parse<EventAttendeeStatus>(dto.Status);
-
-            // Taking a spot on a capped event: refuse when full, and bump AttendanceVersion so that two people
-            // grabbing the last spot at the same moment can't both succeed (the second save hits a 409).
-            if (status == EventAttendeeStatus.Going && existing?.Status != EventAttendeeStatus.Going && found.Capacity.HasValue)
-            {
-                var goingNow = found.Attendees.Count(a => a.Status == EventAttendeeStatus.Going);
-                if (goingNow >= found.Capacity.Value)
-                    throw new BadRequestException("Etkinlik dolu. Yine de 'İlgileniyorum' diyebilirsin.");
-
-                found.AttendanceVersion++;
-            }
+            EnsureCanTakeStatus(found, existing, newStatus.Value);
 
             if (existing != null)
             {
-                existing.Status = status;
+                existing.Status = newStatus.Value;
+                // Staying on the waiting list keeps your place in the queue; any other change drops it.
+                existing.WaitlistedAt = newStatus == EventAttendeeStatus.Waitlisted ? existing.WaitlistedAt ?? DateTime.UtcNow : null;
             }
             else
             {
-                var attendee = new EventAttendee { EventId = eventId, UserId = currentUserId, Status = status };
-                await _attendees.AddAsync(attendee);
+                await _attendees.AddAsync(new EventAttendee
+                {
+                    EventId = eventId,
+                    UserId = currentUserId,
+                    Status = newStatus.Value,
+                    WaitlistedAt = newStatus == EventAttendeeStatus.Waitlisted ? DateTime.UtcNow : null
+                });
             }
 
-            // Answering in any way (going or interested) uses up a pending invite.
+            // Answering in any way (going, interested, waiting) uses up a pending invite.
             var invite = await _invites.GetAll(i => i.EventId == eventId && i.InvitedUserId == currentUserId).FirstOrDefaultAsync();
             if (invite != null)
                 _invites.Delete(invite);
         }
 
+        // Giving up a spot, or asking for one that has just opened, is settled in this same save: whoever has waited
+        // longest moves up. Bumping the version makes a competing change lose with a 409 instead of leaving a free
+        // spot next to a waiting list.
+        if (wasGoing && newStatus != EventAttendeeStatus.Going && found.Capacity.HasValue)
+            found.AttendanceVersion++;
+        var promoted = found.PromoteWaitlist();
+
         await _attendees.SaveChangesAsync();
 
-        return await ToDetailDtoAsync(found, currentUserId);
+        // The organizer hears about every new "Katılıyorum" (once per person: leaving and rejoining isn't news again).
+        if (newStatus == EventAttendeeStatus.Going && !wasGoing)
+            await _notifier.JoinedAsync(found, currentUserId);
+
+        await _notifier.PromotedAsync(found, promoted, currentUserId);
+
+        return await _builder.BuildDetailAsync(found, currentUserId);
     }
 
     public async Task DeleteAsync(Guid currentUserId, Guid eventId)
@@ -299,80 +221,109 @@ public class EventService : IEventService
         if (found.CreatedByUserId != currentUserId)
             throw new ForbiddenException("Only the creator can delete this event.");
 
-        // Only people who still had something to attend need to hear about a cancellation.
-        var audience = found.StartsAt > DateTime.UtcNow
-            ? await _access.FilterViewersAsync(found, found.Attendees.Select(a => a.UserId).Where(id => id != currentUserId))
-            : new List<Guid>();
+        var attendeeIds = found.Attendees.Select(a => a.UserId).ToList(); // read before the rows are deleted
 
         _events.Delete(found);
         await _events.SaveChangesAsync();
 
         _files.Delete(found.CoverImageUrl);
         await _notifications.DeleteByEventAsync(eventId);
-
-        // The event row is gone, so the notification carries a snapshot of its title instead of an EventId.
-        foreach (var userId in audience)
-            await _notifications.CreateAsync(userId, currentUserId, NotificationType.EventCancelled, subject: found.Title);
+        await _notifier.CancelledAsync(found, attendeeIds, currentUserId);
     }
 
-    // Same as ToDto plus the organizer's name/avatar — one extra lookup, so only for single-event responses.
-    private async Task<GetEventDto> ToDetailDtoAsync(Event source, Guid currentUserId)
+    public async Task RemoveUserFromGroupEventsAsync(Guid userId, Guid groupId, Guid groupOwnerId)
     {
-        var dto = ToDto(source, currentUserId);
-        var organizer = await _users.GetSummaryAsync(source.CreatedByUserId);
-        dto.CreatedByName = organizer?.FullName;
-        dto.CreatedByAvatarUrl = organizer?.AvatarUrl;
+        var now = DateTime.UtcNow;
 
-        if (source.GroupId.HasValue)
-            dto.GroupName = (await _groups.GetByIdAsync(source.GroupId.Value))?.Name;
+        // Finished events keep their history; only what is still ahead matters.
+        var affected = await _events.GetAll(
+                filter: e => e.GroupId == groupId && e.EndsAt > now
+                    && (e.CreatedByUserId == userId || e.Attendees.Any(a => a.UserId == userId)),
+                includes: AttendeeIncludes)
+            .ToListAsync();
 
-        // A pending invite to this event: lets the page show "X seni davet etti" with accept / decline.
-        if (!dto.IsOwner && dto.CurrentUserStatus == "None")
+        var promotions = new List<(Event Event, IReadOnlyList<EventAttendee> Promoted)>();
+        foreach (var ev in affected)
         {
-            var inviterId = await _invites
-                .GetAll(i => i.EventId == source.Id && i.InvitedUserId == currentUserId, asNoTracking: true)
-                .Select(i => (Guid?)i.InvitedByUserId)
-                .FirstOrDefaultAsync();
-            if (inviterId.HasValue)
-                dto.InvitedByName = (await _users.GetSummaryAsync(inviterId.Value))?.FullName;
+            if (ev.CreatedByUserId == userId)
+                ev.CreatedByUserId = groupOwnerId;
+
+            var attendee = ev.Attendees.FirstOrDefault(a => a.UserId == userId);
+            if (attendee == null)
+                continue;
+
+            var wasGoing = attendee.Status == EventAttendeeStatus.Going;
+            _attendees.Delete(attendee);
+            ev.Attendees.Remove(attendee);
+
+            // Same rules as leaving by hand: a freed spot is settled in this save, in queue order.
+            if (wasGoing && ev.Capacity.HasValue)
+                ev.AttendanceVersion++;
+
+            var promoted = ev.PromoteWaitlist();
+            if (promoted.Count > 0)
+                promotions.Add((ev, promoted));
         }
 
-        return dto;
+        var invites = await _invites.GetAll(i => i.InvitedUserId == userId && i.Event!.GroupId == groupId).ToListAsync();
+        foreach (var invite in invites)
+            _invites.Delete(invite);
+
+        await _events.SaveChangesAsync();
+
+        foreach (var (ev, promoted) in promotions)
+            await _notifier.PromotedAsync(ev, promoted, actingUserId: Guid.Empty);
     }
 
-    // List version of ToDto: also fills the group names with one batched lookup instead of one per event.
-    private async Task<List<GetEventDto>> ToDtosAsync(IEnumerable<Event> events, Guid currentUserId)
+    // The capacity rules for taking a status. Taking a spot ("Going") or queueing for one ("Waitlisted") bumps
+    // AttendanceVersion, so two people grabbing the last spot at the same moment can't both succeed (the second save hits a 409).
+    private static void EnsureCanTakeStatus(Event ev, EventAttendee? existing, EventAttendeeStatus status)
     {
-        var dtos = events.Select(e => ToDto(e, currentUserId)).ToList();
-
-        var groupIds = dtos.Where(d => d.GroupId.HasValue).Select(d => d.GroupId!.Value).Distinct().ToList();
-        if (groupIds.Count > 0)
+        if (status == EventAttendeeStatus.Going && existing?.Status != EventAttendeeStatus.Going && ev.Capacity.HasValue)
         {
-            var names = await _groups.GetAll(g => groupIds.Contains(g.Id), asNoTracking: true)
-                .ToDictionaryAsync(g => g.Id, g => g.Name);
-            foreach (var dto in dtos.Where(d => d.GroupId.HasValue))
-                dto.GroupName = names.GetValueOrDefault(dto.GroupId!.Value);
+            if (ev.IsFull)
+                throw new BadRequestException("Etkinlik dolu. Bekleme listesine katılabilir ya da 'İlgileniyorum' diyebilirsin.");
+
+            ev.AttendanceVersion++;
         }
 
-        return dtos;
+        if (status == EventAttendeeStatus.Waitlisted)
+        {
+            if (existing?.Status == EventAttendeeStatus.Going)
+                throw new BadRequestException("Zaten katılıyorsun, bekleme listesine girmene gerek yok.");
+
+            if (!ev.Capacity.HasValue)
+                throw new BadRequestException("Bu etkinliğin kontenjan sınırı yok, doğrudan katılabilirsin.");
+
+            if (existing?.Status != EventAttendeeStatus.Waitlisted)
+                ev.AttendanceVersion++;
+        }
     }
 
-    private GetEventDto ToDto(Event source, Guid currentUserId)
+    private static (DateTime StartsAt, DateTime EndsAt) ResolveTimes(EventInputDto dto)
     {
-        var dto = _mapper.Map<GetEventDto>(source);
-        var mine = source.Attendees.FirstOrDefault(a => a.UserId == currentUserId);
-        dto.CurrentUserStatus = mine?.Status.ToString() ?? "None";
-        dto.IsOwner = source.CreatedByUserId == currentUserId;
+        var startsAt = dto.StartsAt.ToUtc();
+        var endsAt = dto.EndsAt?.ToUtc() ?? startsAt.Add(EventLimits.DefaultDuration);
+        return (startsAt, endsAt);
+    }
 
-        var going = source.Attendees.Count(a => a.Status == EventAttendeeStatus.Going);
-        dto.IsFull = source.Capacity.HasValue && going >= source.Capacity.Value;
-        dto.SpotsLeft = source.Capacity.HasValue ? Math.Max(source.Capacity.Value - going, 0) : null;
+    // An upcoming event may be moved anywhere in the future; an ongoing one keeps its start (it already happened)
+    // and may only change when it ends. Nothing may end in the past.
+    private static void ValidateReschedule(Event ev, DateTime startsAt, DateTime endsAt, bool hasStarted, DateTime now)
+    {
+        if (hasStarted)
+        {
+            // The edit form re-sends the start it displays, which is rounded to the minute.
+            if (Math.Abs((startsAt - ev.StartsAt).TotalMinutes) >= 1)
+                throw new BadRequestException("Başlamış bir etkinliğin başlangıç zamanı değiştirilemez.");
+        }
+        else if (startsAt <= now)
+        {
+            throw new BadRequestException("Etkinlik başlangıcı gelecekte olmalı.");
+        }
 
-        // The meeting link is for the people who are actually attending, not for everyone browsing events.
-        if (source.IsOnline && (dto.IsOwner || mine?.Status == EventAttendeeStatus.Going))
-            dto.OnlineLink = source.OnlineLink;
-
-        return dto;
+        if (endsAt <= now)
+            throw new BadRequestException("Bitiş zamanı geçmişte olamaz.");
     }
 
     // Offline events never keep a link, even if the client sent one. The stored form is Uri.AbsoluteUri, which

@@ -26,6 +26,16 @@ const EVENT_FORM_HTML = `
             <input type="time" id="eventTime" class="form-control">
           </div>
         </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold small">Bitiş <span class="text-muted fw-normal">(isteğe bağlı)</span></label>
+          <input type="datetime-local" id="eventEndsAt" class="form-control">
+          <div class="form-text" id="eventScheduleHint">Boş bırakırsan etkinlik 3 saat sürer.</div>
+        </div>
+        <div class="form-check form-switch mb-3" id="eventPrivateWrap">
+          <input class="form-check-input" type="checkbox" id="eventIsPrivate">
+          <label class="form-check-label small fw-semibold" for="eventIsPrivate">Özel etkinlik</label>
+          <div class="form-text">Sadece davet ettiklerin ve katılanlar görebilir. Listede ve aramada görünmez, bağlantıyı bilen herkes açamaz.</div>
+        </div>
         <div class="form-check form-switch mb-3">
           <input class="form-check-input" type="checkbox" id="eventIsOnline" onchange="syncEventFormToggles()">
           <label class="form-check-label small fw-semibold" for="eventIsOnline">Çevrimiçi etkinlik</label>
@@ -89,12 +99,17 @@ function syncEventFormToggles() {
 }
 
 function clearEventForm() {
-  ["eventTitle", "eventDate", "eventTime", "eventLocation", "eventDescription", "eventCover", "eventOnlineLink", "eventCapacity"].forEach(id => {
+  ["eventTitle", "eventDate", "eventTime", "eventEndsAt", "eventLocation", "eventDescription", "eventCover", "eventOnlineLink", "eventCapacity"].forEach(id => {
     const field = document.getElementById(id);
     field.value = "";
     field.classList.remove("is-invalid");
   });
+  // An ongoing event's start can't be edited (see openEventForm); every open starts from a clean state.
+  document.getElementById("eventDate").disabled = false;
+  document.getElementById("eventTime").disabled = false;
+  document.getElementById("eventScheduleHint").textContent = "Boş bırakırsan etkinlik 3 saat sürer.";
   document.getElementById("eventRemoveCover").checked = false;
+  document.getElementById("eventIsPrivate").checked = false;
   document.getElementById("eventIsOnline").checked = false;
   document.getElementById("eventLimitToggle").checked = false;
   document.getElementById("eventError").classList.add("d-none");
@@ -108,6 +123,9 @@ function openEventForm(ev, onSaved, options = {}) {
   formOnSaved = onSaved || null;
   formGroup = !ev && options.group ? options.group : null;
 
+  // A group event is already members-only, so "özel" doesn't apply to it.
+  document.getElementById("eventPrivateWrap").classList.toggle("d-none", !!formGroup || !!(ev && ev.groupId));
+
   const groupNote = document.getElementById("eventGroupNote");
   groupNote.classList.toggle("d-none", !formGroup);
   if (formGroup) {
@@ -119,14 +137,23 @@ function openEventForm(ev, onSaved, options = {}) {
   document.getElementById("eventCoverPreviewWrap").classList.toggle("d-none", !(ev && ev.coverImageUrl));
 
   if (ev) {
-    // startsAt is the plain local time the organizer typed — slice it, don't run it through Date.
+    // The API sends UTC instants; the inputs show them in the viewer's own time zone.
     document.getElementById("eventTitle").value = ev.title;
-    document.getElementById("eventDate").value = ev.startsAt.slice(0, 10);
-    document.getElementById("eventTime").value = ev.startsAt.slice(11, 16);
+    document.getElementById("eventDate").value = toLocalInputValue(ev.startsAt, "date");
+    document.getElementById("eventTime").value = toLocalInputValue(ev.startsAt, "time");
+    document.getElementById("eventEndsAt").value = toLocalInputValue(ev.endsAt, "datetime");
+
+    if (ev.isOngoing) {
+      // It already started, so only the end can still move.
+      document.getElementById("eventDate").disabled = true;
+      document.getElementById("eventTime").disabled = true;
+      document.getElementById("eventScheduleHint").textContent = "Etkinlik başladığı için başlangıç değiştirilemez, sadece bitişi değiştirebilirsin.";
+    }
     document.getElementById("eventLocation").value = ev.location || "";
     document.getElementById("eventDescription").value = ev.description || "";
     if (ev.coverImageUrl) document.getElementById("eventCoverPreview").src = ev.coverImageUrl;
 
+    document.getElementById("eventIsPrivate").checked = ev.isPrivate;
     document.getElementById("eventIsOnline").checked = ev.isOnline;
     document.getElementById("eventOnlineLink").value = ev.onlineLink || ""; // the organizer always gets the link back
     document.getElementById("eventLimitToggle").checked = ev.capacity != null;
@@ -152,11 +179,15 @@ async function saveEventForm() {
   const capacityInvalid = limited && (!Number.isInteger(capacity) || capacity < 1);
   const linkInvalid = online && !/^https?:\/\/\S+$/i.test(onlineLink);
 
+  const endsAtValue = document.getElementById("eventEndsAt").value;
+  const endsBeforeStart = !!endsAtValue && !!date && new Date(endsAtValue) <= new Date(`${date}T${time}`);
+
   document.getElementById("eventTitle").classList.toggle("is-invalid", !title);
   document.getElementById("eventDate").classList.toggle("is-invalid", !date);
   document.getElementById("eventCapacity").classList.toggle("is-invalid", capacityInvalid);
   document.getElementById("eventOnlineLink").classList.toggle("is-invalid", linkInvalid);
-  if (!title || !date || capacityInvalid || linkInvalid) return;
+  document.getElementById("eventEndsAt").classList.toggle("is-invalid", endsBeforeStart);
+  if (!title || !date || capacityInvalid || linkInvalid || endsBeforeStart) return;
 
   const submitBtn = document.getElementById("eventSubmitBtn");
   submitBtn.disabled = true;
@@ -165,7 +196,9 @@ async function saveEventForm() {
     formData.append("title", title);
     formData.append("description", document.getElementById("eventDescription").value.trim());
     formData.append("location", online ? "" : document.getElementById("eventLocation").value.trim());
-    formData.append("startsAt", `${date}T${time}:00`);
+    formData.append("startsAt", localInputToIso(`${date}T${time}`));
+    if (endsAtValue) formData.append("endsAt", localInputToIso(endsAtValue)); // leaving it out means "default duration"
+    formData.append("isPrivate", document.getElementById("eventIsPrivate").checked);
     formData.append("isOnline", online);
     if (online) formData.append("onlineLink", onlineLink);
     if (limited) formData.append("capacity", capacity); // leaving it out means "no limit"

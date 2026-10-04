@@ -265,13 +265,25 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<Guid>("CreatedByUserId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("DayReminderSentAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("EndsAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<Guid?>("GroupId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("HourReminderSentAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsOnline")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPrivate")
                         .HasColumnType("bit");
 
                     b.Property<string>("Location")
@@ -296,6 +308,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("EndsAt");
+
                     b.HasIndex("GroupId");
 
                     b.ToTable("Events");
@@ -318,6 +332,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("WaitlistedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 

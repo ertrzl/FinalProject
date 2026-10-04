@@ -24,7 +24,11 @@ const NOTIF_ICON = {
   EventUpdated: { badge: "bg-info", icon: "bi-calendar-event-fill" },
   EventCancelled: { badge: "bg-danger", icon: "bi-calendar-x-fill" },
   EventInviteReceived: { badge: "bg-info", icon: "bi-calendar-plus-fill" },
-  EventAnnouncement: { badge: "bg-warning", icon: "bi-megaphone-fill" }
+  EventAnnouncement: { badge: "bg-warning", icon: "bi-megaphone-fill" },
+  EventJoined: { badge: "bg-success", icon: "bi-person-check-fill" },
+  EventCommentAdded: { badge: "bg-info", icon: "bi-chat-left-text-fill" },
+  EventWaitlistPromoted: { badge: "bg-success", icon: "bi-arrow-up-circle-fill" },
+  EventReminder: { badge: "bg-warning", icon: "bi-alarm-fill" }
 };
 
 function offerMoney(n) {
@@ -59,7 +63,11 @@ const NOTIF_TEXT = {
   EventUpdated: n => `<b>${escapeHtml(n.actorName)}</b>, katıldığın <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğini güncelledi.`,
   EventCancelled: n => `<b>${escapeHtml(n.actorName)}</b>, katılacağın <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğini iptal etti.`,
   EventInviteReceived: n => `<b>${escapeHtml(n.actorName)}</b> seni <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğine davet etti.`,
-  EventAnnouncement: n => `<b>${escapeHtml(n.actorName)}</b>, <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğinde yeni bir duyuru yaptı.`
+  EventAnnouncement: n => `<b>${escapeHtml(n.actorName)}</b>, <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğinde yeni bir duyuru yaptı.`,
+  EventJoined: n => `<b>${escapeHtml(n.actorName)}</b>, <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğine katılıyor.`,
+  EventCommentAdded: n => `<b>${escapeHtml(n.actorName)}</b>, <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğine yorum yaptı.`,
+  EventWaitlistPromoted: n => `Bekleme listesindeydin: <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğinde yer açıldı, artık katılıyorsun.`,
+  EventReminder: n => `<b>${escapeHtml(n.eventTitle || "Bir etkinlik")}</b> yaklaşıyor${n.eventStartsAt ? `: ${formatEventDate(n.eventStartsAt)}` : ""}.`
 };
 
 function notificationHtml(n) {
@@ -80,7 +88,7 @@ function notificationHtml(n) {
        </div>`;
   } else if (n.type === "MarketplaceRatingReceived") {
     actions = `<a href="marketplace.html?sellerReviews=${getSession().userId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Değerlendirmeleri Gör</a>`;
-  } else if (["EventUpdated", "EventInviteReceived", "EventAnnouncement"].includes(n.type)) {
+  } else if (["EventUpdated", "EventInviteReceived", "EventAnnouncement", "EventJoined", "EventCommentAdded", "EventWaitlistPromoted", "EventReminder"].includes(n.type)) {
     actions = `<a href="event.html?id=${n.eventId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Etkinliği Gör</a>`;
   } else if (n.type.startsWith("MarketplaceOffer")) {
     actions = `<a href="marketplace.html?view=offers" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Teklifleri Gör</a>`;

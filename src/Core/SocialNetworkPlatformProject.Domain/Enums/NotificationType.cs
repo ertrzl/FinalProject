@@ -24,5 +24,9 @@ public enum NotificationType
     EventUpdated = 18,              // to everyone going/interested: the organizer changed the title, time or place
     EventCancelled = 19,            // the organizer deleted the event; Notification.Subject carries its title
     EventInviteReceived = 20,       // someone invited you to an event
-    EventAnnouncement = 21          // the organizer posted an announcement on an event you're going to / interested in
+    EventAnnouncement = 21,         // the organizer posted an announcement on an event you're going to / interested in
+    EventJoined = 22,               // to the organizer: someone is going to the event
+    EventCommentAdded = 23,         // to the organizer: someone commented on the event
+    EventWaitlistPromoted = 24,     // to someone on the waiting list: a spot opened and they are now going
+    EventReminder = 25              // the event is about to start (to those going and the organizer)
 }

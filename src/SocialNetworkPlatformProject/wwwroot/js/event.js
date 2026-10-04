@@ -14,6 +14,27 @@ function escapeAttr(text) {
   return escapeHtml(text).replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
+// The pre-filled Google Calendar address comes from the server (it knows what this viewer may see, e.g. the online link).
+async function loadGoogleCalendarLink() {
+  const link = document.getElementById("googleCalendarLink");
+  if (!link) return;
+  try {
+    const result = await apiFetch(`/api/events/${eventId}/calendar/google`);
+    link.href = result.url;
+    link.classList.remove("disabled");
+  } catch (err) {
+    link.remove();
+  }
+}
+
+async function downloadCalendarFile() {
+  try {
+    await downloadApiFile(`/api/events/${eventId}/calendar`, "etkinlik.ics");
+  } catch (err) {
+    toast(err.message || "Takvim dosyası indirilemedi.");
+  }
+}
+
 function showEventError(message) {
   document.getElementById("eventLoading").classList.add("d-none");
   document.getElementById("eventPage").classList.add("d-none");
@@ -29,7 +50,7 @@ function renderEvent() {
   document.getElementById("eventPage").classList.remove("d-none");
 
   document.getElementById("evCover").src = ev.coverImageUrl || NO_PHOTO;
-  document.getElementById("evDate").innerHTML = `<i class="bi bi-calendar3 me-1"></i>${formatEventDate(ev.startsAt)}`;
+  document.getElementById("evDate").innerHTML = `<i class="bi bi-calendar3 me-1"></i>${formatEventRange(ev.startsAt, ev.endsAt)} ${eventStateBadgeHtml(ev)}`;
   document.getElementById("evTitle").textContent = ev.title;
   // Online events keep their link private: only the organizer and people who are going get it (see the actions below).
   document.getElementById("evLocation").innerHTML = eventPlaceHtml(ev)
@@ -37,7 +58,7 @@ function renderEvent() {
 
   const limitInfo = ev.capacity != null
     ? `<div class="progress mt-2" style="height:6px; max-width:320px;"><div class="progress-bar ${ev.isFull ? "bg-secondary" : ""}" style="width:${Math.min(100, Math.round(ev.goingCount * 100 / ev.capacity))}%"></div></div>
-       <div class="mt-1">${ev.isFull ? "Etkinlik dolu" : `${ev.spotsLeft} yer kaldı`}</div>`
+       <div class="mt-1">${ev.isFull ? "Etkinlik dolu" : `${ev.spotsLeft} yer kaldı`}${ev.waitlistCount > 0 ? ` · ${eventWaitlistText(ev)}` : ""}</div>`
     : "";
   document.getElementById("evCounts").innerHTML = `${eventAttendanceText(ev)} · ${ev.interestedCount} ilgileniyor${limitInfo}`;
 
@@ -88,11 +109,11 @@ function renderEventActions() {
   const going = ev.currentUserStatus === "Going";
   const interested = ev.currentUserStatus === "Interested";
 
-  const goingBlocked = ev.isFull && !going;
+  const primary = eventPrimaryAction(ev);
 
   const statusButtons = ev.isPast
     ? `<span class="btn btn-light disabled rounded-pill"><i class="bi bi-check2-circle me-1"></i>Sona erdi${going ? " · katıldın" : interested ? " · ilgileniyordun" : ""}</span>`
-    : `<button class="btn ${going ? "btn-primary joined" : "btn-primary"} rounded-pill" ${goingBlocked ? "disabled" : ""} onclick="setStatus('Going')">${going ? "Katılıyorsun" : goingBlocked ? "Dolu" : "Katılıyorum"}</button>
+    : `<button class="btn ${primary.css} rounded-pill" onclick="setStatus('${primary.status}')">${primary.label}</button>
        <button class="btn ${interested ? "btn-outline-secondary interested" : "btn-outline-secondary"} rounded-pill" onclick="setStatus('Interested')">${interested ? "İlgileniyorsun" : "İlgileniyorum"}</button>`;
 
   const ownerButtons = ev.isOwner
@@ -105,16 +126,30 @@ function renderEventActions() {
     : "";
 
   // The organizer and people who said "Katılıyorum" may invite others.
-  const inviteButton = (ev.isOwner || going) && !ev.isPast
+  // In a private event only the organizer invites; otherwise the organizer and people who are going.
+  const inviteButton = (ev.isOwner || (going && !ev.isPrivate)) && !ev.isPast
     ? `<button class="btn btn-light border rounded-pill" onclick="openInviteModal()"><i class="bi bi-person-plus me-1"></i>Davet Et</button>`
     : "";
+
+  // No point adding something that is already over to a calendar.
+  const calendarMenu = ev.isPast ? "" : `
+    <div class="dropdown">
+      <button class="btn btn-light border rounded-pill dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-calendar-plus me-1"></i>Takvime Ekle</button>
+      <ul class="dropdown-menu">
+        <li><a id="googleCalendarLink" class="dropdown-item disabled" href="#" target="_blank" rel="noopener noreferrer"><i class="bi bi-google me-2"></i>Google Takvim</a></li>
+        <li><button class="dropdown-item" onclick="downloadCalendarFile()"><i class="bi bi-download me-2"></i>Apple / Outlook (.ics)</button></li>
+      </ul>
+    </div>`;
 
   document.getElementById("evActions").innerHTML = `
     ${statusButtons}
     ${joinOnline}
     ${inviteButton}
+    ${calendarMenu}
     <button class="btn btn-light border rounded-pill" onclick="copyEventLink()"><i class="bi bi-link-45deg me-1"></i>Bağlantıyı Kopyala</button>
     ${ownerButtons}`;
+
+  loadGoogleCalendarLink();
 }
 
 function attendeeChipHtml(person) {
@@ -142,8 +177,10 @@ async function loadAttendees() {
     attendeeIds = new Set(attendees.map(a => a.userId));
     const going = attendees.filter(a => a.status === "Going");
     const interested = attendees.filter(a => a.status === "Interested");
+    const waiting = attendees.filter(a => a.status === "Waitlisted");
     box.innerHTML = attendeeGroupHtml("Katılanlar", going, currentEvent.goingCount)
-      + attendeeGroupHtml("İlgilenenler", interested, currentEvent.interestedCount);
+      + attendeeGroupHtml("İlgilenenler", interested, currentEvent.interestedCount)
+      + (currentEvent.waitlistCount > 0 ? attendeeGroupHtml("Bekleme listesi", waiting, currentEvent.waitlistCount) : "");
   } catch (err) {
     box.innerHTML = `<div class="alert alert-danger small mb-0">${escapeHtml(err.message)}</div>`;
   }

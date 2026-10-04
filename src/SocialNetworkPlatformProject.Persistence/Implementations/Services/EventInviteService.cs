@@ -17,7 +17,7 @@ public class EventInviteService : IEventInviteService
     private readonly IEventAccessService _access;
     private readonly IEventService _events;
     private readonly IUserRepository _users;
-    private readonly INotificationService _notifications;
+    private readonly IEventNotifier _notifier;
 
     public EventInviteService(
         IEventInviteRepository invites,
@@ -25,22 +25,22 @@ public class EventInviteService : IEventInviteService
         IEventAccessService access,
         IEventService events,
         IUserRepository users,
-        INotificationService notifications)
+        IEventNotifier notifier)
     {
         _invites = invites;
         _groups = groups;
         _access = access;
         _events = events;
         _users = users;
-        _notifications = notifications;
+        _notifier = notifier;
     }
 
     public async Task InviteAsync(Guid currentUserId, Guid eventId, PostEventInviteDto dto)
     {
         var found = await _access.GetViewableAsync(currentUserId, eventId, AttendeeIncludes);
 
-        if (found.StartsAt <= DateTime.UtcNow)
-            throw new BadRequestException("Başlamış bir etkinliğe davet gönderilemez.");
+        if (found.EndsAt <= DateTime.UtcNow)
+            throw new BadRequestException("Sona ermiş bir etkinliğe davet gönderilemez.");
 
         EnsureCanInvite(found, currentUserId);
 
@@ -73,7 +73,7 @@ public class EventInviteService : IEventInviteService
             throw new ConflictException("Bu kişiye zaten davet gönderilmiş.");
         }
 
-        await _notifications.CreateAsync(targetId, currentUserId, NotificationType.EventInviteReceived, eventId: eventId);
+        await _notifier.InvitedAsync(found, targetId, currentUserId);
     }
 
     public async Task<List<GetEventInviteeDto>> GetInviteesAsync(Guid currentUserId, Guid eventId)
@@ -103,7 +103,7 @@ public class EventInviteService : IEventInviteService
         var now = DateTime.UtcNow;
 
         var invites = await _invites.GetAll(
-                filter: i => i.InvitedUserId == currentUserId && i.Event!.StartsAt > now,
+                filter: i => i.InvitedUserId == currentUserId && i.Event!.EndsAt > now,
                 orderBy: i => i.CreatedAt,
                 isDescending: true,
                 asNoTracking: true,
@@ -129,6 +129,7 @@ public class EventInviteService : IEventInviteService
                 EventId = i.EventId,
                 Title = i.Event!.Title,
                 StartsAt = i.Event.StartsAt,
+                EndsAt = i.Event.EndsAt,
                 CoverImageUrl = i.Event.CoverImageUrl,
                 IsOnline = i.Event.IsOnline,
                 Location = i.Event.Location,
@@ -160,10 +161,14 @@ public class EventInviteService : IEventInviteService
         await _invites.SaveChangesAsync();
     }
 
-    // Only the organizer and people who said "Katılıyorum" may invite (and see who has been invited).
+    // The organizer and people who said "Katılıyorum" may invite (and see who has been invited); a private
+    // event stays in the organizer's hands, so only they may.
     private static void EnsureCanInvite(Event ev, Guid userId)
     {
         var isOrganizer = ev.CreatedByUserId == userId;
+        if (ev.IsPrivate && !isOrganizer)
+            throw new ForbiddenException("Özel bir etkinliğe sadece etkinliği düzenleyen davet gönderebilir.");
+
         var isGoing = ev.Attendees.Any(a => a.UserId == userId && a.Status == EventAttendeeStatus.Going);
         if (!isOrganizer && !isGoing)
             throw new ForbiddenException("Davet göndermek için etkinliği düzenleyen ya da katılan biri olmalısın.");

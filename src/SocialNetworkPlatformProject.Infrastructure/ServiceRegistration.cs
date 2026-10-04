@@ -18,6 +18,9 @@ public static class ServiceRegistration
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
+        // Timer-driven housekeeping: event reminders and waiting lists.
+        services.AddHostedService<EventMaintenanceBackgroundService>();
+
         services.AddSignalR();
         services.AddSingleton<IUserIdProvider, SubClaimUserIdProvider>();
         services.AddScoped<IRealTimeNotifier, SignalRNotifier>();

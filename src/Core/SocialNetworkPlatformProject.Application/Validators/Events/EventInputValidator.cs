@@ -1,4 +1,5 @@
 using FluentValidation;
+using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Events;
 
 namespace SocialNetworkPlatformProject.Application.Validators.Events;
@@ -6,8 +7,6 @@ namespace SocialNetworkPlatformProject.Application.Validators.Events;
 // Rules shared by creating and editing an event.
 public abstract class EventInputValidator<T> : AbstractValidator<T> where T : EventInputDto
 {
-    public const int MaxCapacity = 100_000;
-
     protected EventInputValidator()
     {
         RuleFor(x => x.Title)
@@ -17,8 +16,14 @@ public abstract class EventInputValidator<T> : AbstractValidator<T> where T : Ev
         RuleFor(x => x.Location).MaximumLength(200);
         RuleFor(x => x.Description).MaximumLength(2000);
 
+        RuleFor(x => x.EndsAt!.Value)
+            .Must((dto, endsAt) => endsAt.ToUtc() > dto.StartsAt.ToUtc()).WithMessage("Bitiş zamanı başlangıçtan sonra olmalı.")
+            .Must((dto, endsAt) => endsAt.ToUtc() - dto.StartsAt.ToUtc() <= EventLimits.MaxDuration)
+            .WithMessage($"Etkinlik en fazla {EventLimits.MaxDuration.Days} gün sürebilir.")
+            .When(x => x.EndsAt.HasValue);
+
         RuleFor(x => x.Capacity!.Value)
-            .InclusiveBetween(1, MaxCapacity).WithMessage($"Kontenjan 1 ile {MaxCapacity} arasında olmalı.")
+            .InclusiveBetween(1, EventLimits.MaxCapacity).WithMessage($"Kontenjan 1 ile {EventLimits.MaxCapacity} arasında olmalı.")
             .When(x => x.Capacity.HasValue);
 
         RuleFor(x => x.OnlineLink)

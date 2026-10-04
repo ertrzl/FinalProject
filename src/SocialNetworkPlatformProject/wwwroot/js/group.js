@@ -74,7 +74,7 @@ function groupEventRowHtml(ev) {
     <a href="event.html?id=${ev.id}" class="d-flex gap-3 text-decoration-none text-dark p-2 rounded-3 border mb-2 align-items-center">
       <img src="${ev.coverImageUrl || NO_PHOTO}" class="rounded-3 flex-shrink-0" style="width:72px;height:72px;object-fit:cover;" alt="">
       <div style="min-width:0;">
-        <div class="text-danger fw-bold small"><i class="bi bi-calendar3 me-1"></i>${formatEventDate(ev.startsAt)}</div>
+        <div class="text-danger fw-bold small"><i class="bi bi-calendar3 me-1"></i>${formatEventRange(ev.startsAt, ev.endsAt)} ${eventStateBadgeHtml(ev)}</div>
         <div class="fw-bold text-truncate">${escapeHtml(ev.title)}</div>
         <div class="text-muted small text-truncate">${eventPlaceHtml(ev)} · ${eventAttendanceText(ev)}${ev.isFull ? " · Dolu" : ""}${ev.currentUserStatus === "Going" ? " · katılıyorsun" : ev.currentUserStatus === "Interested" ? " · ilgileniyorsun" : ""}</div>
       </div>

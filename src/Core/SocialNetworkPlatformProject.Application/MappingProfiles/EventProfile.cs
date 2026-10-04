@@ -20,9 +20,12 @@ public class EventProfile : Profile
             .ForMember(dest => dest.InvitedByName, opt => opt.Ignore())
             .ForMember(dest => dest.IsFull, opt => opt.Ignore())
             .ForMember(dest => dest.SpotsLeft, opt => opt.Ignore())
+            .ForMember(dest => dest.WaitlistCount, opt => opt.Ignore())
+            .ForMember(dest => dest.MyWaitlistPosition, opt => opt.Ignore())
             .ForMember(dest => dest.OnlineLink, opt => opt.Ignore()) // revealed per viewer in EventService.ToDto
             .ForMember(dest => dest.CreatedByName, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedByAvatarUrl, opt => opt.Ignore())
-            .ForMember(dest => dest.IsPast, opt => opt.MapFrom(src => src.StartsAt <= DateTime.UtcNow));
+            .ForMember(dest => dest.IsOngoing, opt => opt.MapFrom(src => src.StartsAt <= DateTime.UtcNow && src.EndsAt > DateTime.UtcNow))
+            .ForMember(dest => dest.IsPast, opt => opt.MapFrom(src => src.EndsAt <= DateTime.UtcNow));
     }
 }

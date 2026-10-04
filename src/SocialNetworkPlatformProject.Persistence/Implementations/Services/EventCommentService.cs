@@ -16,18 +16,18 @@ public class EventCommentService : IEventCommentService
     private readonly IEventCommentRepository _comments;
     private readonly IEventAccessService _access;
     private readonly IUserRepository _users;
-    private readonly INotificationService _notifications;
+    private readonly IEventNotifier _notifier;
 
     public EventCommentService(
         IEventCommentRepository comments,
         IEventAccessService access,
         IUserRepository users,
-        INotificationService notifications)
+        IEventNotifier notifier)
     {
         _comments = comments;
         _access = access;
         _users = users;
-        _notifications = notifications;
+        _notifier = notifier;
     }
 
     public async Task<PagedResult<GetEventCommentDto>> GetAsync(Guid currentUserId, Guid eventId, int page, int pageSize)
@@ -68,8 +68,8 @@ public class EventCommentService : IEventCommentService
             if (found.CreatedByUserId != currentUserId)
                 throw new ForbiddenException("Duyuruyu sadece etkinliği düzenleyen yapabilir.");
 
-            if (found.StartsAt <= DateTime.UtcNow)
-                throw new BadRequestException("Başlamış bir etkinlik için duyuru yapılamaz.");
+            if (found.EndsAt <= DateTime.UtcNow)
+                throw new BadRequestException("Sona ermiş bir etkinlik için duyuru yapılamaz.");
         }
 
         var comment = new EventComment
@@ -83,12 +83,11 @@ public class EventCommentService : IEventCommentService
         await _comments.AddAsync(comment);
         await _comments.SaveChangesAsync();
 
+        // A plain comment is news to the organizer; their own comments and announcements aren't.
         if (dto.IsAnnouncement)
-        {
-            var audience = await _access.FilterViewersAsync(found, found.Attendees.Select(a => a.UserId).Where(id => id != currentUserId));
-            foreach (var userId in audience)
-                await _notifications.CreateAsync(userId, currentUserId, NotificationType.EventAnnouncement, eventId: eventId);
-        }
+            await _notifier.AnnouncementAsync(found, currentUserId);
+        else if (found.CreatedByUserId != currentUserId)
+            await _notifier.CommentAddedAsync(found, comment.Id, currentUserId);
 
         var author = await _users.GetSummaryAsync(currentUserId);
         return ToDto(comment, author, currentUserId, found.CreatedByUserId);

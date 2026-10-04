@@ -2,14 +2,10 @@
 
 requireAuth();
 
-let allEvents = [];
 const eventsById = new Map(); // every event any tab has loaded, so edit/delete also work from the "Etkinliklerim" lists
 
 function eventCardHtml(ev) {
-  const goingBtnClass = ev.currentUserStatus === "Going" ? "btn-primary joined" : "btn-primary";
-  // A full event only closes "Katılıyorum" for people who aren't already in.
-  const goingBlocked = ev.isFull && ev.currentUserStatus !== "Going";
-  const goingLabel = ev.currentUserStatus === "Going" ? "Katılıyorsun" : goingBlocked ? "Dolu" : "Katılıyorum";
+  const primary = eventPrimaryAction(ev);
   const interestedBtnClass = ev.currentUserStatus === "Interested" ? "btn-outline-secondary interested" : "btn-outline-secondary";
   const interestedLabel = ev.currentUserStatus === "Interested" ? "İlgileniyorsun" : "İlgileniyorum";
 
@@ -18,10 +14,10 @@ function eventCardHtml(ev) {
       <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
         <a href="event.html?id=${ev.id}"><img src="${ev.coverImageUrl || NO_PHOTO}" class="w-100" style="height:150px;object-fit:cover;" alt=""></a>
         <div class="p-3">
-          <div class="text-danger fw-bold small mb-1"><i class="bi bi-calendar3 me-1"></i>${formatEventDate(ev.startsAt)}</div>
+          <div class="text-danger fw-bold small mb-1"><i class="bi bi-calendar3 me-1"></i>${formatEventRange(ev.startsAt, ev.endsAt)} ${eventStateBadgeHtml(ev)}</div>
           <div class="fw-bold fs-6"><a href="event.html?id=${ev.id}" class="text-dark text-decoration-none">${escapeHtml(ev.title)}</a></div>
           ${ev.groupName ? `<div class="small text-primary"><i class="bi bi-people-fill me-1"></i><a href="group.html?id=${ev.groupId}" class="text-primary text-decoration-none">${escapeHtml(ev.groupName)}</a></div>` : ""}
-          <div class="text-muted small mb-3">${eventPlaceHtml(ev)} · ${eventAttendanceText(ev)}${ev.isFull ? ` <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill">Dolu</span>` : ""}</div>
+          <div class="text-muted small mb-3">${eventPlaceHtml(ev)} · ${eventAttendanceText(ev)}${ev.isFull ? ` <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill">Dolu</span>` : ""}${ev.waitlistCount > 0 ? ` · ${eventWaitlistText(ev)}` : ""}</div>
           ${ev.isOwner ? `
           <div class="d-flex gap-2 mb-2">
             ${ev.isPast ? "" : `<button class="btn btn-light border btn-sm rounded-pill flex-fill" onclick="openEventModal('${ev.id}')"><i class="bi bi-pencil me-1"></i>Düzenle</button>`}
@@ -30,7 +26,7 @@ function eventCardHtml(ev) {
           ${ev.isPast
             ? `<div class="text-center text-muted small py-1"><i class="bi bi-check2-circle me-1"></i>Sona erdi${ev.currentUserStatus === "Going" ? " · katıldın" : ev.currentUserStatus === "Interested" ? " · ilgileniyordun" : ""}</div>`
             : `<div class="d-flex gap-2">
-            <button class="btn ${goingBtnClass} btn-sm rounded-pill flex-fill" ${goingBlocked ? "disabled" : ""} onclick="setEventStatus('${ev.id}', 'Going')">${goingLabel}</button>
+            <button class="btn ${primary.css} btn-sm rounded-pill flex-fill" onclick="setEventStatus('${ev.id}', '${primary.status}')">${primary.label}</button>
             <button class="btn ${interestedBtnClass} btn-sm rounded-pill flex-fill" onclick="setEventStatus('${ev.id}', 'Interested')">${interestedLabel}</button>
           </div>`}
         </div>
@@ -38,27 +34,91 @@ function eventCardHtml(ev) {
     </div>`;
 }
 
-function renderGoing() {
-  const grid = document.getElementById("goingGrid");
-  const empty = document.getElementById("goingEmptyState");
-  const going = allEvents.filter(e => e.currentUserStatus === "Going" || e.currentUserStatus === "Interested");
-  grid.innerHTML = going.map(eventCardHtml).join("");
-  empty.classList.toggle("d-none", going.length > 0);
-}
-
 function rememberEvents(events) {
   events.forEach(e => eventsById.set(e.id, e));
 }
 
-async function loadUpcoming() {
+// ---- "Yaklaşan": search, quick filters and paging ----
+
+const UPCOMING_PAGE_SIZE = 12;
+let upcomingPage = 1;
+let upcomingTotalPages = 1;
+let upcomingRequest = 0; // answers can arrive out of order while typing: only the newest one may render
+let upcomingSearchDebounce = null;
+
+function upcomingQueryString(page) {
+  const params = new URLSearchParams({ page, pageSize: UPCOMING_PAGE_SIZE });
+
+  const search = document.getElementById("eventSearch").value.trim();
+  if (search) params.set("search", search);
+
+  // "Bugün / Bu hafta / Bu ay": the server works out the range, it only needs to know the viewer's time zone.
+  const when = document.getElementById("eventWhen").value;
+  if (when) {
+    params.set("when", when);
+    params.set("timeZone", Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }
+
+  const format = document.getElementById("eventFormat").value;
+  if (format) params.set("isOnline", format === "online");
+
+  return params.toString();
+}
+
+function hasUpcomingFilters() {
+  return !!(document.getElementById("eventSearch").value.trim()
+    || document.getElementById("eventWhen").value
+    || document.getElementById("eventFormat").value);
+}
+
+// Typing waits a moment so every keystroke isn't a request; the selects apply at once.
+function onEventFilterChange(debounced) {
+  clearTimeout(upcomingSearchDebounce);
+  upcomingSearchDebounce = setTimeout(() => loadUpcoming(true), debounced ? 350 : 0);
+}
+
+async function loadUpcoming(reset = true) {
   const grid = document.getElementById("upcomingGrid");
+  const moreWrap = document.getElementById("upcomingMoreWrap");
+  const page = reset ? 1 : upcomingPage + 1;
+  const requestId = ++upcomingRequest;
+
   try {
-    allEvents = await apiFetch("/api/events/upcoming");
-    rememberEvents(allEvents);
-    grid.innerHTML = allEvents.length
-      ? allEvents.map(eventCardHtml).join("")
-      : `<div class="col-12 text-center text-muted py-5">Yaklaşan etkinlik yok.</div>`;
-    renderGoing();
+    const result = await apiFetch(`/api/events/upcoming?${upcomingQueryString(page)}`);
+    if (requestId !== upcomingRequest) return;
+
+    upcomingPage = result.page;
+    upcomingTotalPages = result.totalPages;
+    rememberEvents(result.items);
+
+    const html = result.items.map(eventCardHtml).join("");
+    if (reset) {
+      grid.innerHTML = html || `<div class="col-12 text-center text-muted py-5">${hasUpcomingFilters() ? "Aramana uyan etkinlik bulunamadı." : "Yaklaşan etkinlik yok."}</div>`;
+    } else {
+      grid.insertAdjacentHTML("beforeend", html);
+    }
+
+    document.getElementById("upcomingCount").textContent = result.totalCount ? `${result.totalCount} etkinlik` : "";
+    moreWrap.classList.toggle("d-none", upcomingPage >= upcomingTotalPages);
+  } catch (err) {
+    if (requestId !== upcomingRequest) return;
+    grid.innerHTML = `<div class="col-12"><div class="alert alert-danger small">${escapeHtml(err.message)}</div></div>`;
+  }
+}
+
+function loadMoreUpcoming() {
+  return loadUpcoming(false);
+}
+
+// "Katıldıklarım": upcoming and ongoing events I'm going to or interested in (its own list, not a filter of "Yaklaşan").
+async function loadGoing() {
+  const grid = document.getElementById("goingGrid");
+  const empty = document.getElementById("goingEmptyState");
+  try {
+    const events = await apiFetch("/api/events/mine?scope=attending");
+    rememberEvents(events);
+    grid.innerHTML = events.map(eventCardHtml).join("");
+    empty.classList.toggle("d-none", events.length > 0);
   } catch (err) {
     grid.innerHTML = `<div class="col-12"><div class="alert alert-danger small">${escapeHtml(err.message)}</div></div>`;
   }
@@ -85,7 +145,7 @@ function inviteCardHtml(invite) {
       <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
         <a href="event.html?id=${invite.eventId}"><img src="${invite.coverImageUrl || NO_PHOTO}" class="w-100" style="height:120px;object-fit:cover;" alt=""></a>
         <div class="p-3">
-          <div class="text-danger fw-bold small mb-1"><i class="bi bi-calendar3 me-1"></i>${formatEventDate(invite.startsAt)}</div>
+          <div class="text-danger fw-bold small mb-1"><i class="bi bi-calendar3 me-1"></i>${formatEventRange(invite.startsAt, invite.endsAt)}</div>
           <div class="fw-bold fs-6"><a href="event.html?id=${invite.eventId}" class="text-dark text-decoration-none">${escapeHtml(invite.title)}</a></div>
           <div class="text-muted small mb-1">${eventPlaceHtml(invite)}${invite.groupName ? ` · <i class="bi bi-people-fill me-1"></i>${escapeHtml(invite.groupName)}` : ""}</div>
           <div class="text-muted small mb-3"><b>${escapeHtml(invite.invitedByName)}</b> seni davet etti · ${timeAgo(invite.invitedAt)}</div>
@@ -125,7 +185,7 @@ async function respondToEventInvite(eventId, accept, btn) {
 
 // After anything that can change several lists at once (create / edit / delete / answering an invite).
 function refreshAll() {
-  return Promise.all([loadUpcoming(), loadMine("created"), loadMine("past"), loadInvites()]);
+  return Promise.all([loadUpcoming(true), loadGoing(), loadMine("created"), loadMine("past"), loadInvites()]);
 }
 
 async function setEventStatus(eventId, status) {
@@ -134,12 +194,11 @@ async function setEventStatus(eventId, status) {
 
   try {
     const updated = await apiFetch(`/api/events/${eventId}/status`, { method: "PUT", body: { status: newStatus } });
-    const index = allEvents.findIndex(e => e.id === eventId);
-    if (index >= 0) allEvents[index] = updated;
     eventsById.set(eventId, updated);
 
+    // The card may sit in several lists at once; "Katıldıklarım" gains or loses a card, so it reloads.
     document.querySelectorAll(`[data-event-id="${eventId}"]`).forEach(el => el.outerHTML = eventCardHtml(updated));
-    renderGoing();
+    await loadGoing();
   } catch (err) {
     toast(err.message || "İşlem gerçekleştirilemedi.");
     // "Full" or "someone else just took the spot": show the real, current state instead of the stale card.

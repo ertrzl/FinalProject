@@ -12,6 +12,26 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class NotificationService : INotificationService
 {
+    // Types where every occurrence is genuinely new (each counter-offer, each edit, each invitation...), so two
+    // look-alike notifications are never collapsed into one. Every other type is de-duplicated per actor and target:
+    // like -> unlike -> like again, or join -> leave -> join again, shouldn't spam the recipient.
+    private static readonly HashSet<NotificationType> RepeatableTypes = new()
+    {
+        NotificationType.MarketplaceOfferReceived,
+        NotificationType.MarketplaceOfferCountered,
+        NotificationType.MarketplaceOfferAccepted,
+        NotificationType.MarketplaceOfferRejected,
+        NotificationType.MarketplaceOfferWithdrawn,
+        NotificationType.MarketplaceOfferClosed,
+        NotificationType.MarketplaceRatingReceived,
+        NotificationType.EventUpdated,
+        NotificationType.EventCancelled,
+        NotificationType.EventInviteReceived,
+        NotificationType.EventAnnouncement,
+        NotificationType.EventWaitlistPromoted,
+        NotificationType.EventReminder
+    };
+
     private readonly INotificationRepository _notifications;
     private readonly IUserRepository _users;
     private readonly IGroupRepository _groups;
@@ -42,17 +62,17 @@ public class NotificationService : INotificationService
         Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null, Guid? groupId = null,
         Guid? offerId = null, decimal? amount = null, Guid? eventId = null, string? subject = null)
     {
-        if (recipientId == actorId)
+        // Nobody is notified about their own action, except reminders, which have no real actor (the organizer is
+        // named as one so the notification has an origin, and the organizer gets reminded of their own event too).
+        if (recipientId == actorId && type != NotificationType.EventReminder)
             return;
 
-        // Like -> unlike -> like again shouldn't spam the recipient with identical entries.
-        // Marketplace offer and event-update notifications are the exception: every counter-offer
-        // or edit is a genuinely new event.
-        if (offerId == null && eventId == null && subject == null)
+        if (!RepeatableTypes.Contains(type))
         {
             var alreadyExists = await _notifications.AnyAsync(n =>
                 n.RecipientId == recipientId && n.ActorId == actorId && n.Type == type &&
-                n.PostId == postId && n.CommentId == commentId && n.FriendRequestId == friendRequestId && n.GroupId == groupId);
+                n.PostId == postId && n.CommentId == commentId && n.FriendRequestId == friendRequestId && n.GroupId == groupId &&
+                n.EventId == eventId);
             if (alreadyExists)
                 return;
         }
@@ -100,6 +120,7 @@ public class NotificationService : INotificationService
         {
             var linkedEvent = await _events.GetByIdAsync(eventId.Value);
             dto.EventTitle = linkedEvent?.Title;
+            dto.EventStartsAt = linkedEvent?.StartsAt;
         }
 
         await _notifier.SendNotificationAsync(recipientId, dto);
@@ -137,9 +158,9 @@ public class NotificationService : INotificationService
                 .ToDictionary(o => o.Id, o => (o.ListingId, o.Listing!.Title));
 
         var eventIds = items.Where(n => n.EventId.HasValue).Select(n => n.EventId!.Value).Distinct().ToList();
-        var eventTitles = eventIds.Count == 0
-            ? new Dictionary<Guid, string>()
-            : await _events.GetAll(e => eventIds.Contains(e.Id), asNoTracking: true).ToDictionaryAsync(e => e.Id, e => e.Title);
+        var eventInfo = eventIds.Count == 0
+            ? new Dictionary<Guid, (string Title, DateTime StartsAt)>()
+            : await _events.GetAll(e => eventIds.Contains(e.Id), asNoTracking: true).ToDictionaryAsync(e => e.Id, e => (e.Title, e.StartsAt));
 
         var dtos = _mapper.Map<List<GetNotificationDto>>(items);
 
@@ -157,8 +178,11 @@ public class NotificationService : INotificationService
             if (items[i].Subject != null)
                 dtos[i].EventTitle = items[i].Subject;
 
-            if (items[i].EventId.HasValue && eventTitles.TryGetValue(items[i].EventId!.Value, out var eventTitle))
-                dtos[i].EventTitle = eventTitle;
+            if (items[i].EventId.HasValue && eventInfo.TryGetValue(items[i].EventId!.Value, out var info))
+            {
+                dtos[i].EventTitle = info.Title;
+                dtos[i].EventStartsAt = info.StartsAt;
+            }
 
             if (items[i].OfferId.HasValue && offerListings.TryGetValue(items[i].OfferId!.Value, out var offerListing))
             {

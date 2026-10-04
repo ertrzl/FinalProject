@@ -90,7 +90,12 @@ public static class ServiceRegistration
         services.AddScoped<IOfferService, OfferService>();
         services.AddScoped<ISellerRatingService, SellerRatingService>();
         services.AddScoped<IEventService, EventService>();
+        services.AddScoped<IEventQueryService, EventQueryService>();
+        services.AddScoped<IEventCalendarService, EventCalendarService>();
+        services.AddScoped<IEventDtoBuilder, EventDtoBuilder>();
         services.AddScoped<IEventAccessService, EventAccessService>();
+        services.AddScoped<IEventNotifier, EventNotifier>();
+        services.AddScoped<IEventMaintenanceService, EventMaintenanceService>();
         services.AddScoped<IEventInviteService, EventInviteService>();
         services.AddScoped<IEventCommentService, EventCommentService>();
         services.AddScoped<ILiveUpdateService, LiveUpdateService>();

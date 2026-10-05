@@ -11,6 +11,8 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 public class UserService : IUserService
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly PasswordVerifier _passwords;
+    private readonly SessionIssuer _sessions;
     private readonly IUserRepository _users;
     private readonly IFriendService _friends;
     private readonly IFileStorageService _files;
@@ -19,6 +21,8 @@ public class UserService : IUserService
 
     public UserService(
         UserManager<ApplicationUser> userManager,
+        PasswordVerifier passwords,
+        SessionIssuer sessions,
         IUserRepository users,
         IFriendService friends,
         IFileStorageService files,
@@ -26,6 +30,8 @@ public class UserService : IUserService
         ILiveUpdateService live)
     {
         _userManager = userManager;
+        _passwords = passwords;
+        _sessions = sessions;
         _users = users;
         _friends = friends;
         _files = files;
@@ -105,7 +111,12 @@ public class UserService : IUserService
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
+        {
+            // The photos were saved before the row was; nothing points at them now.
+            if (dto.Avatar != null) _files.Delete(user.AvatarUrl);
+            if (dto.CoverPhoto != null) _files.Delete(user.CoverPhotoUrl);
             throw new BadRequestException(JoinErrors(result));
+        }
 
         _files.Delete(oldAvatar);
         _files.Delete(oldCover);
@@ -127,30 +138,34 @@ public class UserService : IUserService
         await _live.PresenceChangedAsync(currentUserId);
     }
 
-    public async Task ChangePasswordAsync(Guid currentUserId, PutPasswordDto dto)
+    public async Task<TokenResponseDto> ChangePasswordAsync(Guid currentUserId, PutPasswordDto dto)
     {
         var user = await FindUserAsync(currentUserId);
+
+        if (!await _passwords.VerifyAsync(user, dto.CurrentPassword))
+            throw new BadRequestException("Current password is incorrect.");
 
         var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
         if (!result.Succeeded)
             throw new BadRequestException(JoinErrors(result));
+
+        // Whoever knew the old password (and may hold a refresh token) is logged out everywhere;
+        // this device gets a fresh pair so the person changing the password stays signed in.
+        await _sessions.RevokeAllAsync(currentUserId);
+        return await _sessions.IssueAsync(user);
     }
 
-    public async Task DeleteAccountAsync(Guid currentUserId)
+    public async Task DeleteAccountAsync(Guid currentUserId, DeleteAccountDto dto)
     {
         var user = await FindUserAsync(currentUserId);
 
-        var orphanedFiles = await _users.DeleteAllUserDataAsync(currentUserId);
+        if (!await _passwords.VerifyAsync(user, dto.Password))
+            throw new BadRequestException("Password is incorrect.");
 
-        var result = await _userManager.DeleteAsync(user);
-        if (!result.Succeeded)
-            throw new BadRequestException(JoinErrors(result));
+        var orphanedFiles = await _users.DeleteUserWithDataAsync(currentUserId);
 
         foreach (var file in orphanedFiles)
             _files.Delete(file);
-
-        _files.Delete(user.AvatarUrl);
-        _files.Delete(user.CoverPhotoUrl);
     }
 
     public async Task<PagedResult<GetUserSearchResultDto>> SearchAsync(string term, Guid currentUserId, int page, int pageSize)

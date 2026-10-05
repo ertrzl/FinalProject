@@ -15,8 +15,14 @@ public static class ServiceRegistration
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        // Fail at startup, not on the first login, when the signing key was never configured on this machine.
+        var jwtSecret = JwtSecret.Read(configuration);
+
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+
+        services.AddMemoryCache();
+        services.AddScoped<ActiveUserChecker>();
 
         // Timer-driven housekeeping: event reminders and waiting lists.
         services.AddHostedService<EventMaintenanceBackgroundService>();
@@ -46,7 +52,7 @@ public static class ServiceRegistration
 
                 ValidIssuer = configuration["Jwt:Issuer"],
                 ValidAudience = configuration["Jwt:Audience"],
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:SecretKey"]!)),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
 
                 NameClaimType = ClaimTypes.Name,
                 RoleClaimType = ClaimTypes.Role
@@ -55,6 +61,16 @@ public static class ServiceRegistration
             // Browsers can't set an Authorization header on a WebSocket, so SignalR sends the JWT as ?access_token=.
             options.Events = new JwtBearerEvents
             {
+                // A token outlives the account it was issued for; refuse it once the user is gone.
+                OnTokenValidated = async context =>
+                {
+                    var sub = context.Principal?.FindFirst("sub")?.Value;
+                    var checker = context.HttpContext.RequestServices.GetRequiredService<ActiveUserChecker>();
+
+                    if (!Guid.TryParse(sub, out var userId) || !await checker.IsActiveAsync(userId))
+                        context.Fail("The account no longer exists.");
+                },
+
                 OnMessageReceived = context =>
                 {
                     var accessToken = context.Request.Query["access_token"];

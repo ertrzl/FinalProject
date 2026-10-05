@@ -91,10 +91,12 @@ async function submitPasswordForm(event) {
   }
 
   try {
-    await apiFetch("/api/users/me/password", {
+    // The server ends every other session and sends this device a fresh token pair.
+    const tokens = await apiFetch("/api/users/me/password", {
       method: "PUT",
       body: { currentPassword: document.getElementById("currentPassword").value, newPassword, confirmNewPassword }
     });
+    saveSession(tokens);
     error.classList.add("d-none");
     document.getElementById("passwordForm").reset();
     toast("Şifren güncellendi.");
@@ -106,13 +108,24 @@ async function submitPasswordForm(event) {
 }
 
 async function deleteAccount() {
+  const error = document.getElementById("deleteAccountError");
   try {
-    await apiFetch("/api/users/me", { method: "DELETE" });
+    await apiFetch("/api/users/me", {
+      method: "DELETE",
+      body: { password: document.getElementById("deleteAccountPassword").value }
+    });
     clearSession();
     window.location.href = "index.html";
   } catch (err) {
-    toast(err.message || "Hesap silinemedi.");
+    error.textContent = err.message || "Hesap silinemedi.";
+    error.classList.remove("d-none");
   }
 }
+
+// A closed dialog must not keep the typed password or an old error around.
+document.getElementById("deleteAccountModal").addEventListener("hidden.bs.modal", () => {
+  document.getElementById("deleteAccountPassword").value = "";
+  document.getElementById("deleteAccountError").classList.add("d-none");
+});
 
 loadSettings();

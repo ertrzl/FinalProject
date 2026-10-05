@@ -19,7 +19,8 @@ public interface IUserRepository
 
     Task TouchLastSeenAsync(Guid id);
 
-    // Removes everything the user owns or took part in (posts, comments, likes, friendships, messages, ...).
-    // Returns the uploaded-image URLs of the deleted rows so the caller can remove the files too.
-    Task<List<string>> DeleteAllUserDataAsync(Guid userId);
+    // Removes the account together with everything it owns or took part in (posts, comments, likes, friendships,
+    // messages, login sessions, ...) in one transaction: it either all goes or nothing does.
+    // Returns the uploaded-image URLs of the deleted rows (profile photos included) so the caller can remove the files too.
+    Task<List<string>> DeleteUserWithDataAsync(Guid userId);
 }

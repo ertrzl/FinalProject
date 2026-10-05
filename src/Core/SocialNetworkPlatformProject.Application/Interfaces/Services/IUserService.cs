@@ -11,9 +11,10 @@ public interface IUserService
 
     Task UpdatePrivacyAsync(Guid currentUserId, PutPrivacySettingsDto dto);
 
-    Task ChangePasswordAsync(Guid currentUserId, PutPasswordDto dto);
+    // Every other session is ended; the returned tokens keep the current device signed in.
+    Task<TokenResponseDto> ChangePasswordAsync(Guid currentUserId, PutPasswordDto dto);
 
-    Task DeleteAccountAsync(Guid currentUserId);
+    Task DeleteAccountAsync(Guid currentUserId, DeleteAccountDto dto);
 
     Task<PagedResult<GetUserSearchResultDto>> SearchAsync(string term, Guid currentUserId, int page, int pageSize);
 

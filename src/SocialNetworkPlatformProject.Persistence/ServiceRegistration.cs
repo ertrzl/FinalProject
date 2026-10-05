@@ -6,6 +6,7 @@ using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Persistence.Contexts;
 using SocialNetworkPlatformProject.Persistence.Identity;
+using SocialNetworkPlatformProject.Persistence.Implementations;
 using SocialNetworkPlatformProject.Persistence.Implementations.Repositories;
 using SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
@@ -18,12 +19,19 @@ public static class ServiceRegistration
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
+        services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
+
         services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
             {
                 // Relaxed for local dev/demo purposes — tighten before a real deployment.
                 options.Password.RequireNonAlphanumeric = false;
                 options.Password.RequireUppercase = false;
                 options.User.RequireUniqueEmail = true;
+
+                // Password guessing: after 5 wrong passwords the account is locked for 15 minutes.
+                options.Lockout.AllowedForNewUsers = true;
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
@@ -70,6 +78,10 @@ public static class ServiceRegistration
         services.AddScoped<IEventAttendeeRepository, EventAttendeeRepository>();
         services.AddScoped<IEventInviteRepository, EventInviteRepository>();
         services.AddScoped<IEventCommentRepository, EventCommentRepository>();
+
+        // Login sessions and password checks (Identity-backed)
+        services.AddScoped<PasswordVerifier>();
+        services.AddScoped<SessionIssuer>();
 
         // Users (Identity-backed, so not a generic IRepository<T>)
         services.AddScoped<IUserRepository, UserRepository>();

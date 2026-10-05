@@ -93,6 +93,13 @@ async function getValidAccessToken() {
     saveSession(fresh);
     return fresh.accessToken;
   } catch (err) {
+    // Another tab may have refreshed with the same token a moment ago (the server accepts each token once and
+    // that tab already stored the new pair): then this tab simply carries on with it.
+    const current = getSession();
+    if (current && current.refreshToken && current.refreshToken !== session.refreshToken) {
+      return current.accessToken;
+    }
+
     clearSession();
     window.location.href = "index.html";
     throw new Error("Oturum sona erdi.");

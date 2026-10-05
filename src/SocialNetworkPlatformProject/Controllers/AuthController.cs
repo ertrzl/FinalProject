@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SocialNetworkPlatformProject.Application.DTOs.Users;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
+using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
@@ -17,18 +19,21 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
     public async Task<ActionResult<TokenResponseDto>> Register([FromForm] RegisterDto dto)
     {
         return await _auth.RegisterAsync(dto);
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
     public async Task<ActionResult<TokenResponseDto>> Login(LoginDto dto)
     {
         return await _auth.LoginAsync(dto);
     }
 
     [HttpPost("refresh")]
+    [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
     public async Task<ActionResult<TokenResponseDto>> Refresh(RefreshTokenDto dto)
     {
         return await _auth.RefreshTokenAsync(dto);

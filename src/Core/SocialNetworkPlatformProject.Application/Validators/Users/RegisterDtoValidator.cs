@@ -5,6 +5,8 @@ namespace SocialNetworkPlatformProject.Application.Validators.Users;
 
 public class RegisterDtoValidator : AbstractValidator<RegisterDto>
 {
+    private const int MaxAgeYears = 120;
+
     public RegisterDtoValidator()
     {
         RuleFor(x => x.FullName)
@@ -19,6 +21,13 @@ public class RegisterDtoValidator : AbstractValidator<RegisterDto>
         RuleFor(x => x.Email)
             .NotEmpty().WithMessage("Email is required.")
             .EmailAddress().WithMessage("A valid email address is required.");
+
+        RuleFor(x => x.BirthDate)
+            .Must(date => date!.Value.Date <= DateTime.UtcNow.Date)
+                .WithMessage("Birth date cannot be in the future.")
+            .Must(date => date!.Value.Date >= DateTime.UtcNow.Date.AddYears(-MaxAgeYears))
+                .WithMessage("Birth date is not valid.")
+            .When(x => x.BirthDate.HasValue);
 
         RuleFor(x => x.Password)
             .NotEmpty().WithMessage("Password is required.")

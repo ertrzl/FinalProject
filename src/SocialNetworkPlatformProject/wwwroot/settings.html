@@ -181,7 +181,10 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        Bu işlem geri alınamaz. Hesabını ve tüm verilerini silmek istediğine emin misin?
+        <p>Bu işlem geri alınamaz. Hesabını ve tüm verilerini silmek istediğine emin misin?</p>
+        <label class="form-label small fw-semibold" for="deleteAccountPassword">Onaylamak için şifreni gir</label>
+        <input type="password" class="form-control rounded-pill" id="deleteAccountPassword" autocomplete="current-password">
+        <div class="text-danger small mt-2 d-none" id="deleteAccountError"></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.OpenApi.Models;
 using SocialNetworkPlatformProject.Application;
+using SocialNetworkPlatformProject.Extensions;
 using SocialNetworkPlatformProject.Infrastructure;
 using SocialNetworkPlatformProject.Infrastructure.Hubs;
 using SocialNetworkPlatformProject.Middlewares;
@@ -34,16 +35,23 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services
     .AddApplicationServices()
     .AddPersistenceServices(builder.Configuration)
-    .AddInfrastructureServices(builder.Configuration);
+    .AddInfrastructureServices(builder.Configuration)
+    .AddApiRateLimiting(builder.Configuration);
 
 var app = builder.Build();
 
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+else
+{
+    // Tells browsers to use HTTPS only for this site from now on.
+    app.UseHsts();
 }
 
 app.UseDefaultFiles();
@@ -66,7 +74,13 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// After authentication, so the general limit can count per signed-in user.
+app.UseRateLimiter();
+
 app.MapControllers();
+
+// For monitors and load balancers: 200 "Healthy" when the database answers, 503 otherwise.
+app.MapHealthChecks("/health").AllowAnonymous();
 
 app.MapHub<NotificationsHub>(HubRoutes.Notifications);
 app.MapHub<MessagesHub>(HubRoutes.Messages);

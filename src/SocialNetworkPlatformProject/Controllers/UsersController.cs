@@ -46,16 +46,15 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("me/password")]
-    public async Task<IActionResult> ChangePassword(PutPasswordDto dto)
+    public async Task<ActionResult<TokenResponseDto>> ChangePassword(PutPasswordDto dto)
     {
-        await _users.ChangePasswordAsync(User.GetUserId(), dto);
-        return NoContent();
+        return await _users.ChangePasswordAsync(User.GetUserId(), dto);
     }
 
     [HttpDelete("me")]
-    public async Task<IActionResult> DeleteAccount()
+    public async Task<IActionResult> DeleteAccount(DeleteAccountDto dto)
     {
-        await _users.DeleteAccountAsync(User.GetUserId());
+        await _users.DeleteAccountAsync(User.GetUserId(), dto);
         return NoContent();
     }
 }

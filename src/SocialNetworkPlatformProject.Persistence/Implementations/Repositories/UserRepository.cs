@@ -97,7 +97,7 @@ public class UserRepository : IUserRepository
             .ExecuteUpdateAsync(s => s.SetProperty(u => u.LastSeenAt, now));
     }
 
-    public async Task<List<string>> DeleteAllUserDataAsync(Guid userId)
+    public async Task<List<string>> DeleteUserWithDataAsync(Guid userId)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -111,6 +111,9 @@ public class UserRepository : IUserRepository
 
         // Image files that will be orphaned once the rows below are gone.
         var files = new List<string>();
+        var profile = await _context.Users.Where(u => u.Id == userId).Select(u => new { u.AvatarUrl, u.CoverPhotoUrl }).FirstOrDefaultAsync();
+        if (profile?.AvatarUrl != null) files.Add(profile.AvatarUrl);
+        if (profile?.CoverPhotoUrl != null) files.Add(profile.CoverPhotoUrl);
         files.AddRange(await myPosts.Where(p => p.MediaUrl != null).Select(p => p.MediaUrl!).ToListAsync());
         files.AddRange(await _context.Set<Story>().Where(s => s.UserId == userId).Select(s => s.MediaUrl).ToListAsync());
         files.AddRange(await _context.Set<ListingImage>().Where(i => i.Listing!.SellerId == userId).Select(i => i.Url).ToListAsync());
@@ -162,6 +165,9 @@ public class UserRepository : IUserRepository
 
         await _context.Set<GroupMember>().Where(m => m.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<Group>().Where(g => g.CreatedByUserId == userId).ExecuteDeleteAsync();
+
+        await _context.Set<RefreshToken>().Where(t => t.UserId == userId).ExecuteDeleteAsync();
+        await _context.Users.Where(u => u.Id == userId).ExecuteDeleteAsync();
 
         await transaction.CommitAsync();
 

@@ -112,7 +112,7 @@ async function renderOtherProfileActions(p) {
   } else {
     area.innerHTML = `
       <button class="btn btn-primary btn-sm rounded-pill mb-2 me-2" onclick="sendRequest('${p.id}', this)"><i class="bi bi-person-plus me-1"></i>Arkadaş Ekle</button>
-      <a href="messages.html?userId=${p.id}" class="btn btn-light btn-sm rounded-pill shadow-sm border mb-2"><i class="bi bi-chat-dots me-1"></i>Mesaj Gönder</a>`;
+      ${p.canMessage ? `<a href="messages.html?userId=${p.id}" class="btn btn-light btn-sm rounded-pill shadow-sm border mb-2"><i class="bi bi-chat-dots me-1"></i>Mesaj Gönder</a>` : ""}`;
   }
 }
 
@@ -178,7 +178,7 @@ function postCardHtml(post) {
   const privacyLabel = post.privacy === "FriendsOnly" ? "Sadece Arkadaşlar" : "Herkese Açık";
   const likedClass = post.isLikedByCurrentUser ? "liked" : "";
   const heartIcon = post.isLikedByCurrentUser ? "bi-heart-fill" : "bi-heart";
-  const ownerMenu = post.authorId === session.userId
+  const ownerMenu = post.canDelete
     ? `<div class="dropdown">
          <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
          <ul class="dropdown-menu dropdown-menu-end">

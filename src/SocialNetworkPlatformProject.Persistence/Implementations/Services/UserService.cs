@@ -15,6 +15,7 @@ public class UserService : IUserService
     private readonly SessionIssuer _sessions;
     private readonly IUserRepository _users;
     private readonly IFriendService _friends;
+    private readonly IMessageService _messages;
     private readonly IFileStorageService _files;
     private readonly IPresenceTracker _presence;
     private readonly ILiveUpdateService _live;
@@ -25,6 +26,7 @@ public class UserService : IUserService
         SessionIssuer sessions,
         IUserRepository users,
         IFriendService friends,
+        IMessageService messages,
         IFileStorageService files,
         IPresenceTracker presence,
         ILiveUpdateService live)
@@ -34,6 +36,7 @@ public class UserService : IUserService
         _sessions = sessions;
         _users = users;
         _friends = friends;
+        _messages = messages;
         _files = files;
         _presence = presence;
         _live = live;
@@ -70,7 +73,8 @@ public class UserService : IUserService
             IsOnline = user.ShowOnlineStatus && _presence.IsOnline(user.Id),
             IsPrivateAccount = user.IsPrivateAccount,
             IsOwnProfile = isOwnProfile,
-            FriendshipStatus = friendshipStatus
+            FriendshipStatus = friendshipStatus,
+            CanMessage = !isOwnProfile && await _messages.CanMessageAsync(currentUserId, userId)
         };
     }
 

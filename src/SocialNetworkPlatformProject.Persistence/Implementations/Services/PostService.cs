@@ -15,8 +15,8 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class PostService : IPostService
 {
-    // The mapping profile computes LikeCount/CommentCount/Hashtags from these collections.
-    private static readonly string[] CountIncludes = { "Likes", "Comments", "Hashtags.Hashtag" };
+    // The mapping profile builds the hashtag list from this; like/comment counts come from COUNT queries instead.
+    private static readonly string[] HashtagIncludes = { "Hashtags.Hashtag" };
 
     private static readonly Regex HashtagPattern = new(@"#([\p{L}0-9_]+)", RegexOptions.Compiled);
 
@@ -100,13 +100,13 @@ public class PostService : IPostService
         await SyncHashtagsAsync(post, post.Text);
         await _posts.SaveChangesAsync();
 
-        await _live.PostCreatedAsync(currentUserId, post.Id);
+        await _live.PostCreatedAsync(post);
         return (await BuildDtosAsync(new[] { post }, currentUserId))[0];
     }
 
     public async Task<GetPostDto> UpdateAsync(Guid currentUserId, Guid postId, PutPostDto dto)
     {
-        var post = await _posts.GetByIdAsync(postId, CountIncludes)
+        var post = await _posts.GetByIdAsync(postId, HashtagIncludes)
             ?? throw new NotFoundException("Post not found.");
 
         if (post.AuthorId != currentUserId)
@@ -121,7 +121,7 @@ public class PostService : IPostService
         await SyncHashtagsAsync(post, text);
         await _posts.SaveChangesAsync();
 
-        await _live.PostUpdatedAsync(currentUserId, post.Id);
+        await _live.PostUpdatedAsync(post);
         return (await BuildDtosAsync(new[] { post }, currentUserId))[0];
     }
 
@@ -130,7 +130,7 @@ public class PostService : IPostService
         var post = await _posts.GetByIdAsync(postId)
             ?? throw new NotFoundException("Post not found.");
 
-        if (post.AuthorId != currentUserId)
+        if (!await _access.CanModerateAsync(post, currentUserId))
             throw new ForbiddenException("You can only delete your own posts.");
 
         _posts.Delete(post);
@@ -138,12 +138,12 @@ public class PostService : IPostService
 
         _files.Delete(post.MediaUrl);
         await _notifications.DeleteByPostAsync(postId);
-        await _live.PostDeletedAsync(currentUserId, postId);
+        await _live.PostDeletedAsync(post);
     }
 
     public async Task<GetPostDto> GetByIdAsync(Guid currentUserId, Guid postId)
     {
-        var post = await _posts.GetByIdAsync(postId, CountIncludes)
+        var post = await _posts.GetByIdAsync(postId, HashtagIncludes)
             ?? throw new NotFoundException("Post not found.");
 
         await _access.EnsureCanViewAsync(post, currentUserId);
@@ -213,7 +213,7 @@ public class PostService : IPostService
             await _notifications.CreateAsync(post.AuthorId, currentUserId, NotificationType.PostLiked, postId: postId);
 
         var count = await _likes.GetAll(l => l.PostId == postId).CountAsync();
-        await _live.PostLikeCountChangedAsync(post.AuthorId, currentUserId, postId, count);
+        await _live.PostLikeCountChangedAsync(post, currentUserId, count);
         return new GetLikeResultDto { IsLiked = isLiked, LikeCount = count };
     }
 
@@ -250,7 +250,7 @@ public class PostService : IPostService
             .ToListAsync();
 
         var savedIds = savedEntries.Select(s => s.PostId).ToList();
-        var posts = await _posts.GetAll(p => savedIds.Contains(p.Id), asNoTracking: true, includes: CountIncludes).ToListAsync();
+        var posts = await _posts.GetAll(p => savedIds.Contains(p.Id), asNoTracking: true, includes: HashtagIncludes).ToListAsync();
         var visible = await _access.FilterVisibleAsync(posts, currentUserId);
 
         var savedOrder = savedIds.Select((id, index) => (id, index)).ToDictionary(x => x.id, x => x.index);
@@ -283,7 +283,7 @@ public class PostService : IPostService
                 asNoTracking: true,
                 page: page,
                 take: pageSize,
-                includes: CountIncludes)
+                includes: HashtagIncludes)
             .ToListAsync();
 
         return new PagedResult<GetPostDto>
@@ -295,16 +295,21 @@ public class PostService : IPostService
         };
     }
 
-    // Fills in what AutoMapper can't: author display info and the per-viewer liked/saved flags.
+    // Fills in what AutoMapper can't: author display info, the counts and the per-viewer liked/saved/may-delete flags.
     private async Task<List<GetPostDto>> BuildDtosAsync(IEnumerable<Post> posts, Guid currentUserId)
     {
         var list = posts.ToList();
         var postIds = list.Select(p => p.Id).ToList();
 
         var authors = await _users.GetSummariesAsync(list.Select(p => p.AuthorId));
+        var counts = await _posts.GetCountsAsync(postIds);
+        var likedIds = (await _likes.GetAll(l => l.UserId == currentUserId && postIds.Contains(l.PostId), asNoTracking: true)
+            .Select(l => l.PostId)
+            .ToListAsync()).ToHashSet();
         var savedIds = (await _saved.GetAll(s => s.UserId == currentUserId && postIds.Contains(s.PostId), asNoTracking: true)
             .Select(s => s.PostId)
             .ToListAsync()).ToHashSet();
+        var deletableIds = await _access.GetModeratablePostIdsAsync(list, currentUserId);
 
         var dtos = _mapper.Map<List<GetPostDto>>(list);
         for (var i = 0; i < dtos.Count; i++)
@@ -315,8 +320,11 @@ public class PostService : IPostService
                 dtos[i].AuthorAvatarUrl = author.AvatarUrl;
             }
 
-            dtos[i].IsLikedByCurrentUser = list[i].Likes.Any(l => l.UserId == currentUserId);
+            dtos[i].LikeCount = counts[list[i].Id].Likes;
+            dtos[i].CommentCount = counts[list[i].Id].Comments;
+            dtos[i].IsLikedByCurrentUser = likedIds.Contains(list[i].Id);
             dtos[i].IsSavedByCurrentUser = savedIds.Contains(list[i].Id);
+            dtos[i].CanDelete = deletableIds.Contains(list[i].Id);
         }
 
         return dtos;
@@ -343,24 +351,23 @@ public class PostService : IPostService
             filter = p => (p.Text != null && p.Text.Contains(term)) || p.Hashtags.Any(h => h.Hashtag!.Name == tag);
         }
 
-        // Privacy depends on friendship/account-privacy lookups, so it's applied in memory (same pattern as GetSavedPostsAsync).
-        var candidates = await _posts.GetAll(
-                filter: filter,
-                orderBy: p => p.CreatedAt,
-                isDescending: true,
-                asNoTracking: true,
-                includes: CountIncludes)
-            .ToListAsync();
+        // Visibility is part of the query, so the database counts and pages only what the viewer may see.
+        var visible = _access.VisibleTo(_posts.GetAll(filter, asNoTracking: true), currentUserId);
 
-        var visible = await _access.FilterVisibleAsync(candidates, currentUserId);
-        var pagePosts = visible.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        var total = await visible.CountAsync();
+        var pagePosts = await visible
+            .Include("Hashtags.Hashtag")
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
 
         return new PagedResult<GetPostDto>
         {
             Items = await BuildDtosAsync(pagePosts, currentUserId),
             Page = page,
             PageSize = pageSize,
-            TotalCount = visible.Count
+            TotalCount = total
         };
     }
 

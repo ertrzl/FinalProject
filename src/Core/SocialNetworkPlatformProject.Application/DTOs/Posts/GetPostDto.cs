@@ -21,4 +21,7 @@ public class GetPostDto
     public int CommentCount { get; set; }
     public bool IsLikedByCurrentUser { get; set; }
     public bool IsSavedByCurrentUser { get; set; }
+
+    // The author, or (on a group post) an admin/moderator of that group. The server decides; the page only shows the button.
+    public bool CanDelete { get; set; }
 }

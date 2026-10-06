@@ -16,6 +16,7 @@ public class MessageService : IMessageService
     private readonly IConversationParticipantRepository _participants;
     private readonly IMessageRepository _messages;
     private readonly IUserRepository _users;
+    private readonly IFriendService _friends;
     private readonly IRealTimeNotifier _notifier;
     private readonly IPresenceTracker _presence;
     private readonly IFileStorageService _files;
@@ -26,6 +27,7 @@ public class MessageService : IMessageService
         IConversationParticipantRepository participants,
         IMessageRepository messages,
         IUserRepository users,
+        IFriendService friends,
         IRealTimeNotifier notifier,
         IPresenceTracker presence,
         IFileStorageService files,
@@ -35,6 +37,7 @@ public class MessageService : IMessageService
         _participants = participants;
         _messages = messages;
         _users = users;
+        _friends = friends;
         _notifier = notifier;
         _presence = presence;
         _files = files;
@@ -61,21 +64,22 @@ public class MessageService : IMessageService
             .Select(g => new { ConversationId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.ConversationId, x => x.Count);
 
+        var lastMessages = await _messages.GetAll(m => myConversationIds.Contains(m.ConversationId), asNoTracking: true)
+            .GroupBy(m => m.ConversationId)
+            .Select(g => g.OrderByDescending(m => m.CreatedAt).First())
+            .ToDictionaryAsync(m => m.ConversationId);
+
+        var otherByConversation = otherParticipants
+            .GroupBy(p => p.ConversationId)
+            .ToDictionary(g => g.Key, g => g.First());
+
         var result = new List<GetConversationDto>();
         foreach (var conversationId in myConversationIds)
         {
-            var other = otherParticipants.FirstOrDefault(p => p.ConversationId == conversationId);
-            if (other == null || !users.TryGetValue(other.UserId, out var user))
+            if (!otherByConversation.TryGetValue(conversationId, out var other) || !users.TryGetValue(other.UserId, out var user))
                 continue;
 
-            var lastMessage = await _messages.GetAll(
-                    filter: m => m.ConversationId == conversationId,
-                    orderBy: m => m.CreatedAt,
-                    isDescending: true,
-                    asNoTracking: true,
-                    page: 1,
-                    take: 1)
-                .FirstOrDefaultAsync();
+            lastMessages.TryGetValue(conversationId, out var lastMessage);
 
             result.Add(new GetConversationDto
             {
@@ -175,6 +179,9 @@ public class MessageService : IMessageService
             }
             else
             {
+                if (!await CanStartConversationAsync(currentUserId, recipientId))
+                    throw new ForbiddenException("This person only accepts new messages from friends.");
+
                 var conversation = new Conversation();
                 conversation.Participants.Add(new ConversationParticipant { UserId = currentUserId });
                 conversation.Participants.Add(new ConversationParticipant { UserId = recipientId });
@@ -247,6 +254,25 @@ public class MessageService : IMessageService
         return await _messages.GetAll(m =>
                 myConversationIds.Contains(m.ConversationId) && m.SenderId != currentUserId && !m.IsRead)
             .CountAsync();
+    }
+
+    public async Task<bool> CanMessageAsync(Guid currentUserId, Guid otherUserId)
+    {
+        if (currentUserId == otherUserId)
+            return false;
+
+        return await FindDirectConversationAsync(currentUserId, otherUserId) != null
+            || await CanStartConversationAsync(currentUserId, otherUserId);
+    }
+
+    // New conversations: friends, or someone whose account is open. Existing ones are never affected (see CanMessageAsync).
+    private async Task<bool> CanStartConversationAsync(Guid currentUserId, Guid recipientId)
+    {
+        var recipient = await _users.GetSummaryAsync(recipientId);
+        if (recipient is { IsPrivateAccount: false })
+            return true;
+
+        return await _friends.AreFriendsAsync(currentUserId, recipientId);
     }
 
     private async Task<List<Guid>> GetMyConversationIdsAsync(Guid userId)

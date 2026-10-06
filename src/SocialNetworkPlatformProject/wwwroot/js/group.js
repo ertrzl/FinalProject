@@ -365,7 +365,7 @@ async function deleteGroupPage() {
 function postCardHtml(post) {
   const likedClass = post.isLikedByCurrentUser ? "liked" : "";
   const heartIcon = post.isLikedByCurrentUser ? "bi-heart-fill" : "bi-heart";
-  const ownerMenu = post.authorId === session.userId
+  const ownerMenu = post.canDelete
     ? `<div class="dropdown">
          <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
          <ul class="dropdown-menu dropdown-menu-end">

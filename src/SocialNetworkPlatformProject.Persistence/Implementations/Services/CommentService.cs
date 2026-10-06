@@ -99,7 +99,7 @@ public class CommentService : ICommentService
         }
 
         var result = (await BuildDtosAsync(new[] { comment }, currentUserId))[0];
-        await _live.CommentAddedAsync(post.AuthorId, result, await CountForPostAsync(post.Id));
+        await _live.CommentAddedAsync(post, result, await CountForPostAsync(post.Id));
         return result;
     }
 
@@ -108,10 +108,11 @@ public class CommentService : ICommentService
         var comment = await _comments.GetByIdAsync(commentId)
             ?? throw new NotFoundException("Comment not found.");
 
-        var post = await _posts.GetByIdAsync(comment.PostId);
-        var isPostOwner = post != null && post.AuthorId == currentUserId;
+        var post = await _posts.GetByIdAsync(comment.PostId)
+            ?? throw new NotFoundException("Post not found.");
 
-        if (comment.AuthorId != currentUserId && !isPostOwner)
+        // The comment's author, the post's author, or (on a group post) the group's admins and moderators.
+        if (comment.AuthorId != currentUserId && !await _access.CanModerateAsync(post, currentUserId))
             throw new ForbiddenException("You can only delete your own comments.");
 
         // The reply self-reference is Restrict (SQL Server forbids a second cascade path), so replies go first.
@@ -123,7 +124,7 @@ public class CommentService : ICommentService
         await _comments.SaveChangesAsync();
 
         var removedIds = replies.Select(r => r.Id).Append(comment.Id).ToList();
-        await _live.CommentDeletedAsync(post?.AuthorId ?? comment.AuthorId, currentUserId, comment.PostId, removedIds, await CountForPostAsync(comment.PostId));
+        await _live.CommentDeletedAsync(post, currentUserId, removedIds, await CountForPostAsync(comment.PostId));
     }
 
     public async Task<GetLikeResultDto> ToggleLikeAsync(Guid currentUserId, Guid commentId)
@@ -153,7 +154,7 @@ public class CommentService : ICommentService
         }
 
         var count = await _likes.GetAll(l => l.CommentId == commentId).CountAsync();
-        await _live.CommentLikeCountChangedAsync(post.AuthorId, currentUserId, comment.PostId, commentId, count);
+        await _live.CommentLikeCountChangedAsync(post, currentUserId, commentId, count);
         return new GetLikeResultDto { IsLiked = isLiked, LikeCount = count };
     }
 

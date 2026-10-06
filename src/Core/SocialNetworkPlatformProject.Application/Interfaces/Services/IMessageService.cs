@@ -23,4 +23,8 @@ public interface IMessageService
     Task NotifyTypingAsync(Guid currentUserId, Guid conversationId);
 
     Task<int> GetUnreadCountAsync(Guid currentUserId);
+
+    // May the user write to this person? Always inside an existing conversation; to start a new one the two must be
+    // friends or the other person's account must not be private.
+    Task<bool> CanMessageAsync(Guid currentUserId, Guid otherUserId);
 }

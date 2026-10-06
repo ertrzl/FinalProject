@@ -28,6 +28,10 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
             .HasForeignKey(h => h.PostId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // Feed and profile pages (an author's posts, newest first) and a group's wall.
+        builder.HasIndex(p => new { p.AuthorId, p.CreatedAt });
+        builder.HasIndex(p => new { p.GroupId, p.CreatedAt });
+
         // Deleting a group takes its wall posts (and, transitively, their comments/likes) with it.
         builder.HasOne(p => p.Group)
             .WithMany()

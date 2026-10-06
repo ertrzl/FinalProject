@@ -22,4 +22,7 @@ public class GetUserProfileDto
 
     public bool IsOwnProfile { get; set; }
     public string FriendshipStatus { get; set; } = "None"; // "None" / "Friends" / "RequestSent" / "RequestReceived"
+
+    // Whether the "Mesaj Gönder" button should be shown; the server applies the messaging rule (see IMessageService.CanMessageAsync).
+    public bool CanMessage { get; set; }
 }

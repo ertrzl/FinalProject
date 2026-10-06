@@ -14,5 +14,8 @@ public class FriendRequestConfiguration : IEntityTypeConfiguration<FriendRequest
         builder.HasIndex(r => new { r.SenderId, r.ReceiverId })
             .IsUnique()
             .HasFilter($"[Status] = {(int)FriendRequestStatus.Pending}");
+
+        // "Requests sent to me".
+        builder.HasIndex(r => new { r.ReceiverId, r.Status });
     }
 }

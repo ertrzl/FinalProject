@@ -57,7 +57,7 @@ public class CommentService : ICommentService
                 includes: LikeIncludes)
             .ToListAsync();
 
-        return await BuildDtosAsync(comments, currentUserId);
+        return await BuildDtosAsync(comments, post, currentUserId);
     }
 
     public async Task<GetCommentDto> AddAsync(Guid currentUserId, PostCommentDto dto)
@@ -98,7 +98,7 @@ public class CommentService : ICommentService
                 postId: post.Id, commentId: comment.Id);
         }
 
-        var result = (await BuildDtosAsync(new[] { comment }, currentUserId))[0];
+        var result = (await BuildDtosAsync(new[] { comment }, post, currentUserId))[0];
         await _live.CommentAddedAsync(post, result, await CountForPostAsync(post.Id));
         return result;
     }
@@ -163,10 +163,12 @@ public class CommentService : ICommentService
         return await _comments.GetAll(c => c.PostId == postId).CountAsync();
     }
 
-    private async Task<List<GetCommentDto>> BuildDtosAsync(IEnumerable<Comment> comments, Guid currentUserId)
+    // All the comments belong to `post`, so who may moderate it is looked up once for the whole list.
+    private async Task<List<GetCommentDto>> BuildDtosAsync(IEnumerable<Comment> comments, Post post, Guid currentUserId)
     {
         var list = comments.ToList();
         var authors = await _users.GetSummariesAsync(list.Select(c => c.AuthorId));
+        var canModerate = await _access.CanModerateAsync(post, currentUserId);
 
         var dtos = _mapper.Map<List<GetCommentDto>>(list);
         for (var i = 0; i < dtos.Count; i++)
@@ -178,6 +180,7 @@ public class CommentService : ICommentService
             }
 
             dtos[i].IsLikedByCurrentUser = list[i].Likes.Any(l => l.UserId == currentUserId);
+            dtos[i].CanDelete = canModerate || list[i].AuthorId == currentUserId;
         }
 
         return dtos;

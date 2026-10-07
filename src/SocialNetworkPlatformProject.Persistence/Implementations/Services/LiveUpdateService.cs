@@ -50,8 +50,15 @@ public class LiveUpdateService : ILiveUpdateService
 
     public Task CommentAddedAsync(Post post, GetCommentDto comment, int commentCount)
     {
-        return PublishToAudienceAsync(post, "CommentAdded",
-            new { postId = post.Id, commentCount, comment }, comment.AuthorId);
+        // The same comment goes to everybody, so it carries nothing that depends on who is looking (liked by me?
+        // may I delete it?): each page asks for those itself.
+        var shared = new
+        {
+            comment.Id, comment.PostId, comment.AuthorId, comment.AuthorName, comment.AuthorAvatarUrl,
+            comment.Text, comment.CreatedAt, comment.ParentCommentId, comment.LikeCount
+        };
+
+        return PublishToAudienceAsync(post, "CommentAdded", new { postId = post.Id, commentCount, comment = shared }, comment.AuthorId);
     }
 
     public Task CommentDeletedAsync(Post post, Guid actorId, IReadOnlyCollection<Guid> commentIds, int commentCount)

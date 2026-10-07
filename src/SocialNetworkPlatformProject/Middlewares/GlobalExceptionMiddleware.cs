@@ -1,6 +1,6 @@
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SocialNetworkPlatformProject.Application.Exceptions.Base;
+using SocialNetworkPlatformProject.Persistence.Extensions;
 
 namespace SocialNetworkPlatformProject.Middlewares;
 
@@ -33,7 +33,7 @@ public class GlobalExceptionMiddleware
             await WriteErrorAsync(context, StatusCodes.Status409Conflict,
                 "This was just changed by someone else. Please refresh and try again.");
         }
-        catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+        catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
             // Two requests slipped past the "does it exist yet?" check at the same moment; the unique index
             // caught the second one. To the client that is the same as being told "already exists".
@@ -44,12 +44,6 @@ public class GlobalExceptionMiddleware
             _logger.LogError(ex, "Unhandled exception for {Method} {Path}", context.Request.Method, context.Request.Path);
             await WriteErrorAsync(context, StatusCodes.Status500InternalServerError, "An unexpected error occurred.");
         }
-    }
-
-    // SQL Server error 2601 (unique index) / 2627 (unique constraint).
-    private static bool IsUniqueViolation(DbUpdateException ex)
-    {
-        return ex.InnerException is SqlException { Number: 2601 or 2627 };
     }
 
     private static async Task WriteErrorAsync(HttpContext context, int statusCode, string message)

@@ -12,7 +12,7 @@ public class SecurityHeadersMiddleware
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
         "font-src 'self' data: https://cdn.jsdelivr.net; " +
-        "img-src 'self' data: blob: https://i.pravatar.cc; " +
+        "img-src 'self' data: blob:; " +
         "media-src 'self' blob:; " +
         "connect-src 'self' ws: wss: https://nominatim.openstreetmap.org https://cdn.jsdelivr.net; " +
         "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";

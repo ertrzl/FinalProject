@@ -24,8 +24,8 @@ public static class ServiceRegistration
         services.AddMemoryCache();
         services.AddScoped<ActiveUserChecker>();
 
-        // Timer-driven housekeeping: event reminders and waiting lists.
-        services.AddHostedService<EventMaintenanceBackgroundService>();
+        // Timer-driven housekeeping: event reminders, waiting lists and expired stories.
+        services.AddHostedService<MaintenanceBackgroundService>();
 
         services.AddSignalR();
         services.AddSingleton<IUserIdProvider, SubClaimUserIdProvider>();

@@ -172,7 +172,7 @@ public class MessageService : IMessageService
             if (!await _users.ExistsAsync(recipientId))
                 throw new NotFoundException("User not found.");
 
-            var existingId = await FindDirectConversationAsync(currentUserId, recipientId);
+            var existingId = await _conversations.FindDirectAsync(currentUserId, recipientId);
             if (existingId.HasValue)
             {
                 conversationId = existingId.Value;
@@ -182,11 +182,7 @@ public class MessageService : IMessageService
                 if (!await CanStartConversationAsync(currentUserId, recipientId))
                     throw new ForbiddenException("This person only accepts new messages from friends.");
 
-                var conversation = new Conversation();
-                conversation.Participants.Add(new ConversationParticipant { UserId = currentUserId });
-                conversation.Participants.Add(new ConversationParticipant { UserId = recipientId });
-                await _conversations.AddAsync(conversation);
-                conversationId = conversation.Id;
+                conversationId = await _conversations.GetOrCreateDirectAsync(currentUserId, recipientId);
             }
         }
         else
@@ -261,7 +257,7 @@ public class MessageService : IMessageService
         if (currentUserId == otherUserId)
             return false;
 
-        return await FindDirectConversationAsync(currentUserId, otherUserId) != null
+        return await _conversations.FindDirectAsync(currentUserId, otherUserId) != null
             || await CanStartConversationAsync(currentUserId, otherUserId);
     }
 
@@ -286,15 +282,6 @@ public class MessageService : IMessageService
     {
         if (!await _participants.AnyAsync(p => p.ConversationId == conversationId && p.UserId == userId))
             throw new NotFoundException("Conversation not found.");
-    }
-
-    private async Task<Guid?> FindDirectConversationAsync(Guid userA, Guid userB)
-    {
-        var myConversationIds = await GetMyConversationIdsAsync(userA);
-
-        return await _participants.GetAll(p => p.UserId == userB && myConversationIds.Contains(p.ConversationId), asNoTracking: true)
-            .Select(p => (Guid?)p.ConversationId)
-            .FirstOrDefaultAsync();
     }
 
     private List<GetMessageDto> MapMessages(List<Message> messages, Guid currentUserId)

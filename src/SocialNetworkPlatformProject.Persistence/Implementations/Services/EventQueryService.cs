@@ -12,7 +12,7 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class EventQueryService : IEventQueryService
 {
-    // The counts, "am I going?" and "is it full?" are all computed from the Attendees collection.
+    // The single-event page loads the attendees to read its numbers off them; lists count in the database instead.
     private static readonly string[] AttendeeIncludes = { "Attendees" };
 
     private const int MaxPageSize = 50;
@@ -99,7 +99,7 @@ public class EventQueryService : IEventQueryService
         var now = DateTime.UtcNow;
 
         // Everything that hasn't finished yet (so ongoing events stay listed), limited to what this viewer may see.
-        var events = _events.GetAll(filter: e => e.EndsAt > now, asNoTracking: true, includes: AttendeeIncludes)
+        var events = _events.GetAll(filter: e => e.EndsAt > now, asNoTracking: true)
             .Where(await _access.GetVisibilityFilterAsync(currentUserId));
 
         if (!string.IsNullOrWhiteSpace(query.Search))
@@ -163,8 +163,7 @@ public class EventQueryService : IEventQueryService
         var upcoming = await _events.GetAll(
                 filter: e => e.GroupId == groupId && e.EndsAt > now,
                 orderBy: e => e.StartsAt,
-                asNoTracking: true,
-                includes: AttendeeIncludes)
+                asNoTracking: true)
             .ToListAsync();
 
         return await _builder.BuildManyAsync(upcoming, currentUserId);
@@ -182,7 +181,7 @@ public class EventQueryService : IEventQueryService
             _ => throw new BadRequestException("Scope must be 'created', 'past' or 'attending'.")
         };
 
-        var query = _events.GetAll(filter: filter, asNoTracking: true, includes: AttendeeIncludes)
+        var query = _events.GetAll(filter: filter, asNoTracking: true)
             .Where(await _access.GetVisibilityFilterAsync(currentUserId));
 
         // What's coming is listed soonest first; what already happened (or I organized) newest first.

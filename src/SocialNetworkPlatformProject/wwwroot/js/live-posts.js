@@ -1,4 +1,4 @@
-// Live likes / comments / deletions on post cards, shared by every page that renders them (home, profile).
+// Live likes / comments / deletions on post cards, shared by every page that renders them (home, profile, group).
 // The server sends absolute counts, so applying the same event twice (or after our own REST update) is harmless.
 
 function livePostCard(postId) {
@@ -26,10 +26,11 @@ document.addEventListener("realtime:comment-added", e => {
   if (!card) return;
   card.querySelector(".comment-count-label").textContent = commentCount;
 
+  // The pushed comment is the same for everybody (no "liked by me", no "may I delete it?"), so a list that is
+  // open is simply loaded again: it comes back with the right buttons for this viewer.
   const list = liveCommentsList(postId);
   if (!list || list.querySelector(`[data-comment-id="${comment.id}"]`)) return;
-  if (list.dataset.empty) { list.innerHTML = ""; delete list.dataset.empty; }
-  list.insertAdjacentHTML("beforeend", commentHtml(comment));
+  loadComments(postId, true);
 });
 
 document.addEventListener("realtime:comment-deleted", e => {

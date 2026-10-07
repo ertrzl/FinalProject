@@ -8,6 +8,10 @@ public class ConversationConfiguration : IEntityTypeConfiguration<Conversation>
 {
     public void Configure(EntityTypeBuilder<Conversation> builder)
     {
+        // Two guids and a colon.
+        builder.Property(c => c.DirectKey).HasMaxLength(80);
+        builder.HasIndex(c => c.DirectKey).IsUnique().HasFilter("[DirectKey] IS NOT NULL");
+
         builder.HasMany(c => c.Participants)
             .WithOne(p => p.Conversation)
             .HasForeignKey(p => p.ConversationId)

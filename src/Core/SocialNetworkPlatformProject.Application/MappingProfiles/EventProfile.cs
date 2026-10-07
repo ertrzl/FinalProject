@@ -10,10 +10,10 @@ public class EventProfile : Profile
     public EventProfile()
     {
         CreateMap<Event, GetEventDto>()
-            .ForMember(dest => dest.GoingCount,
-                opt => opt.MapFrom(src => src.Attendees.Count(a => a.Status == EventAttendeeStatus.Going)))
-            .ForMember(dest => dest.InterestedCount,
-                opt => opt.MapFrom(src => src.Attendees.Count(a => a.Status == EventAttendeeStatus.Interested)))
+            // The head-counts come from EventDtoBuilder (an in-memory count or a COUNT query), not from here:
+            // a list of events must not have to load every attendee just to be counted.
+            .ForMember(dest => dest.GoingCount, opt => opt.Ignore())
+            .ForMember(dest => dest.InterestedCount, opt => opt.Ignore())
             .ForMember(dest => dest.CurrentUserStatus, opt => opt.Ignore())
             .ForMember(dest => dest.IsOwner, opt => opt.Ignore())
             .ForMember(dest => dest.GroupName, opt => opt.Ignore())

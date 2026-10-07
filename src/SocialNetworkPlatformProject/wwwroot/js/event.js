@@ -248,7 +248,6 @@ async function loadEvent() {
 
 let attendeeIds = new Set(); // everyone already in the event (filled by loadAttendees)
 let invitedIds = new Set();  // people with a pending invite (filled when the modal opens)
-let inviteSearchDebounce = null;
 
 async function openInviteModal() {
   document.getElementById("inviteSearchInput").value = "";
@@ -265,45 +264,17 @@ async function openInviteModal() {
   bootstrap.Modal.getOrCreateInstance(document.getElementById("inviteModal")).show();
 }
 
-function inviteCandidateHtml(u) {
-  const alreadyIn = attendeeIds.has(u.id) || u.id === currentEvent.createdByUserId;
-  const action = alreadyIn
-    ? `<span class="badge text-bg-light border text-muted fw-normal">Etkinlikte</span>`
-    : invitedIds.has(u.id)
-      ? `<span class="badge text-bg-light border text-muted fw-normal">Davet edildi</span>`
-      : `<button class="btn btn-sm btn-outline-primary" onclick="inviteUser('${u.id}', this)">Davet Et</button>`;
-  return `
-    <div class="d-flex align-items-center gap-2 py-2 border-bottom">
-      <a href="profile.html?id=${u.id}"><img src="${u.avatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt=""></a>
-      <div class="flex-grow-1">
-        <div class="fw-bold">${escapeHtml(u.fullName)}</div>
-        <div class="text-muted small">@${escapeHtml(u.userName)}</div>
-      </div>
-      ${action}
-    </div>`;
-}
-
-function searchInviteCandidates(term) {
-  clearTimeout(inviteSearchDebounce);
-  const list = document.getElementById("inviteResults");
-  const trimmed = term.trim();
-  if (!trimmed) {
-    list.innerHTML = "";
-    return;
+// Whoever is already in the event, or already invited, gets a badge instead of the "Davet Et" button (see user-search.js).
+const searchInviteCandidates = createUserSearch({
+  resultsId: "inviteResults",
+  actionFor: u => {
+    if (attendeeIds.has(u.id) || u.id === currentEvent.createdByUserId)
+      return `<span class="badge text-bg-light border text-muted fw-normal">Etkinlikte</span>`;
+    if (invitedIds.has(u.id))
+      return `<span class="badge text-bg-light border text-muted fw-normal">Davet edildi</span>`;
+    return `<button class="btn btn-sm btn-outline-primary" onclick="inviteUser('${u.id}', this)">Davet Et</button>`;
   }
-
-  inviteSearchDebounce = setTimeout(async () => {
-    try {
-      const result = await apiFetch(`/api/users/search?term=${encodeURIComponent(trimmed)}&page=1&pageSize=10`);
-      const candidates = result.items.filter(u => u.id !== session.userId);
-      list.innerHTML = candidates.length
-        ? candidates.map(inviteCandidateHtml).join("")
-        : `<div class="text-muted small text-center py-2">Kullanıcı bulunamadı.</div>`;
-    } catch (err) {
-      list.innerHTML = `<div class="text-danger small">${escapeHtml(err.message)}</div>`;
-    }
-  }, 350);
-}
+});
 
 async function inviteUser(userId, btn) {
   btn.disabled = true;

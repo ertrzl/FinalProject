@@ -96,6 +96,7 @@ public static class ServiceRegistration
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IStoryService, StoryService>();
+        services.AddScoped<IStoryMaintenanceService, StoryMaintenanceService>();
         services.AddScoped<IMessageService, MessageService>();
         services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<IMarketplaceService, MarketplaceService>();

@@ -12,6 +12,7 @@ public class CommentProfile : Profile
             .ForMember(dest => dest.LikeCount, opt => opt.MapFrom(src => src.Likes.Count))
             .ForMember(dest => dest.AuthorName, opt => opt.Ignore())
             .ForMember(dest => dest.AuthorAvatarUrl, opt => opt.Ignore())
-            .ForMember(dest => dest.IsLikedByCurrentUser, opt => opt.Ignore());
+            .ForMember(dest => dest.IsLikedByCurrentUser, opt => opt.Ignore())
+            .ForMember(dest => dest.CanDelete, opt => opt.Ignore());
     }
 }

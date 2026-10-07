@@ -60,7 +60,10 @@ public class Event : BaseEntity
 
     // Computed from Attendees, which must be loaded. Not mapped to the database.
     public int GoingCount => Attendees.Count(a => a.Status == EventAttendeeStatus.Going);
-    public bool IsFull => Capacity.HasValue && GoingCount >= Capacity.Value;
+    public bool IsFull => IsFullWith(GoingCount);
+
+    // The same rule for a head-count that came from somewhere else (a COUNT query, for a list of events).
+    public bool IsFullWith(int goingCount) => Capacity.HasValue && goingCount >= Capacity.Value;
 
     // Fills every free spot from the waiting list, first come first served, and returns who moved up (none when
     // nothing is free or nobody is waiting). With no capacity at all the whole queue moves up. Only changes the

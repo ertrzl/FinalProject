@@ -16,4 +16,7 @@ public class GetCommentDto
     public Guid? ParentCommentId { get; set; }
     public int LikeCount { get; set; }
     public bool IsLikedByCurrentUser { get; set; }
+
+    // The comment's author, the post's author, or (on a group post) an admin/moderator of that group.
+    public bool CanDelete { get; set; }
 }

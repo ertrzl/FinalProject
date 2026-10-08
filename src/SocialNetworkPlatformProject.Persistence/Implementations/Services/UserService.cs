@@ -145,6 +145,26 @@ public class UserService : IUserService
         await _live.PresenceChangedAsync(currentUserId);
     }
 
+    public async Task<GetNotificationSettingsDto> GetNotificationSettingsAsync(Guid currentUserId)
+    {
+        return ToNotificationSettingsDto(await FindUserAsync(currentUserId));
+    }
+
+    public async Task<GetNotificationSettingsDto> UpdateNotificationSettingsAsync(Guid currentUserId, PutNotificationSettingsDto dto)
+    {
+        var user = await FindUserAsync(currentUserId);
+
+        user.NotifyOnLikes = dto.Likes;
+        user.NotifyOnComments = dto.Comments;
+        user.NotifyOnFriendRequests = dto.FriendRequests;
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+            throw new BadRequestException(JoinErrors(result));
+
+        return ToNotificationSettingsDto(user);
+    }
+
     public async Task<TokenResponseDto> ChangePasswordAsync(Guid currentUserId, PutPasswordDto dto)
     {
         var user = await FindUserAsync(currentUserId);
@@ -216,6 +236,16 @@ public class UserService : IUserService
     {
         return await _userManager.FindByIdAsync(userId.ToString())
             ?? throw new NotFoundException("User not found.");
+    }
+
+    private static GetNotificationSettingsDto ToNotificationSettingsDto(ApplicationUser user)
+    {
+        return new GetNotificationSettingsDto
+        {
+            Likes = user.NotifyOnLikes,
+            Comments = user.NotifyOnComments,
+            FriendRequests = user.NotifyOnFriendRequests
+        };
     }
 
     private static string JoinErrors(IdentityResult result)

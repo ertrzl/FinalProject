@@ -14,6 +14,7 @@ public class PostProfile : Profile
         CreateMap<Post, GetPostDto>()
             .ForMember(dest => dest.Privacy, opt => opt.MapFrom(src => src.Privacy.ToString()))
             .ForMember(dest => dest.MediaType, opt => opt.MapFrom(src => src.MediaType.ToString()))
+            .ForMember(dest => dest.IsGroupPost, opt => opt.MapFrom(src => src.GroupId != null))
             .ForMember(dest => dest.LikeCount, opt => opt.Ignore())
             .ForMember(dest => dest.CommentCount, opt => opt.Ignore())
             .ForMember(dest => dest.Hashtags, opt => opt.MapFrom(src => src.Hashtags.Select(h => h.Hashtag!.Name)))
@@ -21,6 +22,7 @@ public class PostProfile : Profile
             .ForMember(dest => dest.AuthorAvatarUrl, opt => opt.Ignore())
             .ForMember(dest => dest.IsLikedByCurrentUser, opt => opt.Ignore())
             .ForMember(dest => dest.IsSavedByCurrentUser, opt => opt.Ignore())
-            .ForMember(dest => dest.CanDelete, opt => opt.Ignore());
+            .ForMember(dest => dest.CanDelete, opt => opt.Ignore())
+            .ForMember(dest => dest.CanEdit, opt => opt.Ignore());
     }
 }

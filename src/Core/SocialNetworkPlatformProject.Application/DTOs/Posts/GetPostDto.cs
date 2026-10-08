@@ -14,6 +14,9 @@ public class GetPostDto
     public string? MediaUrl { get; set; }
     public string MediaType { get; set; } = "Image"; // "Image" / "Video"
     public string Privacy { get; set; } = string.Empty; // "Public" / "FriendsOnly"
+
+    // A post on a group's wall: who sees it follows the group, so the page shows no privacy label or choice for it.
+    public bool IsGroupPost { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<string> Hashtags { get; set; } = new();
 
@@ -24,4 +27,7 @@ public class GetPostDto
 
     // The author, or (on a group post) an admin/moderator of that group. The server decides; the page only shows the button.
     public bool CanDelete { get; set; }
+
+    // Only the author may change the text and privacy of a post.
+    public bool CanEdit { get; set; }
 }

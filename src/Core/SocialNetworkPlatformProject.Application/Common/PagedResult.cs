@@ -8,4 +8,7 @@ public class PagedResult<T>
     public int PageSize { get; set; }
     public int TotalCount { get; set; }
     public int TotalPages => PageSize == 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
+
+    // Is there anything after this page? The pages use it to show or hide their "Daha fazla yükle" button.
+    public bool HasMore => Page < TotalPages;
 }

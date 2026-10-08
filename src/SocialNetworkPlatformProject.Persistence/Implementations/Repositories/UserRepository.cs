@@ -67,6 +67,14 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<NotificationPreferences?> GetNotificationPreferencesAsync(Guid id)
+    {
+        return await _context.Users.AsNoTracking()
+            .Where(u => u.Id == id)
+            .Select(u => new NotificationPreferences(u.NotifyOnLikes, u.NotifyOnComments, u.NotifyOnFriendRequests))
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<(List<UserSummary> Items, int TotalCount)> SearchAsync(string term, Guid currentUserId, int page, int pageSize)
     {
         // The current user is deliberately included: typing your own name should still find your own profile.

@@ -155,10 +155,10 @@
           <label class="form-check-label small" for="notifFriends">Arkadaşlık istekleri için bildirim al</label>
         </div>
         <div class="form-check form-switch mb-3">
-          <input class="form-check-input" type="checkbox" role="switch" id="notifEmail">
-          <label class="form-check-label small" for="notifEmail">E-posta ile bildirim al</label>
+          <input class="form-check-input" type="checkbox" role="switch" id="notifEmail" disabled>
+          <label class="form-check-label small text-muted" for="notifEmail">E-posta ile bildirim al (yakında)</label>
         </div>
-        <button type="button" class="btn btn-primary rounded-pill align-self-start" onclick="toast('Bildirim tercihleri kaydedildi.')">Kaydet</button>
+        <button type="button" class="btn btn-primary rounded-pill align-self-start" onclick="saveNotificationSettings()">Kaydet</button>
       </div>
 
       <!-- Danger zone -->

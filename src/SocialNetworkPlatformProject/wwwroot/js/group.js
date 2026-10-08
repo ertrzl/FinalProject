@@ -328,21 +328,18 @@ async function deleteGroupPage() {
   }
 }
 
-// ---- Posts (the card, comments and like / delete actions are in post-card.js) ----
+// ---- Posts (the card, comments and like / edit / delete actions are in post-card.js, the button is pager.js) ----
 
-// A group wall has no per-post privacy (the group's own privacy applies) and no "Paylaş" button.
-const GROUP_POST_CARD = { showPrivacy: false, showShare: false };
+const groupWallPager = createPager({
+  list: "groupPostsList",
+  url: page => `/api/posts/by-group/${groupId}?page=${page}&pageSize=20`,
+  render: post => postCardHtml(post),
+  shown: post => !!livePostCard(post.id),
+  emptyHtml: `<div class="text-center text-muted small py-4">Bu grupta henüz gönderi yok.</div>`
+});
 
-async function loadGroupPosts() {
-  const list = document.getElementById("groupPostsList");
-  try {
-    const result = await apiFetch(`/api/posts/by-group/${groupId}?page=1&pageSize=20`);
-    list.innerHTML = result.items.length
-      ? result.items.map(post => postCardHtml(post, GROUP_POST_CARD)).join("")
-      : `<div class="text-center text-muted small py-4">Bu grupta henüz gönderi yok.</div>`;
-  } catch (err) {
-    list.innerHTML = `<div class="alert alert-danger small">${escapeHtml(err.message)}</div>`;
-  }
+function loadGroupPosts() {
+  return groupWallPager.reload();
 }
 
 async function publishGroupPost(btn) {

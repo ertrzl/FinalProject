@@ -8,6 +8,7 @@ const NOTIF_ICON = {
   PostLiked: { badge: "bg-danger", icon: "bi-heart-fill" },
   CommentAdded: { badge: "bg-primary", icon: "bi-chat-fill" },
   CommentLiked: { badge: "bg-danger", icon: "bi-heart-fill" },
+  CommentReplied: { badge: "bg-primary", icon: "bi-reply-fill" },
   GroupJoinRequestReceived: { badge: "bg-info", icon: "bi-people-fill" },
   GroupInviteReceived: { badge: "bg-info", icon: "bi-envelope-fill" },
   GroupMemberRemoved: { badge: "bg-danger", icon: "bi-person-dash-fill" },
@@ -47,6 +48,7 @@ const NOTIF_TEXT = {
   PostLiked: n => `<b>${escapeHtml(n.actorName)}</b> gönderini beğendi.`,
   CommentAdded: n => `<b>${escapeHtml(n.actorName)}</b> gönderine yorum yaptı.`,
   CommentLiked: n => `<b>${escapeHtml(n.actorName)}</b> yorumunu beğendi.`,
+  CommentReplied: n => `<b>${escapeHtml(n.actorName)}</b> yorumuna yanıt verdi.`,
   GroupJoinRequestReceived: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubuna katılmak istiyor.`,
   GroupInviteReceived: n => `<b>${escapeHtml(n.actorName)}</b> seni <b>${escapeHtml(n.groupName || "")}</b> grubuna davet etti.`,
   GroupMemberRemoved: n => `<b>${escapeHtml(n.actorName)}</b> seni <b>${escapeHtml(n.groupName || "")}</b> grubundan çıkardı.`,
@@ -90,6 +92,8 @@ function notificationHtml(n) {
     actions = `<a href="marketplace.html?sellerReviews=${getSession().userId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Değerlendirmeleri Gör</a>`;
   } else if (["EventUpdated", "EventInviteReceived", "EventAnnouncement", "EventJoined", "EventCommentAdded", "EventWaitlistPromoted", "EventReminder"].includes(n.type)) {
     actions = `<a href="event.html?id=${n.eventId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Etkinliği Gör</a>`;
+  } else if (["PostLiked", "CommentAdded", "CommentReplied", "CommentLiked"].includes(n.type) && n.postId) {
+    actions = `<a href="post.html?id=${n.postId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Gönderiyi Gör</a>`;
   } else if (n.type.startsWith("MarketplaceOffer")) {
     actions = `<a href="marketplace.html?view=offers" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Teklifleri Gör</a>`;
   } else if (n.type === "GroupInviteReceived" && !n.isRead) {
@@ -113,16 +117,17 @@ function notificationHtml(n) {
     </div>`;
 }
 
-async function loadNotifications() {
-  const list = document.getElementById("notificationsList");
-  try {
-    const result = await apiFetch("/api/notifications?page=1&pageSize=30");
-    list.innerHTML = result.items.length
-      ? result.items.map(notificationHtml).join("")
-      : `<div class="text-center text-muted small py-4">Henüz bildirim yok.</div>`;
-  } catch (err) {
-    list.innerHTML = `<div class="alert alert-danger small">${escapeHtml(err.message)}</div>`;
-  }
+// 30 notifications at a time (pager.js).
+const notificationsPager = createPager({
+  list: "notificationsList",
+  url: page => `/api/notifications?page=${page}&pageSize=30`,
+  render: notificationHtml,
+  shown: n => !!document.querySelector(`[data-notification-id="${n.id}"]`),
+  emptyHtml: `<div class="text-center text-muted small py-4">Henüz bildirim yok.</div>`
+});
+
+function loadNotifications() {
+  return notificationsPager.reload();
 }
 
 async function markRead(id) {

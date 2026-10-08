@@ -67,6 +67,11 @@ public class NotificationService : INotificationService
         if (recipientId == actorId && type != NotificationType.EventReminder)
             return;
 
+        // The recipient may have switched this kind off in their settings: then there is nothing to create or push.
+        var preferences = await _users.GetNotificationPreferencesAsync(recipientId);
+        if (preferences != null && !preferences.Allows(type))
+            return;
+
         if (!RepeatableTypes.Contains(type))
         {
             var alreadyExists = await _notifications.AnyAsync(n =>

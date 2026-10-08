@@ -49,6 +49,16 @@ document.addEventListener("realtime:comment-likes", e => {
   if (label) label.textContent = likeCount > 0 ? ` (${likeCount})` : "";
 });
 
+// The post was edited (by its author, here or on another device): fetch it as this viewer sees it and draw it again.
+document.addEventListener("realtime:post-updated", async e => {
+  if (!livePostCard(e.detail.postId)) return;
+  try {
+    replacePostCard(await apiFetch(`/api/posts/${e.detail.postId}`));
+  } catch (err) {
+    // Gone or no longer visible: the delete event (or the next reload) takes care of it.
+  }
+});
+
 document.addEventListener("realtime:post-deleted", e => {
   livePostCard(e.detail.postId)?.remove();
   window.afterLivePostRemoved?.();

@@ -40,7 +40,7 @@ function postResultHtml(post) {
       <a href="profile.html?id=${post.authorId}"><img src="${post.authorAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm flex-shrink-0" alt=""></a>
       <div class="flex-grow-1 overflow-hidden">
         <div class="fw-bold small"><a href="profile.html?id=${post.authorId}" class="text-dark text-decoration-none">${escapeHtml(post.authorName)}</a></div>
-        <div class="text-muted small mb-1">${timeAgo(post.createdAt)}</div>
+        <div class="text-muted small mb-1"><a href="post.html?id=${post.id}" class="text-muted text-decoration-none">${timeAgo(post.createdAt)}</a></div>
         ${post.text ? `<p class="mb-2">${linkifyHashtags(escapeHtml(post.text))}</p>` : ""}
         ${post.mediaUrl ? (post.mediaType === "Video"
           ? `<video src="${post.mediaUrl}" class="rounded-3 mb-2" style="max-width:100%;max-height:280px;object-fit:cover;" controls></video>`
@@ -86,27 +86,24 @@ async function runSearch(term) {
   }
 
   // A term starting with "#" is hashtag-only, so skip the user search — it can't match a username.
+  // Both lists show 20 results at a time with a "Daha fazla yükle" button (pager.js).
   if (!term.startsWith("#")) {
-    try {
-      const result = await apiFetch(`/api/users/search?term=${encodeURIComponent(term)}&page=1&pageSize=20`);
-      users.innerHTML = result.items.length
-        ? result.items.map(searchResultHtml).join("")
-        : `<div class="text-muted small py-3">"${escapeHtml(term)}" için sonuç bulunamadı.</div>`;
-    } catch (err) {
-      users.innerHTML = `<div class="alert alert-danger small">${escapeHtml(err.message)}</div>`;
-    }
+    createPager({
+      list: "searchResultsUsers",
+      url: page => `/api/users/search?term=${encodeURIComponent(term)}&page=${page}&pageSize=20`,
+      render: searchResultHtml,
+      emptyHtml: `<div class="text-muted small py-3">"${escapeHtml(term)}" için sonuç bulunamadı.</div>`
+    }).reload();
   } else {
     users.innerHTML = `<div class="text-muted small py-3">Hashtag'ler sadece gönderilerde aranır.</div>`;
   }
 
-  try {
-    const result = await apiFetch(`/api/posts/search?term=${encodeURIComponent(term)}&page=1&pageSize=20`);
-    posts.innerHTML = result.items.length
-      ? result.items.map(postResultHtml).join("")
-      : `<div class="text-muted small py-3">"${escapeHtml(term)}" için gönderi bulunamadı.</div>`;
-  } catch (err) {
-    posts.innerHTML = `<div class="alert alert-danger small">${escapeHtml(err.message)}</div>`;
-  }
+  createPager({
+    list: "searchResultsPosts",
+    url: page => `/api/posts/search?term=${encodeURIComponent(term)}&page=${page}&pageSize=20`,
+    render: postResultHtml,
+    emptyHtml: `<div class="text-muted small py-3">"${escapeHtml(term)}" için gönderi bulunamadı.</div>`
+  }).reload();
 
   if (term.startsWith("#")) switchSearchTab("posts");
 }

@@ -71,8 +71,10 @@ function submitSearch(form) {
 // ---- Dark mode ----
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-bs-theme", theme);
-  document.querySelectorAll(".theme-toggle-btn i").forEach(icon => {
-    icon.className = theme === "dark" ? "bi bi-sun-fill" : "bi bi-moon-stars-fill";
+  // Swap only the two icon classes: the panel's icon is found by its own "theme-icon" class and must keep it.
+  document.querySelectorAll(".theme-toggle-btn i, .theme-icon").forEach(icon => {
+    icon.classList.toggle("bi-sun-fill", theme === "dark");
+    icon.classList.toggle("bi-moon-stars-fill", theme !== "dark");
   });
 }
 

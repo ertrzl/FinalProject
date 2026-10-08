@@ -11,6 +11,9 @@ public interface IUserRepository
 
     Task<bool> ExistsAsync(Guid id);
 
+    // The user's current security stamp; null when there is no such user.
+    Task<string?> GetSecurityStampAsync(Guid id);
+
     // Includes the current user in results — typing your own name should still find your own profile.
     Task<(List<UserSummary> Items, int TotalCount)> SearchAsync(string term, Guid currentUserId, int page, int pageSize);
 

@@ -6,10 +6,14 @@ using SocialNetworkPlatformProject.Application;
 using SocialNetworkPlatformProject.Extensions;
 using SocialNetworkPlatformProject.Infrastructure;
 using SocialNetworkPlatformProject.Infrastructure.Hubs;
+using SocialNetworkPlatformProject.Infrastructure.Services;
 using SocialNetworkPlatformProject.Middlewares;
 using SocialNetworkPlatformProject.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// The key that signs login tokens: used as configured, or created once and kept in App_Data (see JwtSecret).
+JwtSecret.EnsureConfigured(builder.Configuration, Path.Combine(builder.Environment.ContentRootPath, "App_Data"));
 
 // Add services to the container.
 builder.Services.AddControllers();

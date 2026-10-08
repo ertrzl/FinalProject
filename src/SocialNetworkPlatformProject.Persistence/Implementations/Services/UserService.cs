@@ -13,6 +13,7 @@ public class UserService : IUserService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly PasswordVerifier _passwords;
     private readonly SessionIssuer _sessions;
+    private readonly IAccessTokenRevoker _accessTokens;
     private readonly IUserRepository _users;
     private readonly IFriendService _friends;
     private readonly IMessageService _messages;
@@ -24,6 +25,7 @@ public class UserService : IUserService
         UserManager<ApplicationUser> userManager,
         PasswordVerifier passwords,
         SessionIssuer sessions,
+        IAccessTokenRevoker accessTokens,
         IUserRepository users,
         IFriendService friends,
         IMessageService messages,
@@ -34,6 +36,7 @@ public class UserService : IUserService
         _userManager = userManager;
         _passwords = passwords;
         _sessions = sessions;
+        _accessTokens = accessTokens;
         _users = users;
         _friends = friends;
         _messages = messages;
@@ -149,12 +152,15 @@ public class UserService : IUserService
         if (!await _passwords.VerifyAsync(user, dto.CurrentPassword))
             throw new BadRequestException("Current password is incorrect.");
 
+        var oldStamp = user.SecurityStamp!; // Identity replaces it as part of the password change
         var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
         if (!result.Succeeded)
             throw new BadRequestException(JoinErrors(result));
 
-        // Whoever knew the old password (and may hold a refresh token) is logged out everywhere;
-        // this device gets a fresh pair so the person changing the password stays signed in.
+        // Whoever knew the old password is logged out everywhere: the refresh tokens are revoked and the access
+        // tokens (which carry the old security stamp) are refused from the next request on. This device gets a
+        // fresh pair so the person changing the password stays signed in.
+        _accessTokens.Revoke(currentUserId, oldStamp);
         await _sessions.RevokeAllAsync(currentUserId);
         return await _sessions.IssueAsync(user);
     }
@@ -167,6 +173,7 @@ public class UserService : IUserService
             throw new BadRequestException("Password is incorrect.");
 
         var orphanedFiles = await _users.DeleteUserWithDataAsync(currentUserId);
+        _accessTokens.Revoke(currentUserId, user.SecurityStamp!);
 
         foreach (var file in orphanedFiles)
             _files.Delete(file);

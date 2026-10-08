@@ -59,6 +59,14 @@ public class UserRepository : IUserRepository
         return await _context.Users.AnyAsync(u => u.Id == id);
     }
 
+    public async Task<string?> GetSecurityStampAsync(Guid id)
+    {
+        return await _context.Users.AsNoTracking()
+            .Where(u => u.Id == id)
+            .Select(u => u.SecurityStamp)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<(List<UserSummary> Items, int TotalCount)> SearchAsync(string term, Guid currentUserId, int page, int pageSize)
     {
         // The current user is deliberately included: typing your own name should still find your own profile.

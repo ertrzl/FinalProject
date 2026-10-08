@@ -22,7 +22,8 @@ public static class ServiceRegistration
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
         services.AddMemoryCache();
-        services.AddScoped<ActiveUserChecker>();
+        services.AddScoped<AccessTokenValidator>();
+        services.AddScoped<IAccessTokenRevoker>(provider => provider.GetRequiredService<AccessTokenValidator>());
 
         // Timer-driven housekeeping: event reminders, waiting lists and expired stories.
         services.AddHostedService<MaintenanceBackgroundService>();
@@ -50,6 +51,10 @@ public static class ServiceRegistration
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
 
+                // The default allows a token to be used five minutes after it expired; with a 15-minute life that
+                // would be a third more. The page renews its token 30 seconds early anyway.
+                ClockSkew = TimeSpan.FromSeconds(30),
+
                 ValidIssuer = configuration["Jwt:Issuer"],
                 ValidAudience = configuration["Jwt:Audience"],
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
@@ -61,14 +66,16 @@ public static class ServiceRegistration
             // Browsers can't set an Authorization header on a WebSocket, so SignalR sends the JWT as ?access_token=.
             options.Events = new JwtBearerEvents
             {
-                // A token outlives the account it was issued for; refuse it once the user is gone.
+                // A token outlives the account it was issued for, and the password it was issued under: refuse it
+                // once the user is gone or the security stamp in it is no longer the user's current one.
                 OnTokenValidated = async context =>
                 {
                     var sub = context.Principal?.FindFirst("sub")?.Value;
-                    var checker = context.HttpContext.RequestServices.GetRequiredService<ActiveUserChecker>();
+                    var stamp = context.Principal?.FindFirst(TokenService.SecurityStampClaim)?.Value;
+                    var validator = context.HttpContext.RequestServices.GetRequiredService<AccessTokenValidator>();
 
-                    if (!Guid.TryParse(sub, out var userId) || !await checker.IsActiveAsync(userId))
-                        context.Fail("The account no longer exists.");
+                    if (!Guid.TryParse(sub, out var userId) || !await validator.IsValidAsync(userId, stamp))
+                        context.Fail("The token is no longer valid.");
                 },
 
                 OnMessageReceived = context =>

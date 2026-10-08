@@ -39,7 +39,7 @@ public class SessionIssuer
     public async Task<TokenResponseDto> IssueAsync(ApplicationUser user)
     {
         var roles = await _userManager.GetRolesAsync(user);
-        var accessToken = _tokenService.GenerateAccessToken(user.Id, user.Email!, user.FullName, roles);
+        var accessToken = _tokenService.GenerateAccessToken(user.Id, user.Email!, user.FullName, user.SecurityStamp!, roles);
 
         var now = DateTime.UtcNow;
         var refreshTokenDays = int.Parse(_configuration["Jwt:RefreshTokenExpiryDays"] ?? "30");

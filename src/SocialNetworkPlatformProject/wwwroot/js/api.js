@@ -62,12 +62,13 @@ async function logout() {
 // refresh token, so the user is never bounced back to the login page mid-session.
 let refreshPromise = null;
 
-async function getValidAccessToken() {
+// forceRefresh = true skips the "still fresh enough" shortcut: used when the server turned a token down.
+async function getValidAccessToken(forceRefresh = false) {
   const session = getSession();
   if (!session) return null;
 
   const expiresAtMs = new Date(/Z$|[+-]\d\d:\d\d$/.test(session.expiresAt) ? session.expiresAt : `${session.expiresAt}Z`).getTime();
-  if (Number.isFinite(expiresAtMs) && expiresAtMs - Date.now() > 30000) {
+  if (!forceRefresh && Number.isFinite(expiresAtMs) && expiresAtMs - Date.now() > 30000) {
     return session.accessToken;
   }
 
@@ -106,27 +107,42 @@ async function getValidAccessToken() {
   }
 }
 
+// Sends a request with the access token attached. A 401 for a token that has not expired means the server no longer
+// accepts it (the password was changed, the signing key was replaced...): the session is renewed once and the request
+// is repeated. Only when the renewal fails too does the user go back to the login page (getValidAccessToken does that).
+async function fetchWithToken(path, init) {
+  const send = token => fetch(path, {
+    ...init,
+    headers: { ...(init.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) }
+  });
+
+  let token = await getValidAccessToken();
+  let response = await send(token);
+
+  if (response.status === 401 && token) {
+    token = await getValidAccessToken(true);
+    response = await send(token);
+  }
+
+  return { response, hadToken: !!token };
+}
+
 // JSON requests (most endpoints): body is a plain object, auto-stringified.
 async function apiFetch(path, options = {}) {
-  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
-  const token = await getValidAccessToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const response = await fetch(path, {
+  const { response, hadToken } = await fetchWithToken(path, {
     ...options,
-    headers,
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
     body: options.body ? JSON.stringify(options.body) : undefined
   });
 
-  return handleResponse(response, !!token);
+  return handleResponse(response, hadToken);
 }
 
 // Authenticated file download: a plain <a href> can't send the bearer token, so fetch the file and save the blob.
 // The file name comes from the response's Content-Disposition (fallbackName if it is missing).
 async function downloadApiFile(path, fallbackName) {
-  const token = await getValidAccessToken();
-  const response = await fetch(path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-  if (!response.ok) await handleResponse(response, !!token); // throws with the server's message
+  const { response, hadToken } = await fetchWithToken(path, {});
+  if (!response.ok) await handleResponse(response, hadToken); // throws with the server's message
 
   const disposition = response.headers.get("content-disposition") || "";
   const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
@@ -144,12 +160,8 @@ async function downloadApiFile(path, fallbackName) {
 
 // multipart/form-data requests (endpoints with [FromForm], e.g. file uploads): pass a FormData body as-is.
 async function apiFetchForm(path, options = {}) {
-  const headers = { ...(options.headers || {}) };
-  const token = await getValidAccessToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const response = await fetch(path, { ...options, headers });
-  return handleResponse(response, !!token);
+  const { response, hadToken } = await fetchWithToken(path, options);
+  return handleResponse(response, hadToken);
 }
 
 // hadTokenAttached distinguishes "your session expired" (401 on an authenticated request,

@@ -45,6 +45,18 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
+    [HttpGet("me/notification-settings")]
+    public async Task<ActionResult<GetNotificationSettingsDto>> GetNotificationSettings()
+    {
+        return await _users.GetNotificationSettingsAsync(User.GetUserId());
+    }
+
+    [HttpPut("me/notification-settings")]
+    public async Task<ActionResult<GetNotificationSettingsDto>> UpdateNotificationSettings(PutNotificationSettingsDto dto)
+    {
+        return await _users.UpdateNotificationSettingsAsync(User.GetUserId(), dto);
+    }
+
     [HttpPut("me/password")]
     public async Task<ActionResult<TokenResponseDto>> ChangePassword(PutPasswordDto dto)
     {

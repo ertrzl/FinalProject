@@ -173,15 +173,21 @@ async function loadFriendsSummary() {
   }
 }
 
-async function loadPosts() {
-  const list = document.getElementById("profilePostsList");
-  try {
-    const result = await apiFetch(`/api/posts/by-user/${profileUserId}?page=1&pageSize=20`);
-    loadedPosts = result.items;
-    list.innerHTML = result.items.length ? result.items.map(post => postCardHtml(post)).join("") : `<div class="text-center text-muted small py-4">Henüz gönderi yok.</div>`;
-  } catch (err) {
-    list.innerHTML = `<div class="alert alert-danger small">${escapeHtml(err.message)}</div>`;
+// The wall, 20 posts at a time (pager.js); the photos tab is drawn from the posts loaded so far.
+const wallPager = createPager({
+  list: "profilePostsList",
+  url: page => `/api/posts/by-user/${profileUserId}?page=${page}&pageSize=20`,
+  render: post => postCardHtml(post),
+  shown: post => !!livePostCard(post.id),
+  emptyHtml: `<div class="text-center text-muted small py-4">Henüz gönderi yok.</div>`,
+  onLoaded: (items, firstPage) => {
+    loadedPosts = firstPage ? items : loadedPosts.concat(items);
+    loadPhotosFromPosts();
   }
+});
+
+function loadPosts() {
+  return wallPager.reload();
 }
 
 function loadPhotosFromPosts() {

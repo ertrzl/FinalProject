@@ -325,6 +325,7 @@ public class PostService : IPostService
             dtos[i].IsLikedByCurrentUser = likedIds.Contains(list[i].Id);
             dtos[i].IsSavedByCurrentUser = savedIds.Contains(list[i].Id);
             dtos[i].CanDelete = deletableIds.Contains(list[i].Id);
+            dtos[i].CanEdit = list[i].AuthorId == currentUserId;
         }
 
         return dtos;
@@ -383,19 +384,24 @@ public class PostService : IPostService
             .ToList();
     }
 
-    // Replaces post.Hashtags with links matching the post's current text, reusing existing Hashtag rows.
-    // Must run before SaveChangesAsync so new Hashtag/PostHashtag rows go in the same write.
+    // Makes the post's hashtag links match its current text: links whose tag is no longer in the text are removed,
+    // missing ones are added (reusing existing Hashtag rows), the rest are left alone. For an existing post its
+    // Hashtags (with their Hashtag) must be loaded. Must run before SaveChangesAsync so everything goes in one write.
     private async Task SyncHashtagsAsync(Post post, string? text)
     {
-        post.Hashtags.Clear();
-
         var names = ExtractHashtagNames(text);
-        if (names.Count == 0)
+
+        foreach (var link in post.Hashtags.Where(l => !names.Contains(l.Hashtag!.Name)).ToList())
+            post.Hashtags.Remove(link);
+
+        var linked = post.Hashtags.Select(l => l.Hashtag!.Name).ToHashSet();
+        var missing = names.Where(name => !linked.Contains(name)).ToList();
+        if (missing.Count == 0)
             return;
 
-        var existing = await _hashtags.GetAll(h => names.Contains(h.Name)).ToListAsync();
+        var existing = await _hashtags.GetAll(h => missing.Contains(h.Name)).ToListAsync();
 
-        foreach (var name in names)
+        foreach (var name in missing)
         {
             var hashtag = existing.FirstOrDefault(h => h.Name == name);
             if (hashtag == null)
@@ -405,7 +411,7 @@ public class PostService : IPostService
                 existing.Add(hashtag);
             }
 
-            post.Hashtags.Add(new PostHashtag { Post = post, Hashtag = hashtag });
+            await _hashtags.LinkAsync(post, hashtag);
         }
     }
 

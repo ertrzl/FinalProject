@@ -25,6 +25,35 @@ async function loadSettings() {
   }
 }
 
+// The three switches of "Bildirim Tercihleri" are stored on the server: a kind that is switched off is no longer
+// created for this user at all.
+async function loadNotificationSettings() {
+  try {
+    const settings = await apiFetch("/api/users/me/notification-settings");
+    document.getElementById("notifLikes").checked = settings.likes;
+    document.getElementById("notifComments").checked = settings.comments;
+    document.getElementById("notifFriends").checked = settings.friendRequests;
+  } catch (err) {
+    toast(err.message || "Bildirim tercihleri yüklenemedi.");
+  }
+}
+
+async function saveNotificationSettings() {
+  try {
+    await apiFetch("/api/users/me/notification-settings", {
+      method: "PUT",
+      body: {
+        likes: document.getElementById("notifLikes").checked,
+        comments: document.getElementById("notifComments").checked,
+        friendRequests: document.getElementById("notifFriends").checked
+      }
+    });
+    toast("Bildirim tercihleri kaydedildi.");
+  } catch (err) {
+    toast(err.message || "Kaydedilemedi.");
+  }
+}
+
 function previewSettingsAvatar(input) {
   const preview = document.getElementById("settingsAvatarPreview");
   if (input.files && input.files[0] && preview) {
@@ -129,3 +158,4 @@ document.getElementById("deleteAccountModal").addEventListener("hidden.bs.modal"
 });
 
 loadSettings();
+loadNotificationSettings();

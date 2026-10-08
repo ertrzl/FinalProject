@@ -57,7 +57,19 @@ public class CommentService : ICommentService
                 includes: LikeIncludes)
             .ToListAsync();
 
-        return await BuildDtosAsync(comments, post, currentUserId);
+        return await BuildDtosAsync(InThreadOrder(comments), post, currentUserId);
+    }
+
+    // Every top-level comment followed by its replies (oldest first), so the page can simply draw the list as it comes.
+    // The comments arrive oldest first, which the lookup keeps within each thread.
+    private static List<Comment> InThreadOrder(List<Comment> comments)
+    {
+        var replies = comments.Where(c => c.ParentCommentId != null).ToLookup(c => c.ParentCommentId!.Value);
+
+        return comments
+            .Where(c => c.ParentCommentId == null)
+            .SelectMany(parent => replies[parent.Id].Prepend(parent))
+            .ToList();
     }
 
     public async Task<GetCommentDto> AddAsync(Guid currentUserId, PostCommentDto dto)
@@ -92,9 +104,11 @@ public class CommentService : ICommentService
         await _notifications.CreateAsync(post.AuthorId, currentUserId, NotificationType.CommentAdded,
             postId: post.Id, commentId: comment.Id);
 
+        // The author of the comment that was answered hears about it too ("yorumuna yanıt verdi"), unless they are
+        // the post's author, who just got the notification above.
         if (parent != null && parent.AuthorId != post.AuthorId)
         {
-            await _notifications.CreateAsync(parent.AuthorId, currentUserId, NotificationType.CommentAdded,
+            await _notifications.CreateAsync(parent.AuthorId, currentUserId, NotificationType.CommentReplied,
                 postId: post.Id, commentId: comment.Id);
         }
 

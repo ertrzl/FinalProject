@@ -26,6 +26,12 @@ public class ApplicationUser : IdentityUser<Guid>
     public bool IsPrivateAccount { get; set; } = false;
     public bool ShowOnlineStatus { get; set; } = true;
 
+    // settings.html "Bildirim Tercihleri": which kinds of notification are created for this user at all
+    // (see NotificationPreferences for which notification types belong to which switch).
+    public bool NotifyOnLikes { get; set; } = true;
+    public bool NotifyOnComments { get; set; } = true;
+    public bool NotifyOnFriendRequests { get; set; } = true;
+
     // Drives the green "Çevrimiçi" dot shown on profile.html / navbar avatar
     public DateTime? LastSeenAt { get; set; }
 

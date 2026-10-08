@@ -11,6 +11,11 @@ public interface IUserService
 
     Task UpdatePrivacyAsync(Guid currentUserId, PutPrivacySettingsDto dto);
 
+    Task<GetNotificationSettingsDto> GetNotificationSettingsAsync(Guid currentUserId);
+
+    // From now on the notification kinds the user switched off are no longer created for them (see NotificationPreferences).
+    Task<GetNotificationSettingsDto> UpdateNotificationSettingsAsync(Guid currentUserId, PutNotificationSettingsDto dto);
+
     // Every other session is ended; the returned tokens keep the current device signed in.
     Task<TokenResponseDto> ChangePasswordAsync(Guid currentUserId, PutPasswordDto dto);
 

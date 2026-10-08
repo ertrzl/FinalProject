@@ -28,5 +28,6 @@ public enum NotificationType
     EventJoined = 22,               // to the organizer: someone is going to the event
     EventCommentAdded = 23,         // to the organizer: someone commented on the event
     EventWaitlistPromoted = 24,     // to someone on the waiting list: a spot opened and they are now going
-    EventReminder = 25              // the event is about to start (to those going and the organizer)
+    EventReminder = 25,             // the event is about to start (to those going and the organizer)
+    CommentReplied = 26             // to the author of a comment: someone answered it
 }

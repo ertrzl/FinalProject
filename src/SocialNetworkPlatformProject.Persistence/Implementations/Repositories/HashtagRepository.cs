@@ -10,4 +10,10 @@ public class HashtagRepository : Repository<Hashtag>, IHashtagRepository
     public HashtagRepository(ApplicationDbContext context) : base(context)
     {
     }
+
+    public async Task LinkAsync(Post post, Hashtag hashtag)
+    {
+        // AddAsync marks the row as new whatever its Id looks like; the navigations put it into post.Hashtags as well.
+        await _context.Set<PostHashtag>().AddAsync(new PostHashtag { Post = post, Hashtag = hashtag });
+    }
 }

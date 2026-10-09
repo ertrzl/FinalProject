@@ -14,11 +14,12 @@
 <nav id="siteNav" data-active="messages"></nav>
 
 <div class="container py-4">
-  <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="height: calc(100vh - 130px); min-height: 480px;">
-    <div class="row g-0 h-100">
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden messages-card">
+    <!-- On a phone only one of the two columns shows: the list, or (class "thread-open") the conversation -->
+    <div class="row g-0 h-100" id="messagesLayout">
 
       <!-- Conversation list -->
-      <div class="col-12 col-md-4 col-lg-3 border-end h-100 d-flex flex-column">
+      <div class="col-12 col-md-4 col-lg-3 border-end h-100 d-flex flex-column messages-list-col">
         <div class="p-3 border-bottom">
           <div class="fw-bold fs-5 mb-2">Mesajlar</div>
         </div>
@@ -26,7 +27,7 @@
       </div>
 
       <!-- Active conversation -->
-      <div class="col-12 col-md-8 col-lg-9 h-100 d-flex flex-column">
+      <div class="col-12 col-md-8 col-lg-9 h-100 d-flex flex-column messages-thread-col">
         <div class="p-3 border-bottom d-flex align-items-center gap-2" id="conversationHeader"></div>
         <div class="flex-grow-1 overflow-auto p-3" id="conversationThread"></div>
         <form class="p-3 border-top d-none" id="messageForm"></form>

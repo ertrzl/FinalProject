@@ -57,6 +57,7 @@ public static class ServiceRegistration
 
         // Stories
         services.AddScoped<IStoryRepository, StoryRepository>();
+        services.AddScoped<IStoryViewRepository, StoryViewRepository>();
 
         // Messages
         services.AddScoped<IConversationRepository, ConversationRepository>();

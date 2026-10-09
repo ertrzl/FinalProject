@@ -52,13 +52,25 @@
           <div class="story-viewer-header">
             <img id="storyViewerAvatar" class="avatar-xs" src="" alt="">
             <span id="storyViewerName" class="fw-bold text-white small"></span>
-            <button type="button" class="btn-close btn-close-white ms-auto" onclick="closeStory()"></button>
+            <div class="ms-auto d-flex align-items-center gap-2">
+              <!-- Only on your own stories: who watched it, and delete -->
+              <button type="button" id="storyViewersBtn" class="btn btn-sm btn-dark rounded-pill d-none" onclick="openStoryViewers()"><i class="bi bi-eye me-1"></i><span id="storyViewCount">0</span></button>
+              <button type="button" id="storyDeleteBtn" class="btn btn-sm btn-dark rounded-circle d-none" title="Hikâyeyi sil" onclick="deleteCurrentStory()"><i class="bi bi-trash"></i></button>
+              <button type="button" class="btn-close btn-close-white" onclick="closeStory()"></button>
+            </div>
           </div>
           <img id="storyViewerImage" class="story-viewer-image" src="" alt="">
           <video id="storyViewerVideo" class="story-viewer-image d-none" autoplay muted playsinline></video>
           <div class="story-viewer-nav">
             <div class="story-nav-zone" onclick="prevStory()"></div>
             <div class="story-nav-zone" onclick="nextStory()"></div>
+          </div>
+          <div class="story-viewers-panel d-none" id="storyViewersPanel">
+            <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom border-secondary">
+              <span class="fw-bold small"><i class="bi bi-eye me-1"></i>Görüntüleyenler</span>
+              <button type="button" class="btn-close btn-close-white btn-sm" onclick="closeStoryViewers()"></button>
+            </div>
+            <div id="storyViewersList" class="story-viewers-list"></div>
           </div>
         </div>
       </div>

@@ -61,7 +61,7 @@ function suggestionCardHtml(user) {
     <div class="d-flex align-items-center gap-2 mb-3" data-user-id="${user.id}">
       <img src="${user.avatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt="">
       <div class="flex-grow-1">
-        <div class="fw-bold small"><a href="profile.html?id=${user.id}" class="text-dark text-decoration-none">${escapeHtml(user.fullName)}</a></div>
+        <div class="fw-bold small"><a href="profile.html?id=${user.id}" class="text-body text-decoration-none">${escapeHtml(user.fullName)}</a></div>
         <div class="text-muted small">${mutualLabel}</div>
       </div>
       <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="sendSuggestionRequest('${user.id}', this)">Ekle</button>

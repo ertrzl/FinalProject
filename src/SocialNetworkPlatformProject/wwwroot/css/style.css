@@ -122,6 +122,8 @@ a { color: inherit; text-decoration: none; }
   border: 2.5px solid #4a6cf7; padding: 2px; background: #fff;
 }
 .story-card .story-ring img { border-radius: 50%; }
+.story-card.story-seen .story-ring { border-color: #9aa1b2; }
+.story-card.story-seen > img, .story-card.story-seen > video { filter: brightness(.8); }
 .story-card::after {
   content: ""; position: absolute; inset: 0;
   background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,.55) 100%);
@@ -239,6 +241,21 @@ a { color: inherit; text-decoration: none; }
 }
 .location-suggestion:hover, .location-suggestion.active { background: rgba(74, 108, 247, 0.12); }
 
+/* ---------- Messages page ---------- */
+.messages-card { height: calc(100vh - 130px); min-height: 480px; }
+@media (max-width: 767.98px) {
+  /* top bar + page padding + the bottom tab bar are around the card; and only one column shows at a time */
+  .messages-card { height: calc(100vh - 175px); min-height: 360px; }
+  .messages-thread-col { display: none !important; }
+  #messagesLayout.thread-open .messages-list-col { display: none !important; }
+  #messagesLayout.thread-open .messages-thread-col { display: flex !important; }
+}
+
+/* ---------- Chat: delete my own message ---------- */
+.chat-msg-row .msg-delete { opacity: 0; transition: opacity .15s; }
+.chat-msg-row:hover .msg-delete, .chat-msg-row .msg-delete:focus-visible { opacity: 1; }
+@media (hover: none) { .chat-msg-row .msg-delete { opacity: .55; } }
+
 /* ---------- Seller ratings (yellow stars) ---------- */
 .rating-star { color: #ffc107; }
 .rating-stars { white-space: nowrap; letter-spacing: 1px; }
@@ -261,6 +278,27 @@ a { color: inherit; text-decoration: none; }
 [data-bs-theme="dark"] .avatar-sm,
 [data-bs-theme="dark"] .avatar-xs { background: #2a2d3d; }
 [data-bs-theme="dark"] .theme-toggle-btn { color: #e8eaf0; }
+[data-bs-theme="dark"] .side-nav-link { color: #e8eaf0; }
+[data-bs-theme="dark"] .side-nav-link:hover, [data-bs-theme="dark"] .side-nav-link.active { color: #7f98ff; }
+[data-bs-theme="dark"] .bg-primary-subtle { background-color: rgba(74,108,247,0.18) !important; }
+
+/* Bootstrap's "light" button and badge are fixed pale shades; in dark mode they take the theme's greys instead. */
+[data-bs-theme="dark"] .btn-light {
+  --bs-btn-color: var(--bs-body-color);
+  --bs-btn-bg: var(--bs-tertiary-bg);
+  --bs-btn-border-color: var(--bs-border-color);
+  --bs-btn-hover-color: var(--bs-body-color);
+  --bs-btn-hover-bg: var(--bs-secondary-bg);
+  --bs-btn-hover-border-color: var(--bs-border-color);
+  --bs-btn-active-color: var(--bs-body-color);
+  --bs-btn-active-bg: var(--bs-secondary-bg);
+  --bs-btn-active-border-color: var(--bs-border-color);
+  --bs-btn-disabled-color: var(--bs-secondary-color);
+  --bs-btn-disabled-bg: var(--bs-tertiary-bg);
+  --bs-btn-disabled-border-color: var(--bs-border-color);
+}
+[data-bs-theme="dark"] .bg-light,
+[data-bs-theme="dark"] .text-bg-light { background-color: var(--bs-tertiary-bg) !important; }
 
 .theme-toggle-btn {
   border: none; background: transparent; font-size: 18px; color: #6b7385;
@@ -299,6 +337,14 @@ a { color: inherit; text-decoration: none; }
 .story-viewer-image { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
 .story-viewer-nav { position: absolute; inset: 0; display: flex; }
 .story-nav-zone { flex: 1; }
+.story-viewers-panel {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; max-height: 55%;
+  display: flex; flex-direction: column; color: #fff;
+  background: rgba(20, 22, 31, 0.96); border-radius: 16px 16px 0 0;
+}
+.story-viewers-list { overflow-y: auto; padding: 4px 0 8px; }
+.story-viewer-row { display: flex; align-items: center; gap: 10px; padding: 8px 16px; color: #fff; }
+.story-viewer-row .small { color: rgba(255, 255, 255, 0.6); }
 
 @media (max-width: 500px) {
   .story-viewer-inner { max-width: 100%; max-height: 100%; }

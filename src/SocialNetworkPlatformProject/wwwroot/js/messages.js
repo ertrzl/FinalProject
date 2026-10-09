@@ -36,10 +36,11 @@ function readStatusHtml(isRead) {
 
 function messageBubbleHtml(m) {
   return `
-      <div class="d-flex mb-3 ${m.isMine ? "justify-content-end" : "justify-content-start"}" data-message-id="${m.id}">
+      <div class="chat-msg-row d-flex align-items-center mb-3 ${m.isMine ? "justify-content-end" : "justify-content-start"}" data-message-id="${m.id}">
+        ${window.chatDeleteButtonHtml(m)}
         <div class="px-3 py-2 rounded-4 ${window.chatBubbleColorClasses(m)}" style="max-width:70%;">
           ${window.chatMessageBodyHtml(m)}
-          <div class="mt-1 ${m.isMine && m.type !== "Sticker" ? "text-white-50" : "text-muted"}" style="font-size:10.5px;">${timeAgo(m.sentAt)}${m.isMine ? readStatusHtml(m.isRead) : ""}</div>
+          <div class="mt-1 ${m.isMine && m.type !== "Sticker" && !m.isDeleted ? "text-white-50" : "text-muted"}" style="font-size:10.5px;">${timeAgo(m.sentAt)}${m.isMine && !m.isDeleted ? readStatusHtml(m.isRead) : ""}</div>
         </div>
       </div>`;
 }
@@ -53,8 +54,18 @@ function appendMessage(m) {
   thread.scrollTop = thread.scrollHeight;
 }
 
+// On a phone the page shows either the list or one conversation; these two switch between them.
+function showThread() {
+  document.getElementById("messagesLayout").classList.add("thread-open");
+}
+
+function showConversationList() {
+  document.getElementById("messagesLayout").classList.remove("thread-open");
+}
+
 function renderHeader(userId, name, avatar, online) {
   document.getElementById("conversationHeader").innerHTML = `
+    <button type="button" class="btn btn-link text-body p-0 d-md-none" onclick="showConversationList()" aria-label="Sohbetlere dön"><i class="bi bi-arrow-left fs-4"></i></button>
     <img src="${avatar || DEFAULT_AVATAR}" class="avatar-sm" alt="">
     <div>
       <div class="fw-bold">${escapeHtml(name)}</div>
@@ -62,9 +73,11 @@ function renderHeader(userId, name, avatar, online) {
     </div>`;
 }
 
-async function selectConversation(id) {
+// keepView: refresh the conversation without changing which column a phone shows (after a lost connection).
+async function selectConversation(id, { keepView = false } = {}) {
   activeId = id;
   draftUser = null;
+  if (!keepView) showThread();
   document.getElementById("messageForm").classList.remove("d-none");
   await renderList();
 
@@ -92,6 +105,7 @@ async function startDraftConversation(userId) {
     return;
   }
   activeId = null;
+  showThread();
   document.getElementById("messageForm").classList.remove("d-none");
   renderHeader(draftUser.id, draftUser.fullName, draftUser.avatarUrl, draftUser.isOnline);
   document.getElementById("conversationThread").innerHTML = `<div class="text-muted small text-center py-4">${escapeHtml(draftUser.fullName)} ile henüz bir sohbetin yok. İlk mesajı gönder!</div>`;
@@ -166,6 +180,13 @@ document.addEventListener("realtime:messages-read", e => {
   });
 });
 
+// The sender took a message back: redraw its bubble (the last-message preview in the list changes too).
+document.addEventListener("realtime:message-deleted", e => {
+  const row = document.querySelector(`#conversationThread [data-message-id="${e.detail.id}"]`);
+  if (row) row.outerHTML = messageBubbleHtml(e.detail);
+  renderList();
+});
+
 // "yazıyor..." replaces the online label for a few seconds after each typing signal.
 let typingTimer = null;
 
@@ -191,7 +212,7 @@ document.addEventListener("realtime:typing", e => {
 });
 
 document.addEventListener("realtime:reconnected", () => {
-  if (activeId) selectConversation(activeId);
+  if (activeId) selectConversation(activeId, { keepView: true });
   else renderList();
 });
 
@@ -208,7 +229,8 @@ async function init() {
     } else {
       await startDraftConversation(userId);
     }
-  } else if (window.chatConversationsCache.length) {
+  } else if (window.chatConversationsCache.length && window.matchMedia("(min-width: 768px)").matches) {
+    // A wide screen opens the latest conversation; a phone starts on the list.
     await selectConversation(window.chatConversationsCache[0].id);
   }
 }

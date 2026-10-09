@@ -15,7 +15,7 @@ function eventCardHtml(ev) {
         <a href="event.html?id=${ev.id}"><img src="${ev.coverImageUrl || NO_PHOTO}" class="w-100" style="height:150px;object-fit:cover;" alt=""></a>
         <div class="p-3">
           <div class="text-danger fw-bold small mb-1"><i class="bi bi-calendar3 me-1"></i>${formatEventRange(ev.startsAt, ev.endsAt)} ${eventStateBadgeHtml(ev)}</div>
-          <div class="fw-bold fs-6"><a href="event.html?id=${ev.id}" class="text-dark text-decoration-none">${escapeHtml(ev.title)}</a></div>
+          <div class="fw-bold fs-6"><a href="event.html?id=${ev.id}" class="text-body text-decoration-none">${escapeHtml(ev.title)}</a></div>
           ${ev.groupName ? `<div class="small text-primary"><i class="bi bi-people-fill me-1"></i><a href="group.html?id=${ev.groupId}" class="text-primary text-decoration-none">${escapeHtml(ev.groupName)}</a></div>` : ""}
           <div class="text-muted small mb-3">${eventPlaceHtml(ev)} · ${eventAttendanceText(ev)}${ev.isFull ? ` <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill">Dolu</span>` : ""}${ev.waitlistCount > 0 ? ` · ${eventWaitlistText(ev)}` : ""}</div>
           ${ev.isOwner ? `
@@ -146,7 +146,7 @@ function inviteCardHtml(invite) {
         <a href="event.html?id=${invite.eventId}"><img src="${invite.coverImageUrl || NO_PHOTO}" class="w-100" style="height:120px;object-fit:cover;" alt=""></a>
         <div class="p-3">
           <div class="text-danger fw-bold small mb-1"><i class="bi bi-calendar3 me-1"></i>${formatEventRange(invite.startsAt, invite.endsAt)}</div>
-          <div class="fw-bold fs-6"><a href="event.html?id=${invite.eventId}" class="text-dark text-decoration-none">${escapeHtml(invite.title)}</a></div>
+          <div class="fw-bold fs-6"><a href="event.html?id=${invite.eventId}" class="text-body text-decoration-none">${escapeHtml(invite.title)}</a></div>
           <div class="text-muted small mb-1">${eventPlaceHtml(invite)}${invite.groupName ? ` · <i class="bi bi-people-fill me-1"></i>${escapeHtml(invite.groupName)}` : ""}</div>
           <div class="text-muted small mb-3"><b>${escapeHtml(invite.invitedByName)}</b> seni davet etti · ${timeAgo(invite.invitedAt)}</div>
           <div class="d-flex gap-2">

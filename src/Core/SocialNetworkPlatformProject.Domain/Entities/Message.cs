@@ -14,4 +14,17 @@ public class Message : BaseEntity
     public string Text { get; set; } = string.Empty;
     public string? MediaUrl { get; set; }
     public bool IsRead { get; set; } = false;
+
+    // "Delete for everyone": the sender took the message back. The row stays (so the conversation keeps its shape and
+    // both people see "this message was deleted"), the content does not.
+    public DateTime? DeletedAt { get; set; }
+
+    public bool IsDeleted => DeletedAt != null;
+
+    public void MarkDeleted()
+    {
+        DeletedAt = DateTime.UtcNow;
+        Text = string.Empty;
+        MediaUrl = null;
+    }
 }

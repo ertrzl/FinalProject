@@ -2,6 +2,7 @@
 // Pages react by listening to events on document:
 //   "realtime:notification"  detail = notification DTO
 //   "realtime:message"       detail = message DTO (cancelable: call preventDefault() if the page already shows it, to suppress the toast)
+//   "realtime:message-deleted"  detail = the message DTO after the sender took it back (isDeleted = true)
 //   "realtime:reconnected"   the connection was lost and came back — reload anything that may have been missed
 
 (function () {
@@ -103,6 +104,12 @@
       else el.classList.toggle("d-none", !isOnline);
     });
     document.dispatchEvent(new CustomEvent("realtime:presence", { detail: { userId, isOnline } }));
+  });
+
+  // The sender took a message back: detail = the message as this user sees it now (isDeleted, no text or photo).
+  messages.connection.on("MessageDeleted", m => {
+    document.dispatchEvent(new CustomEvent("realtime:message-deleted", { detail: m }));
+    window.refreshMessageBadge?.();
   });
 
   messages.connection.on("MessagesRead", data =>

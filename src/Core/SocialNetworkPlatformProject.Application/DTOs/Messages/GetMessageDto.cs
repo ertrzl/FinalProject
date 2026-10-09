@@ -10,5 +10,6 @@ public class GetMessageDto
     public string? MediaUrl { get; set; }
     public bool IsMine { get; set; }
     public bool IsRead { get; set; }
+    public bool IsDeleted { get; set; } // taken back by the sender: Text and MediaUrl are empty
     public DateTime SentAt { get; set; }
 }

@@ -11,7 +11,7 @@ function storyCardHtml(story, index) {
     : `<img src="${story.mediaUrl}" alt="">`;
 
   return `
-    <div class="story-card" onclick="openStory(${index})">
+    <div class="story-card ${story.isViewed ? "story-seen" : ""}" onclick="openStory(${index})">
       <span class="story-ring"><img src="${story.userAvatarUrl || DEFAULT_AVATAR}" alt=""></span>
       ${thumb}
       <span class="story-name">${escapeHtml(story.userName)}</span>
@@ -57,6 +57,14 @@ function showStory(index) {
   const story = activeStories[index];
   document.getElementById("storyViewerAvatar").src = story.userAvatarUrl || DEFAULT_AVATAR;
   document.getElementById("storyViewerName").textContent = story.userName;
+
+  // Own story: the eye counter (who watched) and delete. Somebody else's: watching it is reported once.
+  const isMine = story.userId === getSession().userId;
+  document.getElementById("storyViewersBtn").classList.toggle("d-none", !isMine);
+  document.getElementById("storyDeleteBtn").classList.toggle("d-none", !isMine);
+  document.getElementById("storyViewCount").textContent = story.viewCount;
+  hideStoryViewersPanel();
+  if (!isMine && !story.isViewed) reportStoryView(story);
 
   const img = document.getElementById("storyViewerImage");
   const video = document.getElementById("storyViewerVideo");
@@ -114,6 +122,78 @@ function closeStory() {
   document.getElementById("storyViewer").classList.add("d-none");
   document.getElementById("storyViewerVideo").pause();
   document.body.style.overflow = "";
+  hideStoryViewersPanel();
+
+  // The rings of the stories just watched turn grey.
+  loadStories();
+}
+
+// Tells the server this story was watched (it keeps one count per person). The page keeps its own flag so going back
+// and forth between stories does not report it again.
+function reportStoryView(story) {
+  story.isViewed = true;
+  apiFetch(`/api/stories/${story.id}/view`, { method: "POST" }).catch(() => {});
+}
+
+// ---- Your own story: who watched it, and delete ----
+function hideStoryViewersPanel() {
+  document.getElementById("storyViewersPanel").classList.add("d-none");
+}
+
+async function openStoryViewers() {
+  const story = activeStories[currentStory];
+  const list = document.getElementById("storyViewersList");
+
+  // The story stands still while the list is open.
+  clearTimeout(storyTimer);
+  document.getElementById("storyViewerVideo").pause();
+  const fill = document.querySelector(`#storyBar-${currentStory} .fill`);
+  if (fill) {
+    fill.style.width = getComputedStyle(fill).width;
+    fill.style.transition = "none";
+  }
+
+  list.innerHTML = `<div class="text-center small py-3 text-white-50">Yükleniyor...</div>`;
+  document.getElementById("storyViewersPanel").classList.remove("d-none");
+
+  try {
+    const viewers = await apiFetch(`/api/stories/${story.id}/viewers`);
+    story.viewCount = viewers.length;
+    document.getElementById("storyViewCount").textContent = viewers.length;
+    list.innerHTML = viewers.length
+      ? viewers.map(v => `
+          <a href="profile.html?id=${v.userId}" class="story-viewer-row text-decoration-none">
+            <img src="${v.avatarUrl || DEFAULT_AVATAR}" class="avatar-xs" alt="">
+            <span class="flex-grow-1 fw-semibold small">${escapeHtml(v.fullName)}</span>
+            <span class="small">${timeAgo(v.viewedAt)}</span>
+          </a>`).join("")
+      : `<div class="text-center small py-3 text-white-50">Henüz kimse izlemedi.</div>`;
+  } catch (err) {
+    list.innerHTML = `<div class="text-center small py-3 text-danger">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// Closing the list lets the story run again (its bar starts over).
+function closeStoryViewers() {
+  hideStoryViewersPanel();
+  runProgress(currentStory);
+  const story = activeStories[currentStory];
+  if (story.mediaType === "Video") document.getElementById("storyViewerVideo").play().catch(() => {});
+}
+
+async function deleteCurrentStory() {
+  const story = activeStories[currentStory];
+  if (!confirm("Bu hikâye silinsin mi?")) return;
+
+  try {
+    await apiFetch(`/api/stories/${story.id}`, { method: "DELETE" });
+  } catch (err) {
+    toast(err.message || "Hikâye silinemedi.");
+    return;
+  }
+
+  closeStory();
+  toast("Hikâyen silindi.");
 }
 
 // ---- Add-story modal ----

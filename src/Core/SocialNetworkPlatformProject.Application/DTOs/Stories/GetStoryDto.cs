@@ -11,4 +11,10 @@ public class GetStoryDto
     public string MediaType { get; set; } = "Image"; // "Image" / "Video"
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }
+
+    // Only filled in on your own stories: how many people have watched it (the list is GET /api/stories/{id}/viewers).
+    public int ViewCount { get; set; }
+
+    // Somebody else's story that you have already watched: its ring on the story bar is greyed out.
+    public bool IsViewed { get; set; }
 }

@@ -10,6 +10,7 @@ public class MessageProfile : Profile
     {
         CreateMap<Message, GetMessageDto>()
             .ForMember(dest => dest.SentAt, opt => opt.MapFrom(src => src.CreatedAt))
+            .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(src => src.DeletedAt != null))
             .ForMember(dest => dest.IsMine, opt => opt.Ignore());
 
         CreateMap<Conversation, GetConversationDto>()

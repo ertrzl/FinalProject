@@ -31,6 +31,19 @@ public class StoriesController : ControllerBase
         return await _stories.CreateAsync(User.GetUserId(), dto);
     }
 
+    [HttpPost("{id:guid}/view")]
+    public async Task<IActionResult> RecordView(Guid id)
+    {
+        await _stories.RecordViewAsync(User.GetUserId(), id);
+        return NoContent();
+    }
+
+    [HttpGet("{id:guid}/viewers")]
+    public async Task<ActionResult<List<GetStoryViewerDto>>> GetViewers(Guid id)
+    {
+        return await _stories.GetViewersAsync(User.GetUserId(), id);
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

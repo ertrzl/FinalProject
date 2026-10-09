@@ -11,6 +11,8 @@ public class StoryProfile : Profile
         CreateMap<Story, GetStoryDto>()
             .ForMember(dest => dest.MediaType, opt => opt.MapFrom(src => src.MediaType.ToString()))
             .ForMember(dest => dest.UserName, opt => opt.Ignore())
-            .ForMember(dest => dest.UserAvatarUrl, opt => opt.Ignore());
+            .ForMember(dest => dest.UserAvatarUrl, opt => opt.Ignore())
+            .ForMember(dest => dest.ViewCount, opt => opt.Ignore())
+            .ForMember(dest => dest.IsViewed, opt => opt.Ignore());
     }
 }

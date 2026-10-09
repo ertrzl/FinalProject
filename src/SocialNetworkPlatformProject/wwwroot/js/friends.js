@@ -29,7 +29,7 @@ function friendCardHtml(friend) {
     <div class="col-md-6 d-flex align-items-center gap-3 rounded-3 p-3 bg-body-tertiary">
       <img src="${friend.avatarUrl || DEFAULT_AVATAR}" class="avatar-md" alt="">
       <div class="flex-grow-1">
-        <div class="fw-bold"><a href="profile.html?id=${friend.userId}" class="text-dark text-decoration-none">${escapeHtml(friend.name)}</a></div>
+        <div class="fw-bold"><a href="profile.html?id=${friend.userId}" class="text-body text-decoration-none">${escapeHtml(friend.name)}</a></div>
         <div class="text-muted small">${escapeHtml(friend.location || "")}</div>
       </div>
       <a href="messages.html?userId=${friend.userId}" class="btn btn-outline-primary btn-sm rounded-pill">Mesaj</a>
@@ -42,7 +42,7 @@ function suggestionCardHtml(user) {
     <div class="col-md-6 d-flex align-items-center gap-3 rounded-3 p-3 bg-body-tertiary" data-user-id="${user.id}">
       <img src="${user.avatarUrl || DEFAULT_AVATAR}" class="avatar-md" alt="">
       <div class="flex-grow-1">
-        <div class="fw-bold"><a href="profile.html?id=${user.id}" class="text-dark text-decoration-none">${escapeHtml(user.fullName)}</a></div>
+        <div class="fw-bold"><a href="profile.html?id=${user.id}" class="text-body text-decoration-none">${escapeHtml(user.fullName)}</a></div>
         <div class="text-muted small">${mutualLabel}</div>
       </div>
       <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="sendRequestTo('${user.id}', this)">Ekle</button>

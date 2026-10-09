@@ -71,7 +71,7 @@ let groupEventsLoaded = false;
 
 function groupEventRowHtml(ev) {
   return `
-    <a href="event.html?id=${ev.id}" class="d-flex gap-3 text-decoration-none text-dark p-2 rounded-3 border mb-2 align-items-center">
+    <a href="event.html?id=${ev.id}" class="d-flex gap-3 text-decoration-none text-body p-2 rounded-3 border mb-2 align-items-center">
       <img src="${ev.coverImageUrl || NO_PHOTO}" class="rounded-3 flex-shrink-0" style="width:72px;height:72px;object-fit:cover;" alt="">
       <div style="min-width:0;">
         <div class="text-danger fw-bold small"><i class="bi bi-calendar3 me-1"></i>${formatEventRange(ev.startsAt, ev.endsAt)} ${eventStateBadgeHtml(ev)}</div>
@@ -134,7 +134,7 @@ function joinRequestRowHtml(r) {
     <div class="d-flex align-items-center gap-2 py-2 border-bottom" data-request-id="${r.userId}">
       <a href="profile.html?id=${r.userId}"><img src="${r.avatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt=""></a>
       <div class="flex-grow-1">
-        <a href="profile.html?id=${r.userId}" class="text-dark text-decoration-none fw-bold">${escapeHtml(r.fullName)}</a>
+        <a href="profile.html?id=${r.userId}" class="text-body text-decoration-none fw-bold">${escapeHtml(r.fullName)}</a>
         <div class="text-muted small">${timeAgo(r.requestedAt)}</div>
       </div>
       <div class="flex-shrink-0 d-flex gap-1">
@@ -238,7 +238,7 @@ function memberRowHtml(m, group) {
     <div class="d-flex align-items-center gap-2 py-2 border-bottom">
       <a href="profile.html?id=${m.userId}"><img src="${m.avatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt=""></a>
       <div class="flex-grow-1">
-        <a href="profile.html?id=${m.userId}" class="text-dark text-decoration-none fw-bold">${escapeHtml(m.fullName)}</a>
+        <a href="profile.html?id=${m.userId}" class="text-body text-decoration-none fw-bold">${escapeHtml(m.fullName)}</a>
         ${m.isOwner ? ' <i class="bi bi-award-fill text-warning" title="Grup Sahibi"></i>' : ""}
         <div>${roleBadge(m.role)}</div>
       </div>

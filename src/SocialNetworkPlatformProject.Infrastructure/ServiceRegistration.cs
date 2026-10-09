@@ -4,8 +4,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
+using SocialNetworkPlatformProject.Infrastructure.Email;
 using SocialNetworkPlatformProject.Infrastructure.Hubs;
 using SocialNetworkPlatformProject.Infrastructure.Services;
 
@@ -24,6 +27,20 @@ public static class ServiceRegistration
         services.AddMemoryCache();
         services.AddScoped<AccessTokenValidator>();
         services.AddScoped<IAccessTokenRevoker>(provider => provider.GetRequiredService<AccessTokenValidator>());
+
+        // E-mail goes through the SMTP account in the settings when there is one. Without one, Development writes the
+        // message to the console (so the flow works with no account) and everywhere else it is dropped with a warning:
+        // a password reset link in a log file would let anyone who can read the log take over accounts.
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        services.AddSingleton<IEmailSender>(provider =>
+        {
+            if (provider.GetRequiredService<IOptions<EmailOptions>>().Value.Smtp.IsConfigured)
+                return ActivatorUtilities.CreateInstance<SmtpEmailSender>(provider);
+
+            return provider.GetRequiredService<IHostEnvironment>().IsDevelopment()
+                ? ActivatorUtilities.CreateInstance<ConsoleEmailSender>(provider)
+                : ActivatorUtilities.CreateInstance<DisabledEmailSender>(provider);
+        });
 
         // Timer-driven housekeeping: event reminders, waiting lists and expired stories.
         services.AddHostedService<MaintenanceBackgroundService>();

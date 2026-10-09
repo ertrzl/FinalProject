@@ -1,4 +1,5 @@
 // Navbar extras shared by every authenticated page: notification bell badge, messages badge and the current user's avatar.
+// The menu itself (and the badge elements, on both the top menu and the phone's bottom bar) comes from navbar.js.
 // refreshNotificationBadge / refreshMessageBadge are also called by realtime.js whenever SignalR pushes something.
 
 function paintBadge(el, count) {
@@ -19,24 +20,10 @@ async function refreshNotificationBadge() {
   }
 }
 
-function ensureMessageBadge() {
-  const link = document.querySelector('a.nav-pill-link[href="messages.html"]');
-  if (!link) return null;
-  let badge = link.querySelector(".message-badge-count");
-  if (!badge) {
-    badge = document.createElement("span");
-    badge.className = "position-absolute top-0 end-0 badge rounded-pill bg-danger message-badge-count d-none";
-    link.appendChild(badge);
-  }
-  return badge;
-}
-
 async function refreshMessageBadge() {
-  const badge = ensureMessageBadge();
-  if (!badge) return;
   try {
     const count = await apiFetch("/api/messages/unread-count");
-    paintBadge(badge, count);
+    document.querySelectorAll(".message-badge-count").forEach(el => paintBadge(el, count));
   } catch (err) {
     // Silent, same reasoning as the notification badge.
   }

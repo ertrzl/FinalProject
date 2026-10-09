@@ -23,7 +23,8 @@
     PostLiked: "gönderini beğendi.",
     CommentAdded: "gönderine yorum yaptı.",
     CommentLiked: "yorumunu beğendi.",
-    Mentioned: "seni etiketledi."
+    Mentioned: "seni etiketledi.",
+    PostShared: "gönderini paylaştı."
   };
 
   function createConnection(url) {
@@ -86,6 +87,7 @@
     PostUpdated: "post-updated",
     PostDeleted: "post-deleted",
     PostLikeCountChanged: "post-likes",
+    PollVoted: "poll-voted",
     CommentAdded: "comment-added",
     CommentDeleted: "comment-deleted",
     CommentLikeCountChanged: "comment-likes"

@@ -118,7 +118,10 @@ public class NotificationService : INotificationService
             dto.ListingTitle = offer?.Listing?.Title;
         }
 
-        if (subject != null)
+        // The subject holds a title for event notifications and the emoji's name for a reaction to a post.
+        if (subject != null && type == NotificationType.PostLiked)
+            dto.Reaction = subject;
+        else if (subject != null)
             dto.EventTitle = subject;
 
         if (eventId.HasValue)
@@ -180,7 +183,9 @@ public class NotificationService : INotificationService
             if (items[i].GroupId.HasValue && groupNames.TryGetValue(items[i].GroupId!.Value, out var groupName))
                 dtos[i].GroupName = groupName;
 
-            if (items[i].Subject != null)
+            if (items[i].Subject != null && items[i].Type == NotificationType.PostLiked)
+                dtos[i].Reaction = items[i].Subject;
+            else if (items[i].Subject != null)
                 dtos[i].EventTitle = items[i].Subject;
 
             if (items[i].EventId.HasValue && eventInfo.TryGetValue(items[i].EventId!.Value, out var info))

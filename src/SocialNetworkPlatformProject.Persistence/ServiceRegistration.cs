@@ -44,6 +44,7 @@ public static class ServiceRegistration
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<ICommentRepository, CommentRepository>();
         services.AddScoped<IPostLikeRepository, PostLikeRepository>();
+        services.AddScoped<IPollVoteRepository, PollVoteRepository>();
         services.AddScoped<ICommentLikeRepository, CommentLikeRepository>();
         services.AddScoped<ISavedPostRepository, SavedPostRepository>();
         services.AddScoped<IHashtagRepository, HashtagRepository>();
@@ -101,6 +102,8 @@ public static class ServiceRegistration
         services.AddScoped<IPostAccessService, PostAccessService>();
         services.AddScoped<IMentionService, MentionService>();
         services.AddScoped<IPostService, PostService>();
+        services.AddScoped<IPostDtoBuilder, PostDtoBuilder>();
+        services.AddScoped<IPollService, PollService>();
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IStoryService, StoryService>();
         services.AddScoped<IStoryMaintenanceService, StoryMaintenanceService>();

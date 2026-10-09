@@ -22,9 +22,19 @@ public class GetPostDto
     public DateTime CreatedAt { get; set; }
     public List<string> Hashtags { get; set; } = new();
 
-    public int LikeCount { get; set; }
+    public int LikeCount { get; set; }                  // all reactions together
+    public List<GetReactionCountDto> Reactions { get; set; } = new(); // the split, biggest first
+    public string? MyReaction { get; set; }              // the viewer's own reaction; null = none
     public int CommentCount { get; set; }
-    public bool IsLikedByCurrentUser { get; set; }
+    public int ShareCount { get; set; }                  // how many times this post was shared
+    public bool IsLikedByCurrentUser { get; set; }       // any reaction
+
+    // A share: IsShare is true and SharedPost is the original, or null when the viewer may not see it any more
+    // (deleted, or no longer visible to them): the card then says so.
+    public bool IsShare { get; set; }
+    public GetSharedPostDto? SharedPost { get; set; }
+
+    public GetPollDto? Poll { get; set; }
     public bool IsSavedByCurrentUser { get; set; }
 
     // The author, or (on a group post) an admin/moderator of that group. The server decides; the page only shows the button.

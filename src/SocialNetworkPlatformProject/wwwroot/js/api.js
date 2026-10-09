@@ -241,6 +241,16 @@ function linkifyMentions(escapedText, mentions) {
   return html;
 }
 
+// The six reactions under a post (the server knows them by these names).
+const REACTIONS = {
+  Like: { emoji: "👍", label: "Beğen" },
+  Love: { emoji: "❤️", label: "Sevdim" },
+  Haha: { emoji: "😂", label: "Haha" },
+  Wow: { emoji: "😮", label: "Vay" },
+  Sad: { emoji: "😢", label: "Üzgün" },
+  Angry: { emoji: "😡", label: "Kızgın" }
+};
+
 // The text of a post or a comment as html: escaped, with its @tags and #hashtags turned into links.
 function richTextHtml(text, mentions) {
   return linkifyHashtags(linkifyMentions(escapeHtml(text), mentions));

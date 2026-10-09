@@ -31,4 +31,26 @@ public class PostRepository : Repository<Post>, IPostRepository
 
         return ids.ToDictionary(id => id, id => new PostCounts(likes.GetValueOrDefault(id), comments.GetValueOrDefault(id)));
     }
+
+    public async Task<Dictionary<Guid, int>> GetShareCountsAsync(IReadOnlyCollection<Guid> postIds)
+    {
+        if (postIds.Count == 0)
+            return new Dictionary<Guid, int>();
+
+        return await _dbSet.AsNoTracking()
+            .Where(p => p.SharedPostId != null && postIds.Contains(p.SharedPostId.Value))
+            .GroupBy(p => p.SharedPostId!.Value)
+            .Select(g => new { PostId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.PostId, x => x.Count);
+    }
+
+    public async Task DetachSharesAsync(IReadOnlyCollection<Guid> postIds)
+    {
+        if (postIds.Count == 0)
+            return;
+
+        await _dbSet
+            .Where(p => p.SharedPostId != null && postIds.Contains(p.SharedPostId.Value))
+            .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.SharedPostId, (Guid?)null));
+    }
 }

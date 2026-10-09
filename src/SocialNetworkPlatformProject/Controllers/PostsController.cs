@@ -15,10 +15,12 @@ namespace SocialNetworkPlatformProject.Controllers;
 public class PostsController : ControllerBase
 {
     private readonly IPostService _posts;
+    private readonly IPollService _polls;
 
-    public PostsController(IPostService posts)
+    public PostsController(IPostService posts, IPollService polls)
     {
         _posts = posts;
+        _polls = polls;
     }
 
     [HttpGet("feed")]
@@ -78,9 +80,34 @@ public class PostsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/like")]
-    public async Task<ActionResult<GetLikeResultDto>> ToggleLike(Guid id)
+    public async Task<ActionResult<GetPostReactionResultDto>> ToggleLike(Guid id)
     {
         return await _posts.ToggleLikeAsync(User.GetUserId(), id);
+    }
+
+    [HttpPut("{id:guid}/reaction")]
+    public async Task<ActionResult<GetPostReactionResultDto>> SetReaction(Guid id, PutReactionDto dto)
+    {
+        return await _posts.SetReactionAsync(User.GetUserId(), id, dto.Type);
+    }
+
+    [HttpGet("{id:guid}/reactions")]
+    public async Task<ActionResult<List<GetPostReactorDto>>> GetReactions(Guid id, [FromQuery] string? type = null)
+    {
+        return await _posts.GetReactionsAsync(User.GetUserId(), id, type);
+    }
+
+    [HttpPost("{id:guid}/share")]
+    public async Task<ActionResult<GetPostDto>> Share(Guid id, PostShareDto dto)
+    {
+        var share = await _posts.ShareAsync(User.GetUserId(), id, dto);
+        return CreatedAtAction(nameof(GetById), new { id = share.Id }, share);
+    }
+
+    [HttpPost("{id:guid}/poll/vote")]
+    public async Task<ActionResult<GetPostDto>> Vote(Guid id, PostPollVoteDto dto)
+    {
+        return await _polls.VoteAsync(User.GetUserId(), id, dto.OptionId);
     }
 
     [HttpPost("{id:guid}/save")]

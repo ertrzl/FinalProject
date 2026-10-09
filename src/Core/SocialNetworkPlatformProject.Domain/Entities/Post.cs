@@ -10,6 +10,14 @@ public class Post : BaseEntity
     public string? Text { get; set; }
     public PostPrivacy Privacy { get; set; } = PostPrivacy.Public;
 
+    // A share ("Gönderiyi paylaş"): this post shows another post (SharedPostId), with an optional text of its own on
+    // top. IsShare stays true when the original is deleted (SharedPostId is then null: the card says it is gone).
+    public bool IsShare { get; set; }
+    public Guid? SharedPostId { get; set; }
+    public Post? SharedPost { get; set; }
+
+    public Poll? Poll { get; set; }
+
     // Set when this post was made on a group's wall instead of the author's own feed.
     // Visibility then follows the group's privacy/membership, not Privacy above.
     public Guid? GroupId { get; set; }

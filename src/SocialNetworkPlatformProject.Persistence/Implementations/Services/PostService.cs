@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
-using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SocialNetworkPlatformProject.Application.Common;
@@ -17,10 +16,13 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 public class PostService : IPostService
 {
     // The mapping profile builds the hashtag and media lists from these; like/comment counts come from COUNT queries instead.
-    private static readonly string[] PostIncludes = { "Hashtags.Hashtag", "Media" };
+    private static readonly string[] PostIncludes = { "Hashtags.Hashtag", "Media", "Poll.Options" };
 
     // Keşfet looks at the last week: what is popular is what is being talked about now.
     private const int ExploreWindowDays = 7;
+
+    // The "who reacted" list shows this many people (the newest).
+    private const int MaxReactorsListed = 100;
 
     private static readonly Regex HashtagPattern = new(@"#([\p{L}0-9_]+)", RegexOptions.Compiled);
 
@@ -37,7 +39,7 @@ public class PostService : IPostService
     private readonly INotificationService _notifications;
     private readonly IFileStorageService _files;
     private readonly ILiveUpdateService _live;
-    private readonly IMapper _mapper;
+    private readonly IPostDtoBuilder _dtos;
 
     public PostService(
         IPostRepository posts,
@@ -53,7 +55,7 @@ public class PostService : IPostService
         INotificationService notifications,
         IFileStorageService files,
         ILiveUpdateService live,
-        IMapper mapper)
+        IPostDtoBuilder dtos)
     {
         _posts = posts;
         _likes = likes;
@@ -68,7 +70,7 @@ public class PostService : IPostService
         _notifications = notifications;
         _files = files;
         _live = live;
-        _mapper = mapper;
+        _dtos = dtos;
     }
 
     public async Task<GetPostDto> CreateAsync(Guid currentUserId, PostPostDto dto)
@@ -93,13 +95,16 @@ public class PostService : IPostService
         foreach (var media in await SaveMediaAsync(dto.Media))
             post.Media.Add(media);
 
+        if (dto.PollOptions.Count > 0)
+            post.Poll = NewPoll(dto);
+
         await _posts.AddAsync(post);
         await SyncHashtagsAsync(post, post.Text);
         await _posts.SaveChangesAsync();
 
         await _mentions.NotifyAsync(post, currentUserId, post.Text, previousText: null);
         await _live.PostCreatedAsync(post);
-        return (await BuildDtosAsync(new[] { post }, currentUserId))[0];
+        return (await _dtos.BuildAsync(new[] { post }, currentUserId))[0];
     }
 
     public async Task<GetPostDto> UpdateAsync(Guid currentUserId, Guid postId, PutPostDto dto)
@@ -111,7 +116,11 @@ public class PostService : IPostService
             throw new ForbiddenException("You can only edit your own posts.");
 
         var text = string.IsNullOrWhiteSpace(dto.Text) ? null : dto.Text.Trim();
-        if (text == null && post.Media.Count == 0)
+        if (text == null && post.Poll != null)
+            throw new BadRequestException("A poll needs a question: the text cannot be empty.");
+
+        // A share may have no text of its own: it shows the original.
+        if (text == null && post.Media.Count == 0 && !post.IsShare)
             throw new BadRequestException("A post must have either text or media.");
 
         var previousText = post.Text;
@@ -122,7 +131,7 @@ public class PostService : IPostService
 
         await _mentions.NotifyAsync(post, currentUserId, text, previousText);
         await _live.PostUpdatedAsync(post);
-        return (await BuildDtosAsync(new[] { post }, currentUserId))[0];
+        return (await _dtos.BuildAsync(new[] { post }, currentUserId))[0];
     }
 
     public async Task DeleteAsync(Guid currentUserId, Guid postId)
@@ -132,6 +141,9 @@ public class PostService : IPostService
 
         if (!await _access.CanModerateAsync(post, currentUserId))
             throw new ForbiddenException("You can only delete your own posts.");
+
+        // Its shares stay (they say the original is gone), so they stop pointing at it first.
+        await _posts.DetachSharesAsync(new[] { postId });
 
         var files = post.Media.Select(m => m.Url).ToList();
         _posts.Delete(post);
@@ -150,7 +162,7 @@ public class PostService : IPostService
 
         await _access.EnsureCanViewAsync(post, currentUserId);
 
-        return (await BuildDtosAsync(new[] { post }, currentUserId))[0];
+        return (await _dtos.BuildAsync(new[] { post }, currentUserId))[0];
     }
 
     public async Task<PagedResult<GetPostDto>> GetFeedAsync(Guid currentUserId, int page, int pageSize)
@@ -194,29 +206,134 @@ public class PostService : IPostService
         return await GetPagedAsync(p => p.GroupId == groupId, currentUserId, page, pageSize);
     }
 
-    public async Task<GetLikeResultDto> ToggleLikeAsync(Guid currentUserId, Guid postId)
+    public async Task<GetPostReactionResultDto> ToggleLikeAsync(Guid currentUserId, Guid postId)
+    {
+        var post = await GetViewablePostAsync(currentUserId, postId);
+        var existing = await _likes.GetAll(l => l.PostId == postId && l.UserId == currentUserId).FirstOrDefaultAsync();
+
+        // The heart button: whatever the reaction was, pressing it takes it back; with none it is a plain Like.
+        return await ApplyReactionAsync(post, currentUserId, existing, existing == null ? ReactionType.Like : null);
+    }
+
+    public async Task<GetPostReactionResultDto> SetReactionAsync(Guid currentUserId, Guid postId, string? type)
+    {
+        var post = await GetViewablePostAsync(currentUserId, postId);
+        var existing = await _likes.GetAll(l => l.PostId == postId && l.UserId == currentUserId).FirstOrDefaultAsync();
+
+        ReactionType? wanted = string.IsNullOrEmpty(type) ? null : Enum.Parse<ReactionType>(type);
+        return await ApplyReactionAsync(post, currentUserId, existing, wanted);
+    }
+
+    public async Task<List<GetPostReactorDto>> GetReactionsAsync(Guid currentUserId, Guid postId, string? type)
+    {
+        await GetViewablePostAsync(currentUserId, postId);
+
+        ReactionType? filter = null;
+        if (!string.IsNullOrEmpty(type))
+        {
+            if (!Enum.TryParse<ReactionType>(type, out var parsed))
+                throw new BadRequestException("Unknown reaction.");
+            filter = parsed;
+        }
+
+        var reactions = await _likes.GetNewestAsync(postId, filter, MaxReactorsListed);
+        var users = await _users.GetSummariesAsync(reactions.Select(r => r.UserId));
+
+        // A person whose account is gone has no summary and is left out.
+        return reactions
+            .Where(r => users.ContainsKey(r.UserId))
+            .Select(r => new GetPostReactorDto
+            {
+                UserId = r.UserId,
+                FullName = users[r.UserId].FullName,
+                AvatarUrl = users[r.UserId].AvatarUrl,
+                Type = r.Type.ToString()
+            })
+            .ToList();
+    }
+
+    // Makes the viewer's reaction on the post `wanted` (null = none): adds, changes or removes the single row they
+    // may have. Only a brand-new reaction notifies the author; changing one does not notify again.
+    private async Task<GetPostReactionResultDto> ApplyReactionAsync(Post post, Guid currentUserId, PostLike? existing, ReactionType? wanted)
+    {
+        var isNew = existing == null && wanted != null;
+
+        if (existing != null && wanted == null)
+            _likes.Delete(existing);
+        else if (existing != null && existing.Type != wanted)
+            existing.Type = wanted!.Value;
+        else if (existing == null && wanted != null)
+            await _likes.AddAsync(new PostLike { PostId = post.Id, UserId = currentUserId, Type = wanted.Value });
+
+        await _likes.SaveChangesAsync();
+
+        if (isNew)
+        {
+            await _notifications.CreateAsync(post.AuthorId, currentUserId, NotificationType.PostLiked,
+                postId: post.Id, subject: wanted!.Value.ToString());
+        }
+
+        var counts = (await _likes.GetReactionCountsAsync(new[] { post.Id })).GetValueOrDefault(post.Id);
+        var reactions = PostDtoBuilder.ToReactionList(counts);
+        var total = reactions.Sum(r => r.Count);
+
+        await _live.PostLikeCountChangedAsync(post, currentUserId, total, reactions);
+        return new GetPostReactionResultDto
+        {
+            MyReaction = wanted?.ToString(),
+            IsLiked = wanted != null,
+            LikeCount = total,
+            Reactions = reactions
+        };
+    }
+
+    public async Task<GetPostDto> ShareAsync(Guid currentUserId, Guid postId, PostShareDto dto)
+    {
+        var shown = await GetViewablePostAsync(currentUserId, postId);
+
+        // Sharing a share shares what it shows.
+        Post? original = shown;
+        if (shown.IsShare)
+        {
+            original = shown.SharedPostId is { } rootId ? await _posts.GetByIdAsync(rootId) : null;
+            if (original == null)
+                throw new BadRequestException("This post can't be shared: the original is gone.");
+        }
+
+        // Only what everybody may see can be passed on: a friends-only or group post, or a private account's, would
+        // otherwise be shown to people its author never chose.
+        var author = await _users.GetSummaryAsync(original.AuthorId);
+        if (original.GroupId != null || original.Privacy != PostPrivacy.Public || author is not { IsPrivateAccount: false })
+            throw new BadRequestException("This post can't be shared.");
+
+        var share = new Post
+        {
+            AuthorId = currentUserId,
+            Text = string.IsNullOrWhiteSpace(dto.Text) ? null : dto.Text.Trim(),
+            Privacy = ParsePrivacy(dto.Privacy),
+            IsShare = true,
+            SharedPostId = original.Id
+        };
+
+        await _posts.AddAsync(share);
+        await SyncHashtagsAsync(share, share.Text);
+        await _posts.SaveChangesAsync();
+
+        await _mentions.NotifyAsync(share, currentUserId, share.Text, previousText: null);
+        await _notifications.CreateAsync(original.AuthorId, currentUserId, NotificationType.PostShared, postId: share.Id);
+        await _live.PostCreatedAsync(share);
+
+        return (await _dtos.BuildAsync(new[] { share }, currentUserId))[0];
+    }
+
+    // The post, if it exists and the viewer may see it (hidden posts are "not found", never "forbidden").
+    private async Task<Post> GetViewablePostAsync(Guid currentUserId, Guid postId)
     {
         var post = await _posts.GetByIdAsync(postId)
             ?? throw new NotFoundException("Post not found.");
 
         await _access.EnsureCanViewAsync(post, currentUserId);
-
-        var existing = await _likes.GetAll(l => l.PostId == postId && l.UserId == currentUserId).FirstOrDefaultAsync();
-        var isLiked = existing == null;
-
-        if (existing != null)
-            _likes.Delete(existing);
-        else
-            await _likes.AddAsync(new PostLike { PostId = postId, UserId = currentUserId });
-
-        await _likes.SaveChangesAsync();
-
-        if (isLiked)
-            await _notifications.CreateAsync(post.AuthorId, currentUserId, NotificationType.PostLiked, postId: postId);
-
-        var count = await _likes.GetAll(l => l.PostId == postId).CountAsync();
-        await _live.PostLikeCountChangedAsync(post, currentUserId, count);
-        return new GetLikeResultDto { IsLiked = isLiked, LikeCount = count };
+        return post;
     }
 
     public async Task<bool> ToggleSaveAsync(Guid currentUserId, Guid postId)
@@ -264,7 +381,7 @@ public class PostService : IPostService
 
         return new PagedResult<GetPostDto>
         {
-            Items = await BuildDtosAsync(pagePosts, currentUserId),
+            Items = await _dtos.BuildAsync(pagePosts, currentUserId),
             Page = page,
             PageSize = pageSize,
             TotalCount = visible.Count
@@ -290,49 +407,22 @@ public class PostService : IPostService
 
         return new PagedResult<GetPostDto>
         {
-            Items = await BuildDtosAsync(posts, currentUserId),
+            Items = await _dtos.BuildAsync(posts, currentUserId),
             Page = page,
             PageSize = pageSize,
             TotalCount = total
         };
     }
 
-    // Fills in what AutoMapper can't: author display info, the counts and the per-viewer liked/saved/may-delete flags.
-    private async Task<List<GetPostDto>> BuildDtosAsync(IEnumerable<Post> posts, Guid currentUserId)
+    private static Poll NewPoll(PostPostDto dto)
     {
-        var list = posts.ToList();
-        var postIds = list.Select(p => p.Id).ToList();
+        var poll = new Poll { EndsAt = DateTime.UtcNow.AddHours(dto.PollDurationHours ?? PollLimits.DefaultHours) };
 
-        var authors = await _users.GetSummariesAsync(list.Select(p => p.AuthorId));
-        var counts = await _posts.GetCountsAsync(postIds);
-        var likedIds = (await _likes.GetAll(l => l.UserId == currentUserId && postIds.Contains(l.PostId), asNoTracking: true)
-            .Select(l => l.PostId)
-            .ToListAsync()).ToHashSet();
-        var savedIds = (await _saved.GetAll(s => s.UserId == currentUserId && postIds.Contains(s.PostId), asNoTracking: true)
-            .Select(s => s.PostId)
-            .ToListAsync()).ToHashSet();
-        var deletableIds = await _access.GetModeratablePostIdsAsync(list, currentUserId);
-        var mentioned = await _mentions.ResolveAsync(list.Select(p => p.Text));
+        var order = 0;
+        foreach (var text in dto.PollOptions)
+            poll.Options.Add(new PollOption { Text = text.Trim(), SortOrder = order++ });
 
-        var dtos = _mapper.Map<List<GetPostDto>>(list);
-        for (var i = 0; i < dtos.Count; i++)
-        {
-            if (authors.TryGetValue(list[i].AuthorId, out var author))
-            {
-                dtos[i].AuthorName = author.FullName;
-                dtos[i].AuthorAvatarUrl = author.AvatarUrl;
-            }
-
-            dtos[i].LikeCount = counts[list[i].Id].Likes;
-            dtos[i].CommentCount = counts[list[i].Id].Comments;
-            dtos[i].IsLikedByCurrentUser = likedIds.Contains(list[i].Id);
-            dtos[i].IsSavedByCurrentUser = savedIds.Contains(list[i].Id);
-            dtos[i].CanDelete = deletableIds.Contains(list[i].Id);
-            dtos[i].CanEdit = list[i].AuthorId == currentUserId;
-            dtos[i].Mentions = MentionParser.Pick(list[i].Text, mentioned);
-        }
-
-        return dtos;
+        return poll;
     }
 
     // Stores the files of a new post in the order given. A file that is refused (not an image, too big...) fails the
@@ -436,14 +526,14 @@ public class PostService : IPostService
         IQueryable<Post> visible, Func<IQueryable<Post>, IOrderedQueryable<Post>> order, Guid currentUserId, int page, int pageSize)
     {
         var total = await visible.CountAsync();
-        var pagePosts = await order(visible.Include("Hashtags.Hashtag").Include("Media"))
+        var pagePosts = await order(visible.Include("Hashtags.Hashtag").Include("Media").Include("Poll.Options"))
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
 
         return new PagedResult<GetPostDto>
         {
-            Items = await BuildDtosAsync(pagePosts, currentUserId),
+            Items = await _dtos.BuildAsync(pagePosts, currentUserId),
             Page = page,
             PageSize = pageSize,
             TotalCount = total

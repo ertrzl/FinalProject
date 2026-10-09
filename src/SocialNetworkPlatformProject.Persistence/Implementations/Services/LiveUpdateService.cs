@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SocialNetworkPlatformProject.Application.DTOs.Comments;
+using SocialNetworkPlatformProject.Application.DTOs.Posts;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Domain.Entities;
@@ -43,9 +44,14 @@ public class LiveUpdateService : ILiveUpdateService
         return PublishToAudienceAsync(post, "PostDeleted", new { postId = post.Id });
     }
 
-    public Task PostLikeCountChangedAsync(Post post, Guid actorId, int likeCount)
+    public Task PostLikeCountChangedAsync(Post post, Guid actorId, int likeCount, IReadOnlyCollection<GetReactionCountDto> reactions)
     {
-        return PublishToAudienceAsync(post, "PostLikeCountChanged", new { postId = post.Id, likeCount }, actorId);
+        return PublishToAudienceAsync(post, "PostLikeCountChanged", new { postId = post.Id, likeCount, reactions }, actorId);
+    }
+
+    public Task PollVotedAsync(Post post, Guid actorId)
+    {
+        return PublishToAudienceAsync(post, "PollVoted", new { postId = post.Id }, actorId);
     }
 
     public Task CommentAddedAsync(Post post, GetCommentDto comment, int commentCount)

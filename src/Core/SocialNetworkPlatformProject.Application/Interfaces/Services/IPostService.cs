@@ -23,7 +23,19 @@ public interface IPostService
     // group.html wall: throws NotFoundException if the group is private and the viewer isn't a member.
     Task<PagedResult<GetPostDto>> GetGroupPostsAsync(Guid groupId, Guid currentUserId, int page, int pageSize);
 
-    Task<GetLikeResultDto> ToggleLikeAsync(Guid currentUserId, Guid postId);
+    // The "Beğen" button: takes any reaction back, or (when there is none) reacts with a plain Like.
+    Task<GetPostReactionResultDto> ToggleLikeAsync(Guid currentUserId, Guid postId);
+
+    // The emoji bar: sets the viewer's reaction (changing an earlier one), or removes it when the type is empty.
+    // Only a NEW reaction notifies the author; changing it does not notify again.
+    Task<GetPostReactionResultDto> SetReactionAsync(Guid currentUserId, Guid postId, string? type);
+
+    // Who reacted, newest first (the latest 100), optionally one reaction only. Visible to whoever sees the post.
+    Task<List<GetPostReactorDto>> GetReactionsAsync(Guid currentUserId, Guid postId, string? type);
+
+    // "Gönderiyi paylaş": a new post of the user's that shows the original (sharing a share shares the original).
+    // Only publicly visible posts can be shared (not group posts, not friends-only, not private accounts').
+    Task<GetPostDto> ShareAsync(Guid currentUserId, Guid postId, PostShareDto dto);
 
     // Returns true when the post is saved after the toggle.
     Task<bool> ToggleSaveAsync(Guid currentUserId, Guid postId);

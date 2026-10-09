@@ -31,40 +31,6 @@ function searchResultHtml(user) {
     </div>`;
 }
 
-function postResultHtml(post) {
-  const heartIcon = post.isLikedByCurrentUser ? "bi-heart-fill" : "bi-heart";
-  const likedClass = post.isLikedByCurrentUser ? "liked" : "";
-
-  return `
-    <div class="d-flex gap-3 p-3 border-bottom" data-post-id="${post.id}">
-      <a href="profile.html?id=${post.authorId}"><img src="${post.authorAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm flex-shrink-0" alt=""></a>
-      <div class="flex-grow-1 overflow-hidden">
-        <div class="fw-bold small"><a href="profile.html?id=${post.authorId}" class="text-body text-decoration-none">${escapeHtml(post.authorName)}</a></div>
-        <div class="text-muted small mb-1"><a href="post.html?id=${post.id}" class="text-muted text-decoration-none">${timeAgo(post.createdAt)}</a></div>
-        ${post.text ? `<p class="mb-2">${richTextHtml(post.text, post.mentions)}</p>` : ""}
-        ${postMediaHtml(post)}
-        <button class="btn btn-sm p-0 text-muted fw-semibold like-btn ${likedClass}" onclick="togglePostResultLike(this)">
-          <i class="like-icon bi ${heartIcon}"></i> <span class="like-count">${post.likeCount}</span>
-        </button>
-      </div>
-    </div>`;
-}
-
-async function togglePostResultLike(btn) {
-  const postId = btn.closest("[data-post-id]").dataset.postId;
-  btn.disabled = true;
-  try {
-    const result = await apiFetch(`/api/posts/${postId}/like`, { method: "POST" });
-    btn.querySelector(".like-count").textContent = result.likeCount;
-    btn.querySelector(".like-icon").className = "like-icon bi " + (result.isLiked ? "bi-heart-fill" : "bi-heart");
-    btn.classList.toggle("liked", result.isLiked);
-  } catch (err) {
-    toast(err.message || "İşlem gerçekleştirilemedi.");
-  } finally {
-    btn.disabled = false;
-  }
-}
-
 function switchSearchTab(tab) {
   document.getElementById("searchTabUsersBtn").classList.toggle("active", tab === "users");
   document.getElementById("searchTabPostsBtn").classList.toggle("active", tab === "posts");
@@ -99,7 +65,7 @@ async function runSearch(term) {
   createPager({
     list: "searchResultsPosts",
     url: page => `/api/posts/search?term=${encodeURIComponent(term)}&page=${page}&pageSize=20`,
-    render: postResultHtml,
+    render: post => postCardHtml(post),
     emptyHtml: `<div class="text-muted small py-3">"${escapeHtml(term)}" için gönderi bulunamadı.</div>`
   }).reload();
 

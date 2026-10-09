@@ -54,6 +54,21 @@ public class UserRepository : IUserRepository
             .ToDictionaryAsync(u => u.Id);
     }
 
+    public async Task<Dictionary<string, UserSummary>> GetSummariesByUserNamesAsync(IEnumerable<string> userNames)
+    {
+        // Identity keeps an upper-cased copy of every user name; looking it up is case-insensitive and uses its index.
+        var normalized = userNames.Select(name => name.ToUpperInvariant()).Distinct().ToList();
+        if (normalized.Count == 0)
+            return new Dictionary<string, UserSummary>();
+
+        var users = await _context.Users.AsNoTracking()
+            .Where(u => normalized.Contains(u.NormalizedUserName!))
+            .Select(ToSummary)
+            .ToListAsync();
+
+        return users.ToDictionary(u => u.UserName.ToLowerInvariant());
+    }
+
     public async Task<bool> ExistsAsync(Guid id)
     {
         return await _context.Users.AnyAsync(u => u.Id == id);
@@ -130,7 +145,7 @@ public class UserRepository : IUserRepository
         var profile = await _context.Users.Where(u => u.Id == userId).Select(u => new { u.AvatarUrl, u.CoverPhotoUrl }).FirstOrDefaultAsync();
         if (profile?.AvatarUrl != null) files.Add(profile.AvatarUrl);
         if (profile?.CoverPhotoUrl != null) files.Add(profile.CoverPhotoUrl);
-        files.AddRange(await myPosts.Where(p => p.MediaUrl != null).Select(p => p.MediaUrl!).ToListAsync());
+        files.AddRange(await _context.Set<PostMedia>().Where(m => m.Post!.AuthorId == userId).Select(m => m.Url).ToListAsync());
         files.AddRange(await _context.Set<Story>().Where(s => s.UserId == userId).Select(s => s.MediaUrl).ToListAsync());
         files.AddRange(await _context.Set<ListingImage>().Where(i => i.Listing!.SellerId == userId).Select(i => i.Url).ToListAsync());
         files.AddRange(await _context.Set<Group>().Where(g => g.CreatedByUserId == userId && g.CoverImageUrl != null).Select(g => g.CoverImageUrl!).ToListAsync());

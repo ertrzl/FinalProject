@@ -1,3 +1,5 @@
+using SocialNetworkPlatformProject.Application.DTOs.Common;
+
 namespace SocialNetworkPlatformProject.Application.DTOs.Posts;
 
 // Shape matches what home.html / profile.html's feed rendering expects
@@ -11,8 +13,8 @@ public class GetPostDto
     public string? AuthorAvatarUrl { get; set; }
 
     public string? Text { get; set; }
-    public string? MediaUrl { get; set; }
-    public string MediaType { get; set; } = "Image"; // "Image" / "Video"
+    public List<GetPostMediaDto> Media { get; set; } = new(); // photos or one video, in the author's order
+    public List<GetMentionDto> Mentions { get; set; } = new(); // the people tagged with @username in Text
     public string Privacy { get; set; } = string.Empty; // "Public" / "FriendsOnly"
 
     // A post on a group's wall: who sees it follows the group, so the page shows no privacy label or choice for it.

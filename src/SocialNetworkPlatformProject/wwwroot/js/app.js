@@ -32,30 +32,48 @@ function previewAvatar(input) {
   }
 }
 
-// ---- Composer: image/video attach preview ----
-function previewComposerImage(input) {
-  const wrap = document.getElementById("composerPreview");
-  const img = document.getElementById("composerPreviewImg");
-  const video = document.getElementById("composerPreviewVideo");
-  const file = input.files && input.files[0];
-  if (!file || !wrap) return;
+// ---- Composer: the photos / video chosen for the post being written ----
+// The page's file input only picks files; they are kept here so each can be taken out again, and more can be added
+// later. How many are allowed, and whether photos and a video may mix, is the server's rule: the page just sends them.
+let composerFiles = [];
 
-  const isVideo = file.type.startsWith("video/");
-  const url = URL.createObjectURL(file);
-
-  if (img) { img.src = isVideo ? "" : url; img.classList.toggle("d-none", isVideo); }
-  if (video) { video.src = isVideo ? url : ""; video.classList.toggle("d-none", !isVideo); }
-  wrap.classList.remove("d-none");
+function addComposerFiles(input) {
+  composerFiles.push(...Array.from(input.files || []));
+  input.value = ""; // the same file can be picked again after removing it
+  renderComposerPreview();
 }
+
+function removeComposerFile(index) {
+  composerFiles.splice(index, 1);
+  renderComposerPreview();
+}
+
 function clearComposerImage() {
+  composerFiles = [];
+  renderComposerPreview();
+}
+
+// What the post will be sent with (the submit code of home, profile and group pages reads it).
+function getComposerFiles() {
+  return composerFiles;
+}
+
+function renderComposerPreview() {
   const wrap = document.getElementById("composerPreview");
-  const fileInput = document.getElementById("composerFile");
-  const img = document.getElementById("composerPreviewImg");
-  const video = document.getElementById("composerPreviewVideo");
-  if (wrap) wrap.classList.add("d-none");
-  if (fileInput) fileInput.value = "";
-  if (img) img.src = "";
-  if (video) video.src = "";
+  if (!wrap) return;
+
+  wrap.classList.toggle("d-none", composerFiles.length === 0);
+  wrap.innerHTML = composerFiles.map((file, i) => {
+    const url = URL.createObjectURL(file);
+    const thumb = file.type.startsWith("video/")
+      ? `<video src="${url}" class="composer-thumb" muted></video><i class="bi bi-play-circle-fill composer-thumb-badge"></i>`
+      : `<img src="${url}" class="composer-thumb" alt="">`;
+    return `
+      <div class="composer-thumb-wrap">
+        ${thumb}
+        <button type="button" class="btn btn-dark btn-sm rounded-circle composer-thumb-remove" title="Kaldır" onclick="removeComposerFile(${i})"><i class="bi bi-x"></i></button>
+      </div>`;
+  }).join("");
 }
 
 // ---- Search form: keep the query in the results heading ----

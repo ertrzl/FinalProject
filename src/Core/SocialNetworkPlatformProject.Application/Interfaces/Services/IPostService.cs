@@ -33,4 +33,12 @@ public interface IPostService
     // search.html "Gönderiler" tab. A term starting with "#" matches a hashtag exactly;
     // otherwise it matches the post text or a hashtag with that exact name.
     Task<PagedResult<GetPostDto>> SearchAsync(Guid currentUserId, string term, int page, int pageSize);
+
+    // explore.html "Popüler gönderiler": other people's posts of the last 7 days that the viewer may see, the most
+    // liked and commented first (a comment counts double).
+    Task<PagedResult<GetPostDto>> GetPopularPostsAsync(Guid currentUserId, int page, int pageSize);
+
+    // explore.html "Gündemdeki etiketler": the hashtags used most in the last 7 days, counted over the posts the
+    // viewer may see.
+    Task<List<GetTrendingHashtagDto>> GetTrendingHashtagsAsync(Guid currentUserId, int take);
 }

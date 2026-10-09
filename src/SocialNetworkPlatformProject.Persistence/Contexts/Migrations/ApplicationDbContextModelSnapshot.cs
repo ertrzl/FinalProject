@@ -850,12 +850,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<Guid?>("GroupId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("MediaType")
-                        .HasColumnType("int");
-
-                    b.Property<string>("MediaUrl")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("Privacy")
                         .HasColumnType("int");
 
@@ -917,6 +911,36 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .IsUnique();
 
                     b.ToTable("PostLikes");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.PostMedia", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MediaType")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId", "SortOrder");
+
+                    b.ToTable("PostMedia");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.RefreshToken", b =>
@@ -1463,6 +1487,17 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Post");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.PostMedia", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Post", "Post")
+                        .WithMany("Media")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.SavedListing", b =>
                 {
                     b.HasOne("SocialNetworkPlatformProject.Domain.Entities.MarketplaceListing", "Listing")
@@ -1550,6 +1585,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Hashtags");
 
                     b.Navigation("Likes");
+
+                    b.Navigation("Media");
 
                     b.Navigation("SavedBy");
                 });

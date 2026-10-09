@@ -1,7 +1,7 @@
 // The menu of every signed-in page, in one place: a new link is added here once, and the phone layout is fixed once.
 //
 // A page only has   <nav id="siteNav" data-active="home"></nav>   where the menu goes, and loads this file before app.js.
-// data-active names the section the page belongs to: home, friends, notifications, messages, groups, marketplace, events
+// data-active names the section the page belongs to: home, explore, friends, notifications, messages, groups, marketplace, events
 // (the main links) or profile, saved, settings (the account links); leave it empty on any other page.
 //
 // Wide screens: the top menu (logo, search, the links, theme button, account menu).
@@ -10,6 +10,7 @@
 
 const MAIN_LINKS = [
   { key: "home", href: "home.html", icon: "bi-house-door-fill", label: "Ana Sayfa" },
+  { key: "explore", href: "explore.html", icon: "bi-compass-fill", label: "Keşfet" },
   { key: "friends", href: "friends.html", icon: "bi-people-fill", label: "Arkadaşlar" },
   { key: "notifications", href: "notifications.html", icon: "bi-bell-fill", label: "Bildirimler", badge: "badge-count" },
   { key: "messages", href: "messages.html", icon: "bi-chat-dots-fill", label: "Mesajlar", badge: "message-badge-count" },
@@ -33,7 +34,7 @@ function navBadgeHtml(badgeClass) {
 }
 
 function navLinkHtml(link, active, extraClass = "") {
-  return `<a href="${link.href}" class="nav-pill-link ${extraClass} ${active === link.key ? "active" : ""}"><i class="bi ${link.icon}"></i>${link.label}${navBadgeHtml(link.badge)}</a>`;
+  return `<a href="${link.href}" title="${link.label}" class="nav-pill-link ${extraClass} ${active === link.key ? "active" : ""}"><i class="bi ${link.icon}"></i><span class="nav-label">${link.label}</span>${navBadgeHtml(link.badge)}</a>`;
 }
 
 function accountMenuItemHtml(link, active) {

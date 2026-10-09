@@ -9,6 +9,7 @@ const NOTIF_ICON = {
   CommentAdded: { badge: "bg-primary", icon: "bi-chat-fill" },
   CommentLiked: { badge: "bg-danger", icon: "bi-heart-fill" },
   CommentReplied: { badge: "bg-primary", icon: "bi-reply-fill" },
+  Mentioned: { badge: "bg-primary", icon: "bi-at" },
   GroupJoinRequestReceived: { badge: "bg-info", icon: "bi-people-fill" },
   GroupInviteReceived: { badge: "bg-info", icon: "bi-envelope-fill" },
   GroupMemberRemoved: { badge: "bg-danger", icon: "bi-person-dash-fill" },
@@ -49,6 +50,7 @@ const NOTIF_TEXT = {
   CommentAdded: n => `<b>${escapeHtml(n.actorName)}</b> gönderine yorum yaptı.`,
   CommentLiked: n => `<b>${escapeHtml(n.actorName)}</b> yorumunu beğendi.`,
   CommentReplied: n => `<b>${escapeHtml(n.actorName)}</b> yorumuna yanıt verdi.`,
+  Mentioned: n => `<b>${escapeHtml(n.actorName)}</b> seni ${n.commentId ? "bir yorumda" : "bir gönderide"} etiketledi.`,
   GroupJoinRequestReceived: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubuna katılmak istiyor.`,
   GroupInviteReceived: n => `<b>${escapeHtml(n.actorName)}</b> seni <b>${escapeHtml(n.groupName || "")}</b> grubuna davet etti.`,
   GroupMemberRemoved: n => `<b>${escapeHtml(n.actorName)}</b> seni <b>${escapeHtml(n.groupName || "")}</b> grubundan çıkardı.`,
@@ -92,7 +94,7 @@ function notificationHtml(n) {
     actions = `<a href="marketplace.html?sellerReviews=${getSession().userId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Değerlendirmeleri Gör</a>`;
   } else if (["EventUpdated", "EventInviteReceived", "EventAnnouncement", "EventJoined", "EventCommentAdded", "EventWaitlistPromoted", "EventReminder"].includes(n.type)) {
     actions = `<a href="event.html?id=${n.eventId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Etkinliği Gör</a>`;
-  } else if (["PostLiked", "CommentAdded", "CommentReplied", "CommentLiked"].includes(n.type) && n.postId) {
+  } else if (["PostLiked", "CommentAdded", "CommentReplied", "CommentLiked", "Mentioned"].includes(n.type) && n.postId) {
     actions = `<a href="post.html?id=${n.postId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Gönderiyi Gör</a>`;
   } else if (n.type.startsWith("MarketplaceOffer")) {
     actions = `<a href="marketplace.html?view=offers" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Teklifleri Gör</a>`;

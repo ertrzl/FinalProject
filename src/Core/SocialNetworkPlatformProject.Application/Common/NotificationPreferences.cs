@@ -11,7 +11,7 @@ public record NotificationPreferences(bool Likes, bool Comments, bool FriendRequ
     public bool Allows(NotificationType type) => type switch
     {
         NotificationType.PostLiked or NotificationType.CommentLiked => Likes,
-        NotificationType.CommentAdded or NotificationType.CommentReplied or NotificationType.EventCommentAdded => Comments,
+        NotificationType.CommentAdded or NotificationType.CommentReplied or NotificationType.EventCommentAdded or NotificationType.Mentioned => Comments,
         NotificationType.FriendRequestReceived or NotificationType.FriendRequestAccepted => FriendRequests,
         _ => true
     };

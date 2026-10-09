@@ -1,3 +1,5 @@
+using SocialNetworkPlatformProject.Application.DTOs.Common;
+
 namespace SocialNetworkPlatformProject.Application.DTOs.Comments;
 
 // Matches the comment bubble markup in home.html/profile.html + the reply thread (ParentCommentId).
@@ -11,6 +13,7 @@ public class GetCommentDto
     public string? AuthorAvatarUrl { get; set; }
 
     public string Text { get; set; } = string.Empty;
+    public List<GetMentionDto> Mentions { get; set; } = new(); // the people tagged with @username in Text
     public DateTime CreatedAt { get; set; }
 
     public Guid? ParentCommentId { get; set; }

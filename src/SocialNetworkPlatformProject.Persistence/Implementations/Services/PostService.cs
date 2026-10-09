@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Common;
@@ -15,8 +16,11 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class PostService : IPostService
 {
-    // The mapping profile builds the hashtag list from this; like/comment counts come from COUNT queries instead.
-    private static readonly string[] HashtagIncludes = { "Hashtags.Hashtag" };
+    // The mapping profile builds the hashtag and media lists from these; like/comment counts come from COUNT queries instead.
+    private static readonly string[] PostIncludes = { "Hashtags.Hashtag", "Media" };
+
+    // Keşfet looks at the last week: what is popular is what is being talked about now.
+    private const int ExploreWindowDays = 7;
 
     private static readonly Regex HashtagPattern = new(@"#([\p{L}0-9_]+)", RegexOptions.Compiled);
 
@@ -29,6 +33,7 @@ public class PostService : IPostService
     private readonly IUserRepository _users;
     private readonly IFriendService _friends;
     private readonly IPostAccessService _access;
+    private readonly IMentionService _mentions;
     private readonly INotificationService _notifications;
     private readonly IFileStorageService _files;
     private readonly ILiveUpdateService _live;
@@ -44,6 +49,7 @@ public class PostService : IPostService
         IUserRepository users,
         IFriendService friends,
         IPostAccessService access,
+        IMentionService mentions,
         INotificationService notifications,
         IFileStorageService files,
         ILiveUpdateService live,
@@ -58,6 +64,7 @@ public class PostService : IPostService
         _users = users;
         _friends = friends;
         _access = access;
+        _mentions = mentions;
         _notifications = notifications;
         _files = files;
         _live = live;
@@ -75,75 +82,70 @@ public class PostService : IPostService
                 throw new ForbiddenException("You must be a member of this group to post in it.");
         }
 
-        string? mediaUrl = null;
-        var mediaType = PostMediaType.Image;
-        if (dto.Media != null)
-        {
-            var isVideo = dto.Media.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase);
-            mediaUrl = isVideo
-                ? await _files.SaveVideoAsync(dto.Media, "posts")
-                : await _files.SaveImageAsync(dto.Media, "posts");
-            mediaType = isVideo ? PostMediaType.Video : PostMediaType.Image;
-        }
-
         var post = new Post
         {
             AuthorId = currentUserId,
             Text = string.IsNullOrWhiteSpace(dto.Text) ? null : dto.Text.Trim(),
-            MediaUrl = mediaUrl,
-            MediaType = mediaType,
             Privacy = privacy,
             GroupId = dto.GroupId
         };
+
+        foreach (var media in await SaveMediaAsync(dto.Media))
+            post.Media.Add(media);
 
         await _posts.AddAsync(post);
         await SyncHashtagsAsync(post, post.Text);
         await _posts.SaveChangesAsync();
 
+        await _mentions.NotifyAsync(post, currentUserId, post.Text, previousText: null);
         await _live.PostCreatedAsync(post);
         return (await BuildDtosAsync(new[] { post }, currentUserId))[0];
     }
 
     public async Task<GetPostDto> UpdateAsync(Guid currentUserId, Guid postId, PutPostDto dto)
     {
-        var post = await _posts.GetByIdAsync(postId, HashtagIncludes)
+        var post = await _posts.GetByIdAsync(postId, PostIncludes)
             ?? throw new NotFoundException("Post not found.");
 
         if (post.AuthorId != currentUserId)
             throw new ForbiddenException("You can only edit your own posts.");
 
         var text = string.IsNullOrWhiteSpace(dto.Text) ? null : dto.Text.Trim();
-        if (text == null && post.MediaUrl == null)
+        if (text == null && post.Media.Count == 0)
             throw new BadRequestException("A post must have either text or media.");
 
+        var previousText = post.Text;
         post.Text = text;
         post.Privacy = ParsePrivacy(dto.Privacy);
         await SyncHashtagsAsync(post, text);
         await _posts.SaveChangesAsync();
 
+        await _mentions.NotifyAsync(post, currentUserId, text, previousText);
         await _live.PostUpdatedAsync(post);
         return (await BuildDtosAsync(new[] { post }, currentUserId))[0];
     }
 
     public async Task DeleteAsync(Guid currentUserId, Guid postId)
     {
-        var post = await _posts.GetByIdAsync(postId)
+        var post = await _posts.GetByIdAsync(postId, "Media")
             ?? throw new NotFoundException("Post not found.");
 
         if (!await _access.CanModerateAsync(post, currentUserId))
             throw new ForbiddenException("You can only delete your own posts.");
 
+        var files = post.Media.Select(m => m.Url).ToList();
         _posts.Delete(post);
         await _posts.SaveChangesAsync();
 
-        _files.Delete(post.MediaUrl);
+        foreach (var file in files)
+            _files.Delete(file);
         await _notifications.DeleteByPostAsync(postId);
         await _live.PostDeletedAsync(post);
     }
 
     public async Task<GetPostDto> GetByIdAsync(Guid currentUserId, Guid postId)
     {
-        var post = await _posts.GetByIdAsync(postId, HashtagIncludes)
+        var post = await _posts.GetByIdAsync(postId, PostIncludes)
             ?? throw new NotFoundException("Post not found.");
 
         await _access.EnsureCanViewAsync(post, currentUserId);
@@ -250,7 +252,7 @@ public class PostService : IPostService
             .ToListAsync();
 
         var savedIds = savedEntries.Select(s => s.PostId).ToList();
-        var posts = await _posts.GetAll(p => savedIds.Contains(p.Id), asNoTracking: true, includes: HashtagIncludes).ToListAsync();
+        var posts = await _posts.GetAll(p => savedIds.Contains(p.Id), asNoTracking: true, includes: PostIncludes).ToListAsync();
         var visible = await _access.FilterVisibleAsync(posts, currentUserId);
 
         var savedOrder = savedIds.Select((id, index) => (id, index)).ToDictionary(x => x.id, x => x.index);
@@ -283,7 +285,7 @@ public class PostService : IPostService
                 asNoTracking: true,
                 page: page,
                 take: pageSize,
-                includes: HashtagIncludes)
+                includes: PostIncludes)
             .ToListAsync();
 
         return new PagedResult<GetPostDto>
@@ -310,6 +312,7 @@ public class PostService : IPostService
             .Select(s => s.PostId)
             .ToListAsync()).ToHashSet();
         var deletableIds = await _access.GetModeratablePostIdsAsync(list, currentUserId);
+        var mentioned = await _mentions.ResolveAsync(list.Select(p => p.Text));
 
         var dtos = _mapper.Map<List<GetPostDto>>(list);
         for (var i = 0; i < dtos.Count; i++)
@@ -326,9 +329,43 @@ public class PostService : IPostService
             dtos[i].IsSavedByCurrentUser = savedIds.Contains(list[i].Id);
             dtos[i].CanDelete = deletableIds.Contains(list[i].Id);
             dtos[i].CanEdit = list[i].AuthorId == currentUserId;
+            dtos[i].Mentions = MentionParser.Pick(list[i].Text, mentioned);
         }
 
         return dtos;
+    }
+
+    // Stores the files of a new post in the order given. A file that is refused (not an image, too big...) fails the
+    // whole post, and the files stored before it are removed again instead of being left behind.
+    private async Task<List<PostMedia>> SaveMediaAsync(IReadOnlyList<IFormFile> files)
+    {
+        var saved = new List<PostMedia>();
+        try
+        {
+            foreach (var file in files)
+            {
+                var isVideo = file.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase);
+                var url = isVideo
+                    ? await _files.SaveVideoAsync(file, "posts")
+                    : await _files.SaveImageAsync(file, "posts");
+
+                saved.Add(new PostMedia
+                {
+                    Url = url,
+                    MediaType = isVideo ? PostMediaType.Video : PostMediaType.Image,
+                    SortOrder = saved.Count
+                });
+            }
+
+            return saved;
+        }
+        catch
+        {
+            foreach (var media in saved)
+                _files.Delete(media.Url);
+
+            throw;
+        }
     }
 
     public async Task<PagedResult<GetPostDto>> SearchAsync(Guid currentUserId, string term, int page, int pageSize)
@@ -355,10 +392,51 @@ public class PostService : IPostService
         // Visibility is part of the query, so the database counts and pages only what the viewer may see.
         var visible = _access.VisibleTo(_posts.GetAll(filter, asNoTracking: true), currentUserId);
 
+        return await PageOfVisibleAsync(visible, posts => posts.OrderByDescending(p => p.CreatedAt), currentUserId, page, pageSize);
+    }
+
+    public async Task<PagedResult<GetPostDto>> GetPopularPostsAsync(Guid currentUserId, int page, int pageSize)
+    {
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
+        // Other people's recent posts the viewer may see (never group walls); what the viewer wrote is not "discovery".
+        var since = DateTime.UtcNow.AddDays(-ExploreWindowDays);
+        var visible = _access.VisibleTo(
+            _posts.GetAll(p => p.GroupId == null && p.AuthorId != currentUserId && p.CreatedAt >= since, asNoTracking: true),
+            currentUserId);
+
+        // Most talked about first: a comment counts double a like. Newest first among equals.
+        return await PageOfVisibleAsync(
+            visible,
+            posts => posts.OrderByDescending(p => p.Likes.Count + 2 * p.Comments.Count).ThenByDescending(p => p.CreatedAt).ThenBy(p => p.Id),
+            currentUserId, page, pageSize);
+    }
+
+    public async Task<List<GetTrendingHashtagDto>> GetTrendingHashtagsAsync(Guid currentUserId, int take)
+    {
+        take = Math.Clamp(take, 1, 20);
+
+        // Counted over the posts the viewer may see, so a tag's number matches what clicking it will show.
+        var since = DateTime.UtcNow.AddDays(-ExploreWindowDays);
+        var visible = _access.VisibleTo(_posts.GetAll(p => p.GroupId == null && p.CreatedAt >= since, asNoTracking: true), currentUserId);
+
+        return await visible
+            .SelectMany(p => p.Hashtags)
+            .GroupBy(link => link.Hashtag!.Name)
+            .Select(group => new GetTrendingHashtagDto { Name = group.Key, PostCount = group.Count() })
+            .OrderByDescending(tag => tag.PostCount)
+            .ThenBy(tag => tag.Name)
+            .Take(take)
+            .ToListAsync();
+    }
+
+    // One page of an already visibility-filtered query: the database counts and pages, only the page is loaded.
+    private async Task<PagedResult<GetPostDto>> PageOfVisibleAsync(
+        IQueryable<Post> visible, Func<IQueryable<Post>, IOrderedQueryable<Post>> order, Guid currentUserId, int page, int pageSize)
+    {
         var total = await visible.CountAsync();
-        var pagePosts = await visible
-            .Include("Hashtags.Hashtag")
-            .OrderByDescending(p => p.CreatedAt)
+        var pagePosts = await order(visible.Include("Hashtags.Hashtag").Include("Media"))
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();

@@ -36,6 +36,10 @@ public static class ServiceRegistration
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
+        // The code in a password reset link works for an hour (Identity's own default is a day).
+        services.Configure<DataProtectionTokenProviderOptions>(options =>
+            options.TokenLifespan = TimeSpan.FromMinutes(configuration.GetValue("PasswordReset:LinkLifetimeMinutes", 60.0)));
+
         // F3–F5
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<ICommentRepository, CommentRepository>();
@@ -89,6 +93,7 @@ public static class ServiceRegistration
 
         // Services (business logic)
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IPasswordResetService, PasswordResetService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IFriendService, FriendService>();
         services.AddScoped<INotificationService, NotificationService>();

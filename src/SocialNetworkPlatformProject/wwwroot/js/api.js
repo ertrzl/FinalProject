@@ -164,6 +164,18 @@ async function apiFetchForm(path, options = {}) {
   return handleResponse(response, hadToken);
 }
 
+// For pages used while signed out (password reset): no token is attached and nothing is renewed, so a leftover
+// session in this browser can never send the person to the login page before the request has gone out.
+async function apiFetchAnonymous(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    headers: { "Content-Type": "application/json" },
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+
+  return handleResponse(response, false);
+}
+
 // hadTokenAttached distinguishes "your session expired" (401 on an authenticated request,
 // e.g. a stale token on the feed) from "this request itself failed" (401 on login = wrong password).
 async function handleResponse(response, hadTokenAttached) {

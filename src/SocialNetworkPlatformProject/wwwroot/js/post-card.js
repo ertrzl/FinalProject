@@ -33,7 +33,7 @@ function postCardHtml(post) {
       <div class="d-flex align-items-center gap-3">
         <a href="${authorUrl}"><img src="${post.authorAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt=""></a>
         <div class="flex-grow-1">
-          <div class="fw-bold"><a href="${authorUrl}" class="text-dark text-decoration-none">${escapeHtml(post.authorName)}</a></div>
+          <div class="fw-bold"><a href="${authorUrl}" class="text-body text-decoration-none">${escapeHtml(post.authorName)}</a></div>
           <div class="text-muted small"><a href="${postUrl}" class="text-muted text-decoration-none">${timeAgo(post.createdAt)}</a>${post.isGroupPost ? "" : ` · <i class="bi ${privacyIcon}"></i> ${privacyLabel}`}</div>
         </div>
         ${menu}

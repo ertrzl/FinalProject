@@ -165,7 +165,7 @@ async function loadFriendsSummary() {
     const friends = await apiFetch("/api/friends");
     heading.textContent = `${friends.length} Arkadaş`;
 
-    const tile = f => `<div class="col friend-tile"><img src="${f.avatarUrl || DEFAULT_AVATAR}" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?id=${f.userId}" class="text-dark text-decoration-none">${escapeHtml(f.name)}</a></div></div>`;
+    const tile = f => `<div class="col friend-tile"><img src="${f.avatarUrl || DEFAULT_AVATAR}" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?id=${f.userId}" class="text-body text-decoration-none">${escapeHtml(f.name)}</a></div></div>`;
     tabList.innerHTML = friends.length ? friends.map(tile).join("") : `<div class="text-muted small">Henüz arkadaşın yok.</div>`;
     summary.innerHTML = friends.slice(0, 6).map(tile).join("") || `<div class="text-muted small">Henüz arkadaşın yok.</div>`;
   } catch (err) {

@@ -16,6 +16,11 @@ public interface IMessageService
     // Same as SendAsync for a photo (with an optional caption); the image is stored under uploads/messages.
     Task<GetMessageDto> SendImageAsync(Guid currentUserId, PostMessageImageDto dto);
 
+    // "Delete for everyone": only the sender may take a message back. The text (and photo) is removed, both people
+    // see a "deleted" bubble and every open tab of both is told ("MessageDeleted"). Deleting twice changes nothing.
+    // Returns the message as the caller sees it now.
+    Task<GetMessageDto> DeleteAsync(Guid currentUserId, Guid messageId);
+
     // Also tells the other participant (read receipt) when something was actually marked read.
     Task MarkConversationAsReadAsync(Guid currentUserId, Guid conversationId);
 

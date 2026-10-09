@@ -30,6 +30,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
 
     // Stories
     public DbSet<Story> Stories => Set<Story>();
+    public DbSet<StoryView> StoryViews => Set<StoryView>();
 
     // Messages + chat dock
     public DbSet<Conversation> Conversations => Set<Conversation>();

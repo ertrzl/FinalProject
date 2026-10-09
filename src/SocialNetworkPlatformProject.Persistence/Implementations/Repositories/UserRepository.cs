@@ -163,6 +163,8 @@ public class UserRepository : IUserRepository
         await _context.Set<FriendRequest>().Where(r => r.SenderId == userId || r.ReceiverId == userId).ExecuteDeleteAsync();
         await _context.Set<Friendship>().Where(f => f.UserOneId == userId || f.UserTwoId == userId).ExecuteDeleteAsync();
 
+        // The user's own stories take their view rows with them (cascade); the views they left on others' stories don't.
+        await _context.Set<StoryView>().Where(v => v.ViewerId == userId).ExecuteDeleteAsync();
         await _context.Set<Story>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
 
         await _context.Set<Conversation>().Where(c => myConversationIds.Contains(c.Id)).ExecuteDeleteAsync();

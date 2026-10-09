@@ -24,7 +24,7 @@ function searchResultHtml(user) {
     <div class="d-flex align-items-center gap-3 p-3 border-bottom">
       <img src="${user.avatarUrl || DEFAULT_AVATAR}" class="avatar-md" alt="">
       <div class="flex-grow-1">
-        <div class="fw-bold"><a href="${isSelf ? "profile.html" : `profile.html?id=${user.id}`}" class="text-dark text-decoration-none">${escapeHtml(user.fullName)}</a></div>
+        <div class="fw-bold"><a href="${isSelf ? "profile.html" : `profile.html?id=${user.id}`}" class="text-body text-decoration-none">${escapeHtml(user.fullName)}</a></div>
         <div class="text-muted small">@${escapeHtml(user.userName)}${isSelf ? " · sen" : ` · ${mutualLabel}`}</div>
       </div>
       ${actionHtml}
@@ -39,7 +39,7 @@ function postResultHtml(post) {
     <div class="d-flex gap-3 p-3 border-bottom" data-post-id="${post.id}">
       <a href="profile.html?id=${post.authorId}"><img src="${post.authorAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm flex-shrink-0" alt=""></a>
       <div class="flex-grow-1 overflow-hidden">
-        <div class="fw-bold small"><a href="profile.html?id=${post.authorId}" class="text-dark text-decoration-none">${escapeHtml(post.authorName)}</a></div>
+        <div class="fw-bold small"><a href="profile.html?id=${post.authorId}" class="text-body text-decoration-none">${escapeHtml(post.authorName)}</a></div>
         <div class="text-muted small mb-1"><a href="post.html?id=${post.id}" class="text-muted text-decoration-none">${timeAgo(post.createdAt)}</a></div>
         ${post.text ? `<p class="mb-2">${linkifyHashtags(escapeHtml(post.text))}</p>` : ""}
         ${post.mediaUrl ? (post.mediaType === "Video"

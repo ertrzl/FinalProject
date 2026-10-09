@@ -58,7 +58,7 @@ public class MessageService : IMessageService
         var users = await _users.GetSummariesAsync(otherParticipants.Select(p => p.UserId));
 
         var unreadCounts = await _messages.GetAll(
-                m => myConversationIds.Contains(m.ConversationId) && m.SenderId != currentUserId && !m.IsRead,
+                m => myConversationIds.Contains(m.ConversationId) && m.SenderId != currentUserId && !m.IsRead && m.DeletedAt == null,
                 asNoTracking: true)
             .GroupBy(m => m.ConversationId)
             .Select(g => new { ConversationId = g.Key, Count = g.Count() })
@@ -88,7 +88,7 @@ public class MessageService : IMessageService
                 OtherUserName = user.FullName,
                 OtherUserAvatarUrl = user.AvatarUrl,
                 IsOtherUserOnline = user.ShowOnlineStatus && _presence.IsOnline(user.Id),
-                LastMessageText = lastMessage?.Type == MessageType.Image ? "📷 Fotoğraf" : lastMessage?.Text,
+                LastMessageText = lastMessage == null ? null : PreviewText(lastMessage),
                 LastMessageAt = lastMessage?.CreatedAt,
                 LastMessageIsMine = lastMessage?.SenderId == currentUserId,
                 UnreadCount = unreadCounts.GetValueOrDefault(conversationId)
@@ -213,6 +213,42 @@ public class MessageService : IMessageService
         return forSender;
     }
 
+    public async Task<GetMessageDto> DeleteAsync(Guid currentUserId, Guid messageId)
+    {
+        var message = await _messages.GetByIdAsync(messageId)
+            ?? throw new NotFoundException("Message not found.");
+
+        // Somebody outside the conversation must not learn that the message exists.
+        var participants = await _participants.GetAll(p => p.ConversationId == message.ConversationId, asNoTracking: true).ToListAsync();
+        if (participants.All(p => p.UserId != currentUserId))
+            throw new NotFoundException("Message not found.");
+
+        if (message.SenderId != currentUserId)
+            throw new ForbiddenException("You can only delete your own messages.");
+
+        if (!message.IsDeleted)
+        {
+            var mediaUrl = message.MediaUrl;
+            message.MarkDeleted();
+            await _messages.SaveChangesAsync();
+
+            _files.Delete(mediaUrl);
+
+            // Every open tab of both people replaces the bubble; each gets the message as it sees it.
+            foreach (var other in participants.Where(p => p.UserId != currentUserId))
+            {
+                var forOther = _mapper.Map<GetMessageDto>(message);
+                forOther.IsMine = false;
+                await _notifier.PublishToMessagesAsync(other.UserId, "MessageDeleted", forOther);
+            }
+        }
+
+        var forSender = _mapper.Map<GetMessageDto>(message);
+        forSender.IsMine = true;
+        await _notifier.PublishToMessagesAsync(currentUserId, "MessageDeleted", forSender);
+        return forSender;
+    }
+
     public async Task MarkConversationAsReadAsync(Guid currentUserId, Guid conversationId)
     {
         await EnsureParticipantAsync(currentUserId, conversationId);
@@ -248,7 +284,7 @@ public class MessageService : IMessageService
             return 0;
 
         return await _messages.GetAll(m =>
-                myConversationIds.Contains(m.ConversationId) && m.SenderId != currentUserId && !m.IsRead)
+                myConversationIds.Contains(m.ConversationId) && m.SenderId != currentUserId && !m.IsRead && m.DeletedAt == null)
             .CountAsync();
     }
 
@@ -282,6 +318,15 @@ public class MessageService : IMessageService
     {
         if (!await _participants.AnyAsync(p => p.ConversationId == conversationId && p.UserId == userId))
             throw new NotFoundException("Conversation not found.");
+    }
+
+    // What the conversation list shows as the last message.
+    private static string PreviewText(Message message)
+    {
+        if (message.IsDeleted)
+            return "🚫 Mesaj silindi";
+
+        return message.Type == MessageType.Image ? "📷 Fotoğraf" : message.Text;
     }
 
     private List<GetMessageDto> MapMessages(List<Message> messages, Guid currentUserId)

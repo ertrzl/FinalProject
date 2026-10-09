@@ -33,6 +33,12 @@ public class MessagesController : ControllerBase
         return await _messages.GetMessagesAsync(User.GetUserId(), conversationId, page, pageSize);
     }
 
+    [HttpDelete("{messageId:guid}")]
+    public async Task<ActionResult<GetMessageDto>> Delete(Guid messageId)
+    {
+        return await _messages.DeleteAsync(User.GetUserId(), messageId);
+    }
+
     [HttpPost("conversations/{conversationId:guid}/read")]
     public async Task<IActionResult> MarkAsRead(Guid conversationId)
     {

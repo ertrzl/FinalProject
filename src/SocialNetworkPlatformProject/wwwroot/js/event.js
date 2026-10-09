@@ -64,7 +64,7 @@ function renderEvent() {
 
   document.getElementById("evOrganizer").innerHTML = ev.createdByName
     ? `<img src="${ev.createdByAvatarUrl || DEFAULT_AVATAR}" class="rounded-circle" style="width:32px;height:32px;object-fit:cover;" alt="">
-       <span class="small text-muted">Düzenleyen: <a href="profile.html?id=${ev.createdByUserId}" class="fw-semibold text-dark text-decoration-none">${escapeHtml(ev.createdByName)}</a></span>`
+       <span class="small text-muted">Düzenleyen: <a href="profile.html?id=${ev.createdByUserId}" class="fw-semibold text-body text-decoration-none">${escapeHtml(ev.createdByName)}</a></span>`
     : "";
 
   const aboutCard = document.getElementById("evAboutCard");
@@ -154,7 +154,7 @@ function renderEventActions() {
 
 function attendeeChipHtml(person) {
   return `
-    <a href="profile.html?id=${person.userId}" class="d-flex align-items-center gap-2 text-decoration-none text-dark p-2 rounded-3 border" style="min-width:0;">
+    <a href="profile.html?id=${person.userId}" class="d-flex align-items-center gap-2 text-decoration-none text-body p-2 rounded-3 border" style="min-width:0;">
       <img src="${person.avatarUrl || DEFAULT_AVATAR}" class="rounded-circle flex-shrink-0" style="width:36px;height:36px;object-fit:cover;" alt="">
       <span class="small fw-semibold text-truncate">${escapeHtml(person.fullName)}</span>
       ${person.isOrganizer ? `<span class="badge bg-primary-subtle text-primary-emphasis rounded-pill ms-auto">Düzenleyen</span>` : ""}
@@ -301,7 +301,7 @@ function commentHtml(c) {
       <a href="profile.html?id=${c.authorId}"><img src="${c.authorAvatarUrl || DEFAULT_AVATAR}" class="rounded-circle flex-shrink-0" style="width:36px;height:36px;object-fit:cover;" alt=""></a>
       <div class="flex-grow-1" style="min-width:0;">
         <div class="small">
-          <a href="profile.html?id=${c.authorId}" class="fw-semibold text-dark text-decoration-none">${escapeHtml(c.authorName)}</a>
+          <a href="profile.html?id=${c.authorId}" class="fw-semibold text-body text-decoration-none">${escapeHtml(c.authorName)}</a>
           ${c.isAnnouncement ? `<span class="badge bg-warning text-dark ms-1"><i class="bi bi-megaphone-fill me-1"></i>Duyuru</span>` : ""}
           <span class="text-muted ms-1">${timeAgo(c.createdAt)}</span>
         </div>

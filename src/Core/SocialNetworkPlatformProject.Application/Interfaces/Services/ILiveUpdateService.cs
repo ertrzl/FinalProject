@@ -1,4 +1,5 @@
 using SocialNetworkPlatformProject.Application.DTOs.Comments;
+using SocialNetworkPlatformProject.Application.DTOs.Posts;
 using SocialNetworkPlatformProject.Domain.Entities;
 
 namespace SocialNetworkPlatformProject.Application.Interfaces.Services;
@@ -15,7 +16,10 @@ public interface ILiveUpdateService
 
     Task PostDeletedAsync(Post post);
 
-    Task PostLikeCountChangedAsync(Post post, Guid actorId, int likeCount);
+    Task PostLikeCountChangedAsync(Post post, Guid actorId, int likeCount, IReadOnlyCollection<GetReactionCountDto> reactions);
+
+    // Somebody voted in the post's poll: pages showing it fetch the poll again (what they see depends on who they are).
+    Task PollVotedAsync(Post post, Guid actorId);
 
     Task CommentAddedAsync(Post post, GetCommentDto comment, int commentCount);
 

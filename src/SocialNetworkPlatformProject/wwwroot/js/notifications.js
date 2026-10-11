@@ -10,6 +10,7 @@ const NOTIF_ICON = {
   CommentLiked: { badge: "bg-danger", icon: "bi-heart-fill" },
   CommentReplied: { badge: "bg-primary", icon: "bi-reply-fill" },
   Mentioned: { badge: "bg-primary", icon: "bi-at" },
+  PostShared: { badge: "bg-primary", icon: "bi-arrow-repeat" },
   GroupJoinRequestReceived: { badge: "bg-info", icon: "bi-people-fill" },
   GroupInviteReceived: { badge: "bg-info", icon: "bi-envelope-fill" },
   GroupMemberRemoved: { badge: "bg-danger", icon: "bi-person-dash-fill" },
@@ -46,7 +47,10 @@ function offerListing(n) {
 const NOTIF_TEXT = {
   FriendRequestReceived: n => `<b>${escapeHtml(n.actorName)}</b> sana arkadaşlık isteği gönderdi.`,
   FriendRequestAccepted: n => `<b>${escapeHtml(n.actorName)}</b> arkadaşlık isteğini kabul etti.`,
-  PostLiked: n => `<b>${escapeHtml(n.actorName)}</b> gönderini beğendi.`,
+  PostLiked: n => n.reaction && n.reaction !== "Like" && REACTIONS[n.reaction]
+    ? `<b>${escapeHtml(n.actorName)}</b> gönderine ${REACTIONS[n.reaction].emoji} tepkisi verdi.`
+    : `<b>${escapeHtml(n.actorName)}</b> gönderini beğendi.`,
+  PostShared: n => `<b>${escapeHtml(n.actorName)}</b> gönderini paylaştı.`,
   CommentAdded: n => `<b>${escapeHtml(n.actorName)}</b> gönderine yorum yaptı.`,
   CommentLiked: n => `<b>${escapeHtml(n.actorName)}</b> yorumunu beğendi.`,
   CommentReplied: n => `<b>${escapeHtml(n.actorName)}</b> yorumuna yanıt verdi.`,
@@ -94,7 +98,7 @@ function notificationHtml(n) {
     actions = `<a href="marketplace.html?sellerReviews=${getSession().userId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Değerlendirmeleri Gör</a>`;
   } else if (["EventUpdated", "EventInviteReceived", "EventAnnouncement", "EventJoined", "EventCommentAdded", "EventWaitlistPromoted", "EventReminder"].includes(n.type)) {
     actions = `<a href="event.html?id=${n.eventId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Etkinliği Gör</a>`;
-  } else if (["PostLiked", "CommentAdded", "CommentReplied", "CommentLiked", "Mentioned"].includes(n.type) && n.postId) {
+  } else if (["PostLiked", "CommentAdded", "CommentReplied", "CommentLiked", "Mentioned", "PostShared"].includes(n.type) && n.postId) {
     actions = `<a href="post.html?id=${n.postId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Gönderiyi Gör</a>`;
   } else if (n.type.startsWith("MarketplaceOffer")) {
     actions = `<a href="marketplace.html?view=offers" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Teklifleri Gör</a>`;

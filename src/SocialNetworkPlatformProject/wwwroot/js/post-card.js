@@ -11,22 +11,19 @@ function postCardHtml(post) {
 
   const privacyIcon = post.privacy === "FriendsOnly" ? "bi-people-fill" : "bi-globe-americas";
   const privacyLabel = post.privacy === "FriendsOnly" ? "Sadece Arkadaşlar" : "Herkese Açık";
-  const likedClass = post.isLikedByCurrentUser ? "liked" : "";
-  const heartIcon = post.isLikedByCurrentUser ? "bi-heart-fill" : "bi-heart";
   const authorUrl = `profile.html?id=${post.authorId}`;
   const postUrl = `post.html?id=${post.id}`;
 
   const menuItems = [
+    `<li><button class="dropdown-item" onclick="toggleSavePost('${post.id}', this)"><i class="bi ${post.isSavedByCurrentUser ? "bi-bookmark-fill" : "bi-bookmark"} me-2"></i><span class="save-label">${post.isSavedByCurrentUser ? "Kaydı Kaldır" : "Kaydet"}</span></button></li>`,
     post.canEdit ? `<li><button class="dropdown-item" onclick="editPost('${post.id}')"><i class="bi bi-pencil me-2"></i>Düzenle</button></li>` : "",
     post.canDelete ? `<li><button class="dropdown-item" onclick="removePost('${post.id}', this)"><i class="bi bi-trash me-2"></i>Gönderiyi Sil</button></li>` : ""
   ].join("");
 
-  const menu = menuItems
-    ? `<div class="dropdown">
+  const menu = `<div class="dropdown">
          <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
          <ul class="dropdown-menu dropdown-menu-end">${menuItems}</ul>
-       </div>`
-    : "";
+       </div>`;
 
   return `
     <div class="card border-0 shadow-sm rounded-4 p-3 mb-4" data-post-id="${post.id}">
@@ -39,19 +36,29 @@ function postCardHtml(post) {
         ${menu}
       </div>
       ${post.text ? `<p class="mt-3 mb-2">${richTextHtml(post.text, post.mentions)}</p>` : ""}
+      ${post.isShare ? sharedPostHtml(post) : ""}
       ${postMediaHtml(post)}
+      ${post.poll ? pollHtml(post) : ""}
       <div class="d-flex justify-content-between text-muted small py-2 border-bottom">
-        <span><i class="bi bi-heart-fill text-danger"></i> <span class="like-count-label">${post.likeCount}</span> beğeni</span>
-        <span><span class="comment-count-label">${post.commentCount}</span> yorum</span>
+        ${reactionSummaryHtml(post)}
+        <span><span class="comment-count-label">${post.commentCount}</span> yorum${post.shareCount > 0 ? ` · ${post.shareCount} paylaşım` : ""}</span>
       </div>
       <div class="d-flex pt-1">
-        <button class="btn btn-sm flex-fill text-muted fw-semibold like-btn ${likedClass}" onclick="toggleLike(this)">
-          <i class="like-icon bi ${heartIcon}"></i> Beğen <span class="like-count" data-count="${post.likeCount}">${post.likeCount}</span>
-        </button>
+        <div class="reaction-wrap flex-fill position-relative">
+          ${reactionButtonHtml(post)}
+          <div class="reaction-bar">${Object.entries(REACTIONS).map(([type, r]) =>
+            `<button type="button" title="${r.label}" onclick="reactToPost(this, '${type}')">${r.emoji}</button>`).join("")}</div>
+        </div>
         <button class="btn btn-sm flex-fill text-muted fw-semibold" data-bs-toggle="collapse" data-bs-target="#comments-${post.id}" onclick="loadComments('${post.id}')">
           <i class="bi bi-chat"></i> Yorum Yap
         </button>
-        <button class="btn btn-sm flex-fill text-muted fw-semibold" onclick="copyPostLink(this)"><i class="bi bi-share"></i> Paylaş</button>
+        <div class="dropdown flex-fill d-flex">
+          <button class="btn btn-sm flex-fill text-muted fw-semibold" data-bs-toggle="dropdown"><i class="bi bi-share"></i> Paylaş</button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><button class="dropdown-item" onclick="openShare('${post.id}')"><i class="bi bi-arrow-repeat me-2"></i>Gönderiyi paylaş</button></li>
+            <li><button class="dropdown-item" onclick="copyPostLink(this)"><i class="bi bi-link-45deg me-2"></i>Bağlantıyı kopyala</button></li>
+          </ul>
+        </div>
       </div>
       <div class="collapse comments-collapse mt-3 pt-3 border-top" id="comments-${post.id}">
         <div class="comments-list mb-2"></div>
@@ -212,22 +219,294 @@ async function submitReply(event, postId, parentCommentId) {
   return false;
 }
 
+// ---- Tepkiler: the "Beğen" button, the emoji bar above it and the "who reacted" list ----
+
+// The button under a post: the viewer's own reaction (emoji + name) when there is one, a plain "Beğen" otherwise.
+function reactionButtonHtml(post) {
+  const mine = post.myReaction ? REACTIONS[post.myReaction] : null;
+  return `<button type="button" class="btn btn-sm w-100 fw-semibold like-btn ${mine ? "liked" : "text-muted"}" data-my-reaction="${post.myReaction || ""}" onclick="toggleLike(this)">${
+    mine ? `<span class="reaction-emoji">${mine.emoji}</span> ${mine.label}` : `<i class="like-icon bi bi-heart"></i> Beğen`}</button>`;
+}
+
+// "👍❤️ 12 tepki": the three most used reactions and the total; a click lists who reacted.
+function reactionSummaryHtml(post) {
+  const icons = (post.reactions || []).slice(0, 3).map(r => REACTIONS[r.type]?.emoji || "").join("");
+  const clickable = post.likeCount > 0 ? `role="button" onclick="showReactors('${post.id}')"` : "";
+  return `<span class="reaction-summary" ${clickable}><span class="reaction-icons">${icons || `<i class="bi bi-heart-fill text-danger"></i>`}</span> <span class="like-count-label">${post.likeCount}</span> tepki</span>`;
+}
+
+// Applies what the server answered (or pushed) to a card. `mine` is false for a push about somebody else's reaction.
+function applyReactionResult(card, result, mine = true) {
+  const summary = card.querySelector(".reaction-summary");
+  if (summary) summary.outerHTML = reactionSummaryHtml({ id: card.dataset.postId, likeCount: result.likeCount, reactions: result.reactions });
+
+  if (mine) {
+    const button = card.querySelector(".like-btn");
+    if (button) button.outerHTML = reactionButtonHtml({ myReaction: result.myReaction });
+  }
+
+  const drawn = drawnPosts.get(card.dataset.postId);
+  if (drawn) {
+    drawn.likeCount = result.likeCount;
+    drawn.reactions = result.reactions;
+    if (mine) drawn.myReaction = result.myReaction;
+  }
+}
+
+// The button itself: takes any reaction back, or likes when there is none.
 async function toggleLike(btn) {
+  if (btn.dataset.longPress) { delete btn.dataset.longPress; return; } // the press only opened the emoji bar
   const card = btn.closest(".card[data-post-id]");
-  const postId = card.dataset.postId;
   btn.disabled = true;
   try {
-    const result = await apiFetch(`/api/posts/${postId}/like`, { method: "POST" });
-    const countEl = btn.querySelector(".like-count");
-    countEl.dataset.count = result.likeCount;
-    countEl.textContent = result.likeCount;
-    card.querySelector(".like-count-label").textContent = result.likeCount;
-    btn.classList.toggle("liked", result.isLiked);
-    btn.querySelector(".like-icon").className = "like-icon bi " + (result.isLiked ? "bi-heart-fill" : "bi-heart");
+    applyReactionResult(card, await apiFetch(`/api/posts/${card.dataset.postId}/like`, { method: "POST" }));
   } catch (err) {
     toast(err.message || "Beğeni işlenemedi.");
-  } finally {
     btn.disabled = false;
+  }
+}
+
+// One emoji of the bar: sets that reaction, or takes it back when it is already the viewer's.
+async function reactToPost(emojiButton, type) {
+  const card = emojiButton.closest(".card[data-post-id]");
+  const current = card.querySelector(".like-btn")?.dataset.myReaction;
+  card.querySelector(".reaction-wrap").classList.remove("open");
+  try {
+    const result = await apiFetch(`/api/posts/${card.dataset.postId}/reaction`, {
+      method: "PUT",
+      body: { type: type === current ? null : type }
+    });
+    applyReactionResult(card, result);
+  } catch (err) {
+    toast(err.message || "Tepki işlenemedi.");
+  }
+}
+
+// On a touch screen there is no hover: pressing the button for a moment opens the emoji bar, a tap elsewhere closes it.
+(function setUpReactionBarOnTouch() {
+  let timer = null;
+
+  document.addEventListener("touchstart", event => {
+    const button = event.target.closest(".reaction-wrap .like-btn");
+    if (!button) { document.querySelectorAll(".reaction-wrap.open").forEach(w => w.classList.remove("open")); return; }
+    timer = setTimeout(() => {
+      button.closest(".reaction-wrap").classList.add("open");
+      button.dataset.longPress = "1";
+    }, 450);
+  }, { passive: true });
+
+  ["touchend", "touchmove", "touchcancel"].forEach(name =>
+    document.addEventListener(name, () => clearTimeout(timer), { passive: true }));
+})();
+
+function ensureReactorsModal() {
+  if (document.getElementById("reactorsModal")) return;
+
+  document.body.insertAdjacentHTML("beforeend", `
+    <div class="modal fade" id="reactorsModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-4">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold">Tepkiler</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <div id="reactorsTabs" class="d-flex flex-wrap gap-2 mb-3"></div>
+            <div id="reactorsList"></div>
+          </div>
+        </div>
+      </div>
+    </div>`);
+}
+
+// The people who reacted, newest first (the server sends the latest 100), with a filter per reaction.
+async function showReactors(postId) {
+  ensureReactorsModal();
+  const list = document.getElementById("reactorsList");
+  const tabs = document.getElementById("reactorsTabs");
+  list.innerHTML = `<div class="text-muted small">Yükleniyor...</div>`;
+  tabs.innerHTML = "";
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("reactorsModal")).show();
+
+  try {
+    const people = await apiFetch(`/api/posts/${postId}/reactions`);
+    const draw = type => {
+      const shown = type ? people.filter(p => p.type === type) : people;
+      list.innerHTML = shown.map(p => `
+        <a href="profile.html?id=${p.userId}" class="d-flex align-items-center gap-3 text-decoration-none text-body mb-3">
+          <img src="${p.avatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt="">
+          <span class="flex-grow-1 fw-semibold">${escapeHtml(p.fullName)}</span>
+          <span style="font-size:22px;">${REACTIONS[p.type]?.emoji || ""}</span>
+        </a>`).join("") || `<div class="text-muted small">Henüz kimse tepki vermedi.</div>`;
+      tabs.querySelectorAll("button").forEach(b => b.classList.toggle("active", (b.dataset.type || "") === (type || "")));
+    };
+
+    const counts = {};
+    people.forEach(p => { counts[p.type] = (counts[p.type] || 0) + 1; });
+    tabs.innerHTML = [`<button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-type="">Tümü ${people.length}</button>`]
+      .concat(Object.entries(counts).map(([type, n]) => `<button type="button" class="btn btn-sm btn-outline-primary rounded-pill" data-type="${type}">${REACTIONS[type]?.emoji || ""} ${n}</button>`))
+      .join("");
+    tabs.querySelectorAll("button").forEach(b => b.addEventListener("click", () => draw(b.dataset.type)));
+    draw("");
+  } catch (err) {
+    list.innerHTML = `<div class="text-danger small">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// ---- Paylaş: a post you share shows the original in a frame under your own words ----
+
+// The original inside a share. When the viewer may not see it (deleted, or hidden from them) there is only a note.
+function sharedPostHtml(post) {
+  const s = post.sharedPost;
+  if (!s) {
+    return `<div class="shared-post text-muted small mb-2"><i class="bi bi-slash-circle me-1"></i>Bu gönderi silinmiş ya da artık görüntülenemiyor.</div>`;
+  }
+
+  return `
+    <div class="shared-post mb-2">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <a href="profile.html?id=${s.authorId}"><img src="${s.authorAvatarUrl || DEFAULT_AVATAR}" class="avatar-xs" alt=""></a>
+        <div>
+          <a href="profile.html?id=${s.authorId}" class="fw-bold small text-body text-decoration-none">${escapeHtml(s.authorName)}</a>
+          <div class="text-muted" style="font-size:12px;"><a href="post.html?id=${s.id}" class="text-muted text-decoration-none">${timeAgo(s.createdAt)}</a></div>
+        </div>
+      </div>
+      ${s.text ? `<p class="mb-2">${richTextHtml(s.text, s.mentions)}</p>` : ""}
+      ${postMediaHtml(s)}
+    </div>`;
+}
+
+function ensureShareModal() {
+  if (document.getElementById("postShareModal")) return;
+
+  document.body.insertAdjacentHTML("beforeend", `
+    <div class="modal fade" id="postShareModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold">Gönderiyi Paylaş</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <textarea id="postShareText" data-mention class="form-control" rows="3" maxlength="5000" placeholder="Bir şey eklemek ister misin? (isteğe bağlı)"></textarea>
+            <div class="mt-3">
+              <label class="form-label small fw-semibold" for="postSharePrivacy">Kimler görebilir?</label>
+              <select id="postSharePrivacy" class="form-select form-select-sm rounded-pill">
+                <option value="Public">Herkese Açık</option>
+                <option value="FriendsOnly">Sadece Arkadaşlar</option>
+              </select>
+            </div>
+            <div class="text-danger small mt-2 d-none" id="postShareError"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>
+            <button type="button" class="btn btn-primary rounded-pill" id="postShareSend" onclick="submitShare()">Paylaş</button>
+          </div>
+        </div>
+      </div>
+    </div>`);
+}
+
+function openShare(postId) {
+  ensureShareModal();
+  const modal = document.getElementById("postShareModal");
+  modal.dataset.postId = postId;
+  document.getElementById("postShareText").value = "";
+  document.getElementById("postSharePrivacy").value = "Public";
+  document.getElementById("postShareError").classList.add("d-none");
+  bootstrap.Modal.getOrCreateInstance(modal).show();
+}
+
+async function submitShare() {
+  const modal = document.getElementById("postShareModal");
+  const error = document.getElementById("postShareError");
+  const button = document.getElementById("postShareSend");
+  button.disabled = true;
+
+  try {
+    await apiFetch(`/api/posts/${modal.dataset.postId}/share`, {
+      method: "POST",
+      body: {
+        text: document.getElementById("postShareText").value,
+        privacy: document.getElementById("postSharePrivacy").value
+      }
+    });
+    bootstrap.Modal.getInstance(modal).hide();
+    toast("Gönderi paylaşıldı.");
+  } catch (err) {
+    error.textContent = err.message || "Paylaşılamadı.";
+    error.classList.remove("d-none");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+// The "Kaydet" item of a post's menu. On the saved-posts page a removed post leaves the list (afterPostUnsaved).
+async function toggleSavePost(postId, item) {
+  try {
+    const saved = await apiFetch(`/api/posts/${postId}/save`, { method: "POST" });
+    const card = item.closest(".card[data-post-id]");
+    item.querySelector(".save-label").textContent = saved ? "Kaydı Kaldır" : "Kaydet";
+    item.querySelector("i").className = `bi ${saved ? "bi-bookmark-fill" : "bi-bookmark"} me-2`;
+    const drawn = drawnPosts.get(postId);
+    if (drawn) drawn.isSavedByCurrentUser = saved;
+    toast(saved ? "Gönderi kaydedildi." : "Kayıt kaldırıldı.");
+    if (!saved) window.afterPostUnsaved?.(card);
+  } catch (err) {
+    toast(err.message || "İşlem gerçekleştirilemedi.");
+  }
+}
+
+// ---- Anket: the answers of a poll as buttons (before voting) or as bars with the results ----
+
+function pollTimeLeft(endsAt) {
+  const end = new Date(/Z$|[+-]\d\d:\d\d$/.test(endsAt) ? endsAt : `${endsAt}Z`).getTime();
+  const minutes = Math.max(1, Math.round((end - Date.now()) / 60000));
+  if (minutes < 60) return `${minutes} dakika kaldı`;
+  const hours = Math.round(minutes / 60);
+  return hours < 48 ? `${hours} saat kaldı` : `${Math.round(hours / 24)} gün kaldı`;
+}
+
+// What the server allows (post.poll.showResults / canVote) decides everything: this only draws it.
+function pollHtml(post) {
+  const poll = post.poll;
+
+  const rows = poll.options.map(option => {
+    const vote = poll.canVote ? `onclick="votePoll('${post.id}', '${option.id}')"` : "";
+
+    if (!poll.showResults) {
+      return `<button type="button" class="btn btn-outline-primary w-100 text-start rounded-pill mb-2" ${vote}>${escapeHtml(option.text)}</button>`;
+    }
+
+    const mine = poll.myOptionId === option.id;
+    return `
+      <div class="poll-row ${poll.canVote ? "poll-clickable" : ""} ${mine ? "poll-mine" : ""}" ${poll.canVote ? `role="button"` : ""} ${vote}>
+        <div class="poll-fill" style="width:${option.percent}%"></div>
+        <span class="poll-text">${mine ? `<i class="bi bi-check-circle-fill me-1"></i>` : ""}${escapeHtml(option.text)}</span>
+        <span class="poll-percent">${option.percent}% <span class="text-muted">(${option.voteCount})</span></span>
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="post-poll mb-2">
+      ${rows}
+      <div class="text-muted small">${poll.totalVotes} oy · ${poll.isEnded ? "Anket sona erdi" : pollTimeLeft(poll.endsAt)}</div>
+    </div>`;
+}
+
+// Draws only the poll again (after a vote here, or a push that somebody voted).
+function replacePoll(post) {
+  const drawn = drawnPosts.get(post.id);
+  if (drawn) drawn.poll = post.poll;
+  const block = document.querySelector(`.card[data-post-id="${post.id}"] .post-poll`);
+  if (block && post.poll) block.outerHTML = pollHtml(post);
+}
+
+async function votePoll(postId, optionId) {
+  try {
+    replacePoll(await apiFetch(`/api/posts/${postId}/poll/vote`, { method: "POST", body: { optionId } }));
+  } catch (err) {
+    toast(err.message || "Oy verilemedi.");
   }
 }
 

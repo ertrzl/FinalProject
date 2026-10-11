@@ -12,6 +12,7 @@ public class GetNotificationDto
     public string Type { get; set; } = string.Empty; // FriendRequestReceived / PostLiked / CommentAdded / ...
     public Guid? PostId { get; set; }
     public Guid? CommentId { get; set; }
+    public string? Reaction { get; set; } // PostLiked: which reaction (Love, Haha...); null on old "beğendi" notifications
     public Guid? FriendRequestId { get; set; }
     public Guid? GroupId { get; set; }
     public string? GroupName { get; set; }

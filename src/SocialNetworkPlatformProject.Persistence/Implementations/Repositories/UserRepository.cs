@@ -164,6 +164,7 @@ public class UserRepository : IUserRepository
             .ExecuteDeleteAsync();
 
         await _context.Set<PostLike>().Where(l => l.UserId == userId).ExecuteDeleteAsync();
+        await _context.Set<PollVote>().Where(v => v.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<CommentLike>().Where(l => l.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<SavedPost>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
 
@@ -172,6 +173,12 @@ public class UserRepository : IUserRepository
             .Where(c => c.ParentCommentId != null && myCommentIds.Contains(c.ParentCommentId.Value))
             .ExecuteDeleteAsync();
         await myComments.ExecuteDeleteAsync();
+
+        // Other people's shares of these posts stop pointing at them (a self-reference cannot null itself in SQL Server);
+        // the user's own shares go with the user's posts below.
+        await _context.Set<Post>()
+            .Where(p => p.SharedPostId != null && myPostIds.Contains(p.SharedPostId.Value))
+            .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.SharedPostId, (Guid?)null));
 
         await myPosts.ExecuteDeleteAsync();
 

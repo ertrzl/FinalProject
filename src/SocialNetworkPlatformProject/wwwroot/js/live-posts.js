@@ -10,14 +10,21 @@ function liveCommentsList(postId) {
   return container && container.dataset.loaded ? container.querySelector(".comments-list") : null;
 }
 
+// Somebody reacted: the total and the emoji split change. The viewer's own reaction does not (it is not in the push).
 document.addEventListener("realtime:post-likes", e => {
-  const { postId, likeCount } = e.detail;
+  const { postId, likeCount, reactions } = e.detail;
   const card = livePostCard(postId);
-  if (!card) return;
-  card.querySelector(".like-count-label").textContent = likeCount;
-  const counter = card.querySelector(".like-count");
-  counter.textContent = likeCount;
-  counter.dataset.count = likeCount;
+  if (card) applyReactionResult(card, { likeCount, reactions }, false);
+});
+
+// Somebody voted in a poll: what this viewer sees of it depends on who they are, so it is fetched again.
+document.addEventListener("realtime:poll-voted", async e => {
+  if (!livePostCard(e.detail.postId)) return;
+  try {
+    replacePoll(await apiFetch(`/api/posts/${e.detail.postId}`));
+  } catch (err) {
+    // Gone or no longer visible: the delete event (or the next reload) takes care of it.
+  }
 });
 
 document.addEventListener("realtime:comment-added", e => {

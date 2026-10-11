@@ -357,7 +357,7 @@ async function publishGroupPost(btn) {
   try {
     const formData = new FormData();
     if (text) formData.append("text", text);
-    files.forEach(file => formData.append("media", file));
+    appendComposerAttachments(formData);
     formData.append("groupId", groupId);
 
     await apiFetchForm("/api/posts", { method: "POST", body: formData });

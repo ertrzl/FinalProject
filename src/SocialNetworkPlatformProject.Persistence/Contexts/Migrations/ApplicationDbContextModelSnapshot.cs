@@ -835,6 +835,84 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.ToTable("Notifications");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Poll", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("EndsAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId")
+                        .IsUnique();
+
+                    b.ToTable("Polls");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.PollOption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("PollId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PollId", "SortOrder");
+
+                    b.ToTable("PollOptions");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.PollVote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("OptionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PollId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OptionId");
+
+                    b.HasIndex("PollId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("PollVotes");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Post", b =>
                 {
                     b.Property<Guid>("Id")
@@ -850,13 +928,21 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<Guid?>("GroupId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("IsShare")
+                        .HasColumnType("bit");
+
                     b.Property<int>("Privacy")
                         .HasColumnType("int");
+
+                    b.Property<Guid?>("SharedPostId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Text")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SharedPostId");
 
                     b.HasIndex("AuthorId", "CreatedAt");
 
@@ -901,6 +987,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.Property<Guid>("PostId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
@@ -1447,6 +1536,39 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Conversation");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Poll", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Post", "Post")
+                        .WithOne("Poll")
+                        .HasForeignKey("SocialNetworkPlatformProject.Domain.Entities.Poll", "PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.PollOption", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Poll", "Poll")
+                        .WithMany("Options")
+                        .HasForeignKey("PollId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Poll");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.PollVote", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.PollOption", "Option")
+                        .WithMany()
+                        .HasForeignKey("OptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Option");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Post", b =>
                 {
                     b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Group", "Group")
@@ -1454,7 +1576,14 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade);
 
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Post", "SharedPost")
+                        .WithMany()
+                        .HasForeignKey("SharedPostId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Group");
+
+                    b.Navigation("SharedPost");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.PostHashtag", b =>
@@ -1578,6 +1707,11 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Images");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Poll", b =>
+                {
+                    b.Navigation("Options");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Post", b =>
                 {
                     b.Navigation("Comments");
@@ -1587,6 +1721,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Likes");
 
                     b.Navigation("Media");
+
+                    b.Navigation("Poll");
 
                     b.Navigation("SavedBy");
                 });

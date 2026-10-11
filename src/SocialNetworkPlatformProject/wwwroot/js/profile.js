@@ -215,7 +215,7 @@ async function publishPost(btn) {
   try {
     const formData = new FormData();
     if (text) formData.append("text", text);
-    files.forEach(file => formData.append("media", file));
+    appendComposerAttachments(formData);
     formData.append("privacy", privacy);
 
     await apiFetchForm("/api/posts", { method: "POST", body: formData });

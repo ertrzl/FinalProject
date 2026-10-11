@@ -192,21 +192,20 @@ function loadPosts() {
 
 function loadPhotosFromPosts() {
   const grid = document.getElementById("photosGrid");
-  // Video posts don't belong in the photo grid — they show up on the wall itself.
-  const photos = loadedPosts.filter(p => p.mediaUrl && p.mediaType !== "Video");
+  // Every photo of every post (a post with several photos gives several tiles); videos show up on the wall itself.
+  const photos = loadedPosts.flatMap(p => p.media).filter(m => m.type === "Image");
   grid.innerHTML = photos.length
-    ? photos.map(p => `<div class="col"><img src="${p.mediaUrl}" class="w-100 rounded-3" style="aspect-ratio:1/1;object-fit:cover;" alt=""></div>`).join("")
+    ? photos.map(m => `<div class="col"><img src="${m.url}" class="w-100 rounded-3" style="aspect-ratio:1/1;object-fit:cover;" alt=""></div>`).join("")
     : `<div class="text-muted small">Henüz fotoğraf yok.</div>`;
 }
 
 async function publishPost(btn) {
   const textarea = document.getElementById("composerText");
-  const fileInput = document.getElementById("composerFile");
   const privacy = document.getElementById("composerPrivacy").value;
   const text = textarea.value.trim();
-  const file = fileInput.files[0];
+  const files = getComposerFiles();
 
-  if (!text && !file) {
+  if (!text && files.length === 0) {
     textarea.classList.add("is-invalid");
     setTimeout(() => textarea.classList.remove("is-invalid"), 1200);
     return;
@@ -216,7 +215,7 @@ async function publishPost(btn) {
   try {
     const formData = new FormData();
     if (text) formData.append("text", text);
-    if (file) formData.append("media", file);
+    files.forEach(file => formData.append("media", file));
     formData.append("privacy", privacy);
 
     await apiFetchForm("/api/posts", { method: "POST", body: formData });

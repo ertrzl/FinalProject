@@ -50,17 +50,13 @@
     <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 composer d-none" id="groupComposerWrap">
       <div class="d-flex gap-3">
         <img id="composerAvatar" src="images/default-avatar.png" class="avatar-sm flex-shrink-0 nav-profile-avatar" alt="">
-        <textarea id="composerText" class="form-control" rows="2" placeholder="Grupta ne paylaşmak istersin?"></textarea>
+        <textarea id="composerText" data-mention class="form-control" rows="2" placeholder="Grupta ne paylaşmak istersin?"></textarea>
       </div>
-      <div class="d-none mt-3 position-relative" id="composerPreview">
-        <button type="button" class="btn btn-dark btn-sm rounded-circle position-absolute top-0 end-0 m-2" onclick="clearComposerImage()"><i class="bi bi-x"></i></button>
-        <img id="composerPreviewImg" src="" alt="" class="rounded-3 w-100 d-none" style="max-height:260px; object-fit:cover;">
-        <video id="composerPreviewVideo" src="" class="rounded-3 w-100 d-none" style="max-height:260px; object-fit:cover;" controls></video>
-      </div>
+      <div class="d-none mt-3" id="composerPreview"></div>
       <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3 pt-3 border-top">
         <label class="attach-label m-0">
           <i class="bi bi-image"></i> Fotoğraf/Video Ekle
-          <input type="file" id="composerFile" class="d-none" accept="image/*,video/*" onchange="previewComposerImage(this)">
+          <input type="file" id="composerFile" class="d-none" accept="image/*,video/*" multiple onchange="addComposerFiles(this)">
         </label>
         <button type="button" id="composerSubmitBtn" class="btn btn-primary btn-sm rounded-pill px-3" onclick="publishGroupPost(this)">Paylaş</button>
       </div>
@@ -169,6 +165,7 @@
 <script src="js/chat-dock.js"></script>
 <script src="js/pager.js"></script>
 <script src="js/post-card.js"></script>
+<script src="js/mention-autocomplete.js"></script>
 <script src="js/live-posts.js"></script>
 <script src="js/location-autocomplete.js"></script>
 <script src="js/event-form.js"></script>

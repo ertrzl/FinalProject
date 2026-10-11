@@ -13,7 +13,8 @@ public class PostProfile : Profile
         // all are filled in by PostService after this mapping runs, not here.
         CreateMap<Post, GetPostDto>()
             .ForMember(dest => dest.Privacy, opt => opt.MapFrom(src => src.Privacy.ToString()))
-            .ForMember(dest => dest.MediaType, opt => opt.MapFrom(src => src.MediaType.ToString()))
+            .ForMember(dest => dest.Media, opt => opt.MapFrom(src => src.Media.OrderBy(m => m.SortOrder)))
+            .ForMember(dest => dest.Mentions, opt => opt.Ignore())
             .ForMember(dest => dest.IsGroupPost, opt => opt.MapFrom(src => src.GroupId != null))
             .ForMember(dest => dest.LikeCount, opt => opt.Ignore())
             .ForMember(dest => dest.CommentCount, opt => opt.Ignore())
@@ -24,5 +25,8 @@ public class PostProfile : Profile
             .ForMember(dest => dest.IsSavedByCurrentUser, opt => opt.Ignore())
             .ForMember(dest => dest.CanDelete, opt => opt.Ignore())
             .ForMember(dest => dest.CanEdit, opt => opt.Ignore());
+
+        CreateMap<PostMedia, GetPostMediaDto>()
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.MediaType.ToString()));
     }
 }

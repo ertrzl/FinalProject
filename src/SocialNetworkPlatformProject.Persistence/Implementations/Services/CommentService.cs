@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Comments;
 using SocialNetworkPlatformProject.Application.DTOs.Common;
 using SocialNetworkPlatformProject.Application.Exceptions;
@@ -19,6 +20,7 @@ public class CommentService : ICommentService
     private readonly IPostRepository _posts;
     private readonly IUserRepository _users;
     private readonly IPostAccessService _access;
+    private readonly IMentionService _mentions;
     private readonly INotificationService _notifications;
     private readonly ILiveUpdateService _live;
     private readonly IMapper _mapper;
@@ -29,6 +31,7 @@ public class CommentService : ICommentService
         IPostRepository posts,
         IUserRepository users,
         IPostAccessService access,
+        IMentionService mentions,
         INotificationService notifications,
         ILiveUpdateService live,
         IMapper mapper)
@@ -38,6 +41,7 @@ public class CommentService : ICommentService
         _posts = posts;
         _users = users;
         _access = access;
+        _mentions = mentions;
         _notifications = notifications;
         _live = live;
         _mapper = mapper;
@@ -112,6 +116,12 @@ public class CommentService : ICommentService
                 postId: post.Id, commentId: comment.Id);
         }
 
+        // Somebody tagged in the comment is told too, unless the notifications above already reached them.
+        var alreadyNotified = new List<Guid> { post.AuthorId };
+        if (parent != null)
+            alreadyNotified.Add(parent.AuthorId);
+        await _mentions.NotifyAsync(post, currentUserId, comment.Text, previousText: null, comment.Id, alreadyNotified);
+
         var result = (await BuildDtosAsync(new[] { comment }, post, currentUserId))[0];
         await _live.CommentAddedAsync(post, result, await CountForPostAsync(post.Id));
         return result;
@@ -183,6 +193,7 @@ public class CommentService : ICommentService
         var list = comments.ToList();
         var authors = await _users.GetSummariesAsync(list.Select(c => c.AuthorId));
         var canModerate = await _access.CanModerateAsync(post, currentUserId);
+        var mentioned = await _mentions.ResolveAsync(list.Select(c => c.Text));
 
         var dtos = _mapper.Map<List<GetCommentDto>>(list);
         for (var i = 0; i < dtos.Count; i++)
@@ -195,6 +206,7 @@ public class CommentService : ICommentService
 
             dtos[i].IsLikedByCurrentUser = list[i].Likes.Any(l => l.UserId == currentUserId);
             dtos[i].CanDelete = canModerate || list[i].AuthorId == currentUserId;
+            dtos[i].Mentions = MentionParser.Pick(list[i].Text, mentioned);
         }
 
         return dtos;

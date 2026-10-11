@@ -10,6 +10,7 @@ public class CommentProfile : Profile
     {
         CreateMap<Comment, GetCommentDto>()
             .ForMember(dest => dest.LikeCount, opt => opt.MapFrom(src => src.Likes.Count))
+            .ForMember(dest => dest.Mentions, opt => opt.Ignore())
             .ForMember(dest => dest.AuthorName, opt => opt.Ignore())
             .ForMember(dest => dest.AuthorAvatarUrl, opt => opt.Ignore())
             .ForMember(dest => dest.IsLikedByCurrentUser, opt => opt.Ignore())

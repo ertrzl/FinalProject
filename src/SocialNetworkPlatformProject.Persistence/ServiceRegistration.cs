@@ -99,6 +99,7 @@ public static class ServiceRegistration
         services.AddScoped<IFriendService, FriendService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPostAccessService, PostAccessService>();
+        services.AddScoped<IMentionService, MentionService>();
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IStoryService, StoryService>();

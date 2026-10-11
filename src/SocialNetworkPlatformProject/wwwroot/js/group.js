@@ -344,11 +344,10 @@ function loadGroupPosts() {
 
 async function publishGroupPost(btn) {
   const textarea = document.getElementById("composerText");
-  const fileInput = document.getElementById("composerFile");
   const text = textarea.value.trim();
-  const file = fileInput.files[0];
+  const files = getComposerFiles();
 
-  if (!text && !file) {
+  if (!text && files.length === 0) {
     textarea.classList.add("is-invalid");
     setTimeout(() => textarea.classList.remove("is-invalid"), 1200);
     return;
@@ -358,7 +357,7 @@ async function publishGroupPost(btn) {
   try {
     const formData = new FormData();
     if (text) formData.append("text", text);
-    if (file) formData.append("media", file);
+    files.forEach(file => formData.append("media", file));
     formData.append("groupId", groupId);
 
     await apiFetchForm("/api/posts", { method: "POST", body: formData });

@@ -227,6 +227,25 @@ function linkifyHashtags(escapedText) {
     (match, before, tag) => `${before}<a href="search.html?q=${encodeURIComponent("#" + tag)}" class="text-primary text-decoration-none">#${tag}</a>`);
 }
 
+// Turns "@username" into a link to that person's profile. `mentions` is what the server sent with the text
+// (post.mentions / comment.mentions): only the people who really exist, so any other "@something" stays plain text.
+// Text must already be escaped (user names contain no characters escapeHtml touches).
+function linkifyMentions(escapedText, mentions) {
+  let html = escapedText;
+  for (const person of mentions || []) {
+    const name = person.userName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const pattern = new RegExp(`(^|[^\\p{L}0-9_.@])@${name}(?![a-zA-Z0-9_]|\\.[a-zA-Z0-9_])`, "giu");
+    html = html.replace(pattern,
+      (match, before) => `${before}<a href="profile.html?id=${person.userId}" class="text-primary text-decoration-none fw-semibold">@${person.userName}</a>`);
+  }
+  return html;
+}
+
+// The text of a post or a comment as html: escaped, with its @tags and #hashtags turned into links.
+function richTextHtml(text, mentions) {
+  return linkifyHashtags(linkifyMentions(escapeHtml(text), mentions));
+}
+
 function timeAgo(isoDate) {
   // ASP.NET Core serializes DateTime (not DateTimeOffset) without a "Z" suffix even though it's UTC —
   // without it, JS's Date parser treats the string as local time and skews every timestamp.
@@ -335,11 +354,33 @@ function eventAttendanceText(ev) {
   return ev.capacity != null ? `${ev.goingCount} / ${ev.capacity} katılımcı` : `${ev.goingCount} katılımcı`;
 }
 
-// Post card media block: an <img> for photo posts, a <video> for video posts.
+// Post card media block: one <img>, a <video>, or - for several photos - a carousel you can swipe or click through.
+let postCarouselCount = 0;
+
 function postMediaHtml(post) {
-  if (!post.mediaUrl) return "";
-  if (post.mediaType === "Video") {
-    return `<div class="rounded-3 overflow-hidden mb-2"><video src="${post.mediaUrl}" class="w-100" style="max-height:420px;object-fit:cover;" controls></video></div>`;
+  const media = post.media || [];
+  if (media.length === 0) return "";
+
+  if (media[0].type === "Video") {
+    return `<div class="rounded-3 overflow-hidden mb-2"><video src="${media[0].url}" class="w-100" style="max-height:420px;object-fit:cover;" controls></video></div>`;
   }
-  return `<div class="rounded-3 overflow-hidden mb-2"><img src="${post.mediaUrl}" class="w-100" style="max-height:420px;object-fit:cover;" alt=""></div>`;
+
+  if (media.length === 1) {
+    return `<div class="rounded-3 overflow-hidden mb-2"><img src="${media[0].url}" class="w-100" style="max-height:420px;object-fit:cover;" alt=""></div>`;
+  }
+
+  const id = `post-media-${post.id}-${++postCarouselCount}`;
+  const slides = media.map((m, i) => `
+        <div class="carousel-item ${i === 0 ? "active" : ""}"><img src="${m.url}" class="d-block w-100" style="height:420px;object-fit:cover;" alt=""></div>`).join("");
+  const dots = media.map((_, i) => `
+        <button type="button" data-bs-target="#${id}" data-bs-slide-to="${i}" class="${i === 0 ? "active" : ""}" aria-label="${i + 1}. fotoğraf"></button>`).join("");
+
+  return `
+    <div id="${id}" class="carousel slide rounded-3 overflow-hidden mb-2 post-carousel" data-bs-interval="false">
+      <div class="carousel-indicators">${dots}</div>
+      <div class="carousel-inner">${slides}</div>
+      <button class="carousel-control-prev" type="button" data-bs-target="#${id}" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
+      <button class="carousel-control-next" type="button" data-bs-target="#${id}" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+      <span class="badge text-bg-dark position-absolute top-0 end-0 m-2 opacity-75"><i class="bi bi-images me-1"></i>${media.length}</span>
+    </div>`;
 }

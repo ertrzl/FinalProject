@@ -41,10 +41,8 @@ function postResultHtml(post) {
       <div class="flex-grow-1 overflow-hidden">
         <div class="fw-bold small"><a href="profile.html?id=${post.authorId}" class="text-body text-decoration-none">${escapeHtml(post.authorName)}</a></div>
         <div class="text-muted small mb-1"><a href="post.html?id=${post.id}" class="text-muted text-decoration-none">${timeAgo(post.createdAt)}</a></div>
-        ${post.text ? `<p class="mb-2">${linkifyHashtags(escapeHtml(post.text))}</p>` : ""}
-        ${post.mediaUrl ? (post.mediaType === "Video"
-          ? `<video src="${post.mediaUrl}" class="rounded-3 mb-2" style="max-width:100%;max-height:280px;object-fit:cover;" controls></video>`
-          : `<img src="${post.mediaUrl}" class="rounded-3 mb-2" style="max-width:100%;max-height:280px;object-fit:cover;" alt="">`) : ""}
+        ${post.text ? `<p class="mb-2">${richTextHtml(post.text, post.mentions)}</p>` : ""}
+        ${postMediaHtml(post)}
         <button class="btn btn-sm p-0 text-muted fw-semibold like-btn ${likedClass}" onclick="togglePostResultLike(this)">
           <i class="like-icon bi ${heartIcon}"></i> <span class="like-count">${post.likeCount}</span>
         </button>

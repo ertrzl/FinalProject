@@ -38,7 +38,7 @@ function postCardHtml(post) {
         </div>
         ${menu}
       </div>
-      ${post.text ? `<p class="mt-3 mb-2">${linkifyHashtags(escapeHtml(post.text))}</p>` : ""}
+      ${post.text ? `<p class="mt-3 mb-2">${richTextHtml(post.text, post.mentions)}</p>` : ""}
       ${postMediaHtml(post)}
       <div class="d-flex justify-content-between text-muted small py-2 border-bottom">
         <span><i class="bi bi-heart-fill text-danger"></i> <span class="like-count-label">${post.likeCount}</span> beğeni</span>
@@ -57,7 +57,7 @@ function postCardHtml(post) {
         <div class="comments-list mb-2"></div>
         <form class="d-flex gap-2 align-items-center" onsubmit="return submitComment(event, '${post.id}')">
           <img src="${getSession()?.avatarUrl || DEFAULT_AVATAR}" class="avatar-xs" alt="">
-          <input type="text" autocomplete="off" class="form-control form-control-sm rounded-pill" placeholder="Bir yorum yaz...">
+          <input type="text" autocomplete="off" data-mention class="form-control form-control-sm rounded-pill" placeholder="Bir yorum yaz...">
         </form>
       </div>
     </div>`;
@@ -80,7 +80,7 @@ function commentHtml(c) {
       <img src="${c.authorAvatarUrl || DEFAULT_AVATAR}" class="avatar-xs flex-shrink-0" alt="">
       <div class="comment-bubble flex-grow-1">
         <div class="fw-bold small c-name">${escapeHtml(c.authorName)}</div>
-        <div class="small">${escapeHtml(c.text)}</div>
+        <div class="small">${richTextHtml(c.text, c.mentions)}</div>
         <div class="small text-muted mt-1 d-flex gap-3">
           <span>${timeAgo(c.createdAt)}</span>
           <a href="#" class="comment-like-link ${likedClass}" onclick="return toggleCommentLike(event, this)">${likeLabel}<span class="comment-like-count">${likeCountLabel}</span></a>
@@ -184,7 +184,7 @@ function startReply(event, link) {
   const postId = link.closest(".card[data-post-id]").dataset.postId;
   row.querySelector(".comment-bubble").insertAdjacentHTML("beforeend", `
     <form class="reply-form d-flex gap-2 mt-2" onsubmit="return submitReply(event, '${postId}', '${row.dataset.replyTo}')">
-      <input type="text" autocomplete="off" class="form-control form-control-sm rounded-pill">
+      <input type="text" autocomplete="off" data-mention class="form-control form-control-sm rounded-pill">
       <button type="submit" class="btn btn-primary btn-sm rounded-pill">Yanıtla</button>
     </form>`);
 
@@ -256,7 +256,7 @@ function ensurePostEditModal() {
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
-            <textarea id="postEditText" class="form-control" rows="5" maxlength="5000"></textarea>
+            <textarea id="postEditText" data-mention class="form-control" rows="5" maxlength="5000"></textarea>
             <div id="postEditPrivacyRow" class="mt-3">
               <label class="form-label small fw-semibold" for="postEditPrivacy">Kimler görebilir?</label>
               <select id="postEditPrivacy" class="form-select form-select-sm rounded-pill">

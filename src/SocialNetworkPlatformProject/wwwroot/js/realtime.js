@@ -22,7 +22,8 @@
     FriendRequestAccepted: "arkadaşlık isteğini kabul etti.",
     PostLiked: "gönderini beğendi.",
     CommentAdded: "gönderine yorum yaptı.",
-    CommentLiked: "yorumunu beğendi."
+    CommentLiked: "yorumunu beğendi.",
+    Mentioned: "seni etiketledi."
   };
 
   function createConnection(url) {

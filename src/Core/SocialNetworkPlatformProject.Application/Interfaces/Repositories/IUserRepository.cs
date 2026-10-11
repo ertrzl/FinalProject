@@ -9,6 +9,9 @@ public interface IUserRepository
 
     Task<Dictionary<Guid, UserSummary>> GetSummariesAsync(IEnumerable<Guid> ids);
 
+    // Users by user name, in any letter case; the key is the lower-case user name. Unknown names are simply missing.
+    Task<Dictionary<string, UserSummary>> GetSummariesByUserNamesAsync(IEnumerable<string> userNames);
+
     Task<bool> ExistsAsync(Guid id);
 
     // The user's current security stamp; null when there is no such user.

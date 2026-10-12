@@ -40,19 +40,19 @@ public class OfferService : IOfferService
     public async Task<GetListingOfferDto> CreateAsync(Guid currentUserId, Guid listingId, PostOfferPriceDto dto)
     {
         var listing = await _listings.GetByIdAsync(listingId)
-            ?? throw new NotFoundException("Listing not found.");
+            ?? throw new NotFoundException(Loc.T("listing.notFound"));
 
         if (listing.SellerId == currentUserId)
-            throw new BadRequestException("You can't make an offer on your own listing.");
+            throw new BadRequestException(Loc.T("offer.ownListing"));
 
         if (listing.Status != ListingStatus.Active)
-            throw new BadRequestException("This listing is no longer for sale.");
+            throw new BadRequestException(Loc.T("offer.notForSale"));
 
         if (dto.Price > listing.Price)
             throw new BadRequestException($"An offer can't be higher than the asking price ({Format(listing.Price)}).");
 
         if (await _offers.AnyAsync(o => o.ListingId == listingId && o.BuyerId == currentUserId && o.Status == OfferStatus.Open))
-            throw new ConflictException("You already have a running offer on this listing.");
+            throw new ConflictException(Loc.T("offer.running"));
 
         var offer = new ListingOffer
         {
@@ -177,7 +177,7 @@ public class OfferService : IOfferService
         EnsureOpen(offer);
 
         if (offer.LastProposerId != currentUserId)
-            throw new BadRequestException("You can only withdraw your own proposal. Answer the other side's proposal instead.");
+            throw new BadRequestException(Loc.T("offer.withdrawOwn"));
 
         offer.Status = OfferStatus.Withdrawn;
         offer.UpdatedAt = DateTime.UtcNow;
@@ -219,10 +219,10 @@ public class OfferService : IOfferService
     private async Task<ListingOffer> LoadParticipantOfferAsync(Guid currentUserId, Guid offerId)
     {
         var offer = await _offers.GetAll(o => o.Id == offerId, includes: OfferIncludes).AsSplitQuery().FirstOrDefaultAsync()
-            ?? throw new NotFoundException("Offer not found.");
+            ?? throw new NotFoundException(Loc.T("offer.notFound"));
 
         if (offer.BuyerId != currentUserId && offer.SellerId != currentUserId)
-            throw new ForbiddenException("This offer isn't yours.");
+            throw new ForbiddenException(Loc.T("offer.notYours"));
 
         return offer;
     }
@@ -235,10 +235,10 @@ public class OfferService : IOfferService
         EnsureOpen(offer);
 
         if (offer.LastProposerId == currentUserId)
-            throw new BadRequestException("It's the other side's turn to answer your proposal.");
+            throw new BadRequestException(Loc.T("offer.otherTurn"));
 
         if (offer.Listing!.Status != ListingStatus.Active)
-            throw new BadRequestException("This listing is no longer for sale.");
+            throw new BadRequestException(Loc.T("offer.notForSale"));
 
         return offer;
     }
@@ -246,7 +246,7 @@ public class OfferService : IOfferService
     private static void EnsureOpen(ListingOffer offer)
     {
         if (offer.Status != OfferStatus.Open)
-            throw new ConflictException("This negotiation has already ended.");
+            throw new ConflictException(Loc.T("offer.ended"));
     }
 
     private static Guid OtherParty(ListingOffer offer, Guid currentUserId)

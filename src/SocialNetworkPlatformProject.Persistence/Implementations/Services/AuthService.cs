@@ -31,10 +31,10 @@ public class AuthService : IAuthService
         var email = dto.Email.Trim();
 
         if (await _userManager.FindByEmailAsync(email) != null)
-            throw new ConflictException("This email is already registered.");
+            throw new ConflictException(Loc.T("auth.emailTaken"));
 
         if (await _userManager.FindByNameAsync(userName) != null)
-            throw new ConflictException("This username is already taken.");
+            throw new ConflictException(Loc.T("auth.userNameTaken"));
 
         string? avatarUrl = null;
         if (dto.Avatar != null)
@@ -69,7 +69,7 @@ public class AuthService : IAuthService
             : await _userManager.FindByNameAsync(identifier);
 
         if (user == null || !await _passwords.VerifyAsync(user, dto.Password))
-            throw new UnauthorizedException("Invalid email/username or password.");
+            throw new UnauthorizedException(Loc.T("auth.badCredentials"));
 
         user.LastSeenAt = DateTime.UtcNow;
         await _userManager.UpdateAsync(user);

@@ -8,19 +8,19 @@ public class ResetPasswordDtoValidator : AbstractValidator<ResetPasswordDto>
     public ResetPasswordDtoValidator()
     {
         RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email is required.")
-            .EmailAddress().WithMessage("A valid email address is required.")
+            .NotEmpty().WithMessage(_ => Loc.T("val.email.required"))
+            .EmailAddress().WithMessage(_ => Loc.T("val.email.invalid"))
             .MaximumLength(256);
 
         RuleFor(x => x.Token)
-            .NotEmpty().WithMessage("The reset code is missing.")
+            .NotEmpty().WithMessage(_ => Loc.T("val.reset.code"))
             .MaximumLength(2048);
 
         RuleFor(x => x.NewPassword)
-            .NotEmpty().WithMessage("New password is required.")
-            .MinimumLength(8).WithMessage("Password must be at least 8 characters long.");
+            .NotEmpty().WithMessage(_ => Loc.T("val.password.newRequired"))
+            .MinimumLength(8).WithMessage(_ => Loc.T("val.password.short"));
 
         RuleFor(x => x.ConfirmNewPassword)
-            .Equal(x => x.NewPassword).WithMessage("Passwords do not match.");
+            .Equal(x => x.NewPassword).WithMessage(_ => Loc.T("val.password.mismatch"));
     }
 }

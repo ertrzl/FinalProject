@@ -33,14 +33,14 @@ public class EventAccessService : IEventAccessService
     public async Task<Event> GetViewableAsync(Guid viewerId, Guid eventId, params string[] includes)
     {
         var found = await _events.GetByIdAsync(eventId, includes)
-            ?? throw new NotFoundException("Event not found.");
+            ?? throw new NotFoundException(Loc.T("event.notFound"));
 
         // Same answer as "doesn't exist": a group event shouldn't reveal itself to people outside the group.
         if (found.GroupId.HasValue && !await IsGroupMemberAsync(found.GroupId.Value, viewerId))
-            throw new NotFoundException("Event not found.");
+            throw new NotFoundException(Loc.T("event.notFound"));
 
         if (found.IsPrivate && !await CanSeePrivateEventAsync(found, viewerId))
-            throw new NotFoundException("Event not found.");
+            throw new NotFoundException(Loc.T("event.notFound"));
 
         return found;
     }
@@ -91,13 +91,13 @@ public class EventAccessService : IEventAccessService
     public async Task EnsureCanCreateGroupEventAsync(Guid userId, Guid groupId)
     {
         if (!await _groups.AnyAsync(g => g.Id == groupId))
-            throw new NotFoundException("Group not found.");
+            throw new NotFoundException(Loc.T("group.notFound"));
 
         var membership = await _members.GetAll(m => m.GroupId == groupId && m.UserId == userId, asNoTracking: true)
             .FirstOrDefaultAsync()
-            ?? throw new ForbiddenException("Bu grubun üyesi değilsin.");
+            ?? throw new ForbiddenException(Loc.T("group.notMember"));
 
         if (membership.Role == GroupMemberRole.Member)
-            throw new ForbiddenException("Grup etkinliği oluşturmak için yönetici ya da moderatör olmalısın.");
+            throw new ForbiddenException(Loc.T("eventAccess.createNeedsAdmin"));
     }
 }

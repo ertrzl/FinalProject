@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Loc.T("key"): the texts shown to a person come from the language files of the Application project. -->
+    <Using Include="SocialNetworkPlatformProject.Application.Common" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- AddIdentity<TUser,TRole>() ships in the ASP.NET Core shared framework, not as a
          standalone NuGet package — needed here because this is a plain class library. -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />

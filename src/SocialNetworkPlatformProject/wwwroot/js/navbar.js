@@ -34,7 +34,7 @@ function navBadgeHtml(badgeClass) {
 }
 
 function navLinkHtml(link, active, extraClass = "") {
-  return `<a href="${link.href}" title="${link.label}" class="nav-pill-link ${extraClass} ${active === link.key ? "active" : ""}"><i class="bi ${link.icon}"></i><span class="nav-label">${link.label}</span>${navBadgeHtml(link.badge)}</a>`;
+  return `<a href="${link.href}" title="${link.label}" data-section="${link.key}" class="nav-pill-link ${extraClass} ${active === link.key ? "active" : ""}"><i class="bi ${link.icon}"></i><span class="nav-label">${link.label}</span>${navBadgeHtml(link.badge)}</a>`;
 }
 
 function accountMenuItemHtml(link, active) {
@@ -56,6 +56,7 @@ function topMenuHtml(active) {
       <div class="d-none d-md-flex align-items-center gap-1 ms-auto">
         ${MAIN_LINKS.map(link => navLinkHtml(link, active)).join("")}
         <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Temayı Değiştir"><i class="bi bi-moon-stars-fill"></i></button>
+        ${languagePickerHtml("ms-1")}
         <div class="dropdown ms-2">
           <button class="btn p-0 border-0 bg-transparent position-relative" data-bs-toggle="dropdown">
             <img src="images/default-avatar.png" class="avatar-xs nav-profile-avatar" alt="Profilim">
@@ -109,6 +110,7 @@ function menuPanelHtml(active) {
           <div class="border-top my-2"></div>
           ${ACCOUNT_LINKS.map(row).join("")}
           <button type="button" class="list-group-item list-group-item-action d-flex align-items-center gap-3" onclick="toggleTheme()"><i class="bi bi-moon-stars-fill theme-icon"></i>Temayı Değiştir</button>
+          <div class="list-group-item d-flex align-items-center gap-3"><i class="bi bi-translate"></i>${languagePickerHtml()}</div>
           <a href="#" class="list-group-item list-group-item-action d-flex align-items-center gap-3 text-danger" onclick="logout(); return false;"><i class="bi bi-box-arrow-right"></i>Çıkış Yap</a>
         </div>
       </div>

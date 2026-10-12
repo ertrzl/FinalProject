@@ -76,12 +76,12 @@ public class MarketplaceService : IMarketplaceService
 
         // Open negotiations were agreed against the current asking price, so it can't move underneath them.
         if (dto.Price != listing.Price && await _offerService.HasOpenOffersAsync(listing.Id))
-            throw new BadRequestException("The price can't be changed while there are open offers on this listing.");
+            throw new BadRequestException(Loc.T("listing.priceLocked"));
 
         var removeIds = dto.RemoveImageIds.Distinct().ToList();
         var removed = listing.Images.Where(i => removeIds.Contains(i.Id)).ToList();
         if (removed.Count != removeIds.Count)
-            throw new BadRequestException("One or more photos don't belong to this listing.");
+            throw new BadRequestException(Loc.T("listing.photosMismatch"));
 
         if (listing.Images.Count - removed.Count + dto.Images.Count > MarketplaceLimits.MaxImagesPerListing)
             throw new BadRequestException($"A listing can have at most {MarketplaceLimits.MaxImagesPerListing} photos.");
@@ -122,7 +122,7 @@ public class MarketplaceService : IMarketplaceService
     public async Task<GetMarketplaceListingDto> SetStatusAsync(Guid currentUserId, Guid listingId, PutListingStatusDto dto)
     {
         if (!Enum.TryParse<ListingStatus>(dto.Status, out var status))
-            throw new BadRequestException("Status must be either 'Active' or 'Sold'.");
+            throw new BadRequestException(Loc.T("listing.status"));
 
         var listing = await GetOwnedListingAsync(currentUserId, listingId, "You can only change the status of your own listings.");
 
@@ -141,7 +141,7 @@ public class MarketplaceService : IMarketplaceService
     public async Task<GetMarketplaceListingDto> GetByIdAsync(Guid currentUserId, Guid listingId)
     {
         var listing = await _listings.GetByIdAsync(listingId, ListingIncludes)
-            ?? throw new NotFoundException("Listing not found.");
+            ?? throw new NotFoundException(Loc.T("listing.notFound"));
 
         return (await BuildDtosAsync(new[] { listing }, currentUserId))[0];
     }
@@ -228,10 +228,10 @@ public class MarketplaceService : IMarketplaceService
     public async Task<bool> ToggleSaveAsync(Guid currentUserId, Guid listingId)
     {
         var listing = await _listings.GetByIdAsync(listingId)
-            ?? throw new NotFoundException("Listing not found.");
+            ?? throw new NotFoundException(Loc.T("listing.notFound"));
 
         if (listing.SellerId == currentUserId)
-            throw new BadRequestException("You can't save your own listing.");
+            throw new BadRequestException(Loc.T("listing.saveOwn"));
 
         var existing = await _saved.GetAll(s => s.UserId == currentUserId && s.ListingId == listingId).FirstOrDefaultAsync();
 
@@ -259,7 +259,7 @@ public class MarketplaceService : IMarketplaceService
     private async Task<MarketplaceListing> GetOwnedListingAsync(Guid currentUserId, Guid listingId, string forbiddenMessage)
     {
         var listing = await _listings.GetByIdAsync(listingId, ListingIncludes)
-            ?? throw new NotFoundException("Listing not found.");
+            ?? throw new NotFoundException(Loc.T("listing.notFound"));
 
         if (listing.SellerId != currentUserId)
             throw new ForbiddenException(forbiddenMessage);

@@ -9,10 +9,10 @@ public class PostEventDtoValidator : EventInputValidator<PostEventDto>
     public PostEventDtoValidator()
     {
         RuleFor(x => x.StartsAt)
-            .Must(startsAt => startsAt.ToUtc() > DateTime.UtcNow).WithMessage("Etkinlik başlangıcı gelecekte olmalı.");
+            .Must(startsAt => startsAt.ToUtc() > DateTime.UtcNow).WithMessage(_ => Loc.T("event.startFuture"));
 
         RuleFor(x => x.IsPrivate)
             .Equal(false).When(x => x.GroupId.HasValue)
-            .WithMessage("Grup etkinlikleri zaten sadece grup üyelerine açıktır, ayrıca özel yapılamaz.");
+            .WithMessage(_ => Loc.T("event.groupNotPrivate"));
     }
 }

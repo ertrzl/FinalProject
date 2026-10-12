@@ -8,8 +8,8 @@ public class ForgotPasswordDtoValidator : AbstractValidator<ForgotPasswordDto>
     public ForgotPasswordDtoValidator()
     {
         RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email is required.")
-            .EmailAddress().WithMessage("A valid email address is required.")
+            .NotEmpty().WithMessage(_ => Loc.T("val.email.required"))
+            .EmailAddress().WithMessage(_ => Loc.T("val.email.invalid"))
             .MaximumLength(256);
     }
 }

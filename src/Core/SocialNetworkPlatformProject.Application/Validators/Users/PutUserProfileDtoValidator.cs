@@ -8,7 +8,7 @@ public class PutUserProfileDtoValidator : AbstractValidator<PutUserProfileDto>
     public PutUserProfileDtoValidator()
     {
         RuleFor(x => x.FullName)
-            .NotEmpty().WithMessage("Full name is required.")
+            .NotEmpty().WithMessage(_ => Loc.T("val.fullName.required"))
             .MaximumLength(100);
 
         RuleFor(x => x.Bio).MaximumLength(500);

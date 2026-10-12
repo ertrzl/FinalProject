@@ -2,11 +2,13 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <title>Ayarlar | SocialNet</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <link rel="stylesheet" href="css/style.css">
+<script src="js/i18n.js"></script>
 <script src="js/api.js"></script>
 </head>
 <body>
@@ -23,7 +25,7 @@
       <div class="card border-0 shadow-sm rounded-4 p-2">
         <a href="#section-account" class="side-nav-link active"><i class="bi bi-person"></i>Hesap</a>
         <a href="#section-privacy" class="side-nav-link"><i class="bi bi-shield-lock"></i>Gizlilik</a>
-        <a href="#section-blocked" class="side-nav-link"><i class="bi bi-slash-circle"></i>Engellenenler</a>
+        <a href="#section-blocked" class="side-nav-link"><i class="bi bi-slash-circle"></i><span data-i18n="settings.blocked.title">Engellenenler</span></a>
         <a href="#section-password" class="side-nav-link"><i class="bi bi-key"></i>Şifre</a>
         <a href="#section-notifications" class="side-nav-link"><i class="bi bi-bell"></i>Bildirimler</a>
         <a href="#section-danger" class="side-nav-link text-danger"><i class="bi bi-exclamation-triangle"></i>Tehlikeli Bölge</a>
@@ -86,9 +88,9 @@
 
       <!-- Blocked people -->
       <div class="card border-0 shadow-sm rounded-4 p-3" id="section-blocked">
-        <div class="fw-bold mb-1">Engellenenler</div>
-        <p class="text-muted small mb-3">Engellediğin kişiler seni ve gönderilerini göremez, sen de onları göremezsin. Birbirinize mesaj ve arkadaşlık isteği gönderemezsiniz.</p>
-        <div id="blockedList"><div class="text-muted small">Yükleniyor...</div></div>
+        <div class="fw-bold mb-1" data-i18n="settings.blocked.title">Engellenenler</div>
+        <p class="text-muted small mb-3" data-i18n="settings.blocked.intro">Engellediğin kişiler seni ve gönderilerini göremez, sen de onları göremezsin. Birbirinize mesaj ve arkadaşlık isteği gönderemezsiniz.</p>
+        <div id="blockedList"><div class="text-muted small" data-i18n="common.loading">Yükleniyor...</div></div>
       </div>
 
       <!-- Password -->

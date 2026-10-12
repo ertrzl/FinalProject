@@ -53,7 +53,7 @@ public class CommentService : ICommentService
     public async Task<List<GetCommentDto>> GetByPostAsync(Guid currentUserId, Guid postId)
     {
         var post = await _posts.GetByIdAsync(postId)
-            ?? throw new NotFoundException("Post not found.");
+            ?? throw new NotFoundException(Loc.T("post.notFound"));
 
         await _access.EnsureCanViewAsync(post, currentUserId);
 
@@ -86,7 +86,7 @@ public class CommentService : ICommentService
     public async Task<GetCommentDto> AddAsync(Guid currentUserId, PostCommentDto dto)
     {
         var post = await _posts.GetByIdAsync(dto.PostId)
-            ?? throw new NotFoundException("Post not found.");
+            ?? throw new NotFoundException(Loc.T("post.notFound"));
 
         await _access.EnsureCanViewAsync(post, currentUserId);
 
@@ -94,14 +94,14 @@ public class CommentService : ICommentService
         if (dto.ParentCommentId.HasValue)
         {
             parent = await _comments.GetByIdAsync(dto.ParentCommentId.Value)
-                ?? throw new NotFoundException("The comment you are replying to no longer exists.");
+                ?? throw new NotFoundException(Loc.T("comment.replyGone"));
 
             if (parent.PostId != dto.PostId)
-                throw new BadRequestException("The parent comment belongs to a different post.");
+                throw new BadRequestException(Loc.T("comment.parentOtherPost"));
 
             // A comment written by a blocked person is hidden from this user, so it can't be answered either.
             if (parent.AuthorId != currentUserId && await _blocks.AreBlockedAsync(currentUserId, parent.AuthorId))
-                throw new NotFoundException("The comment you are replying to no longer exists.");
+                throw new NotFoundException(Loc.T("comment.replyGone"));
         }
 
         var comment = new Comment
@@ -141,14 +141,14 @@ public class CommentService : ICommentService
     public async Task DeleteAsync(Guid currentUserId, Guid commentId)
     {
         var comment = await _comments.GetByIdAsync(commentId)
-            ?? throw new NotFoundException("Comment not found.");
+            ?? throw new NotFoundException(Loc.T("comment.notFound"));
 
         var post = await _posts.GetByIdAsync(comment.PostId)
-            ?? throw new NotFoundException("Post not found.");
+            ?? throw new NotFoundException(Loc.T("post.notFound"));
 
         // The comment's author, the post's author, or (on a group post) the group's admins and moderators.
         if (comment.AuthorId != currentUserId && !await _access.CanModerateAsync(post, currentUserId))
-            throw new ForbiddenException("You can only delete your own comments.");
+            throw new ForbiddenException(Loc.T("comment.deleteOwn"));
 
         // The reply self-reference is Restrict (SQL Server forbids a second cascade path), so replies go first.
         var replies = await _comments.GetAll(c => c.ParentCommentId == commentId).ToListAsync();
@@ -165,10 +165,10 @@ public class CommentService : ICommentService
     public async Task<GetLikeResultDto> ToggleLikeAsync(Guid currentUserId, Guid commentId)
     {
         var comment = await _comments.GetByIdAsync(commentId)
-            ?? throw new NotFoundException("Comment not found.");
+            ?? throw new NotFoundException(Loc.T("comment.notFound"));
 
         var post = await _posts.GetByIdAsync(comment.PostId)
-            ?? throw new NotFoundException("Post not found.");
+            ?? throw new NotFoundException(Loc.T("post.notFound"));
 
         await _access.EnsureCanViewAsync(post, currentUserId);
 

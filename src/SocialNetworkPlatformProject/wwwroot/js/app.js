@@ -188,4 +188,13 @@ function toggleTheme() {
   applyTheme(saved);
 })();
 
+// ---- Phones: the on-screen keyboard must not cover the box being typed in ----
+// When the keyboard opens the visible area shrinks; once it has settled, the focused box is scrolled into the middle.
+document.addEventListener("focusin", event => {
+  const field = event.target;
+  if (!window.matchMedia("(pointer: coarse)").matches || !field.matches("input:not([type=checkbox]):not([type=radio]):not([type=file]), textarea, select")) return;
+
+  setTimeout(() => field.scrollIntoView({ block: "center", behavior: "smooth" }), 350);
+});
+
 // Live search suggestions moved to js/navbar-search.js (real backend data, not a hardcoded list).

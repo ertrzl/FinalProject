@@ -8,17 +8,17 @@ public class PutGroupDtoValidator : AbstractValidator<PutGroupDto>
     public PutGroupDtoValidator()
     {
         RuleFor(x => x.Name)
-            .NotEmpty().WithMessage("Group name is required.")
+            .NotEmpty().WithMessage(_ => Loc.T("val.group.name"))
             .MaximumLength(100);
 
         RuleFor(x => x.Description).MaximumLength(1000);
 
         RuleFor(x => x.Privacy)
             .Must(p => p is "Public" or "Private")
-            .WithMessage("Privacy must be either 'Public' or 'Private'.");
+            .WithMessage(_ => Loc.T("group.privacy"));
 
         RuleFor(x => x)
             .Must(x => !(x.RemoveCoverImage && x.CoverImage != null))
-            .WithMessage("Cannot both remove and upload a cover image.");
+            .WithMessage(_ => Loc.T("val.group.cover"));
     }
 }

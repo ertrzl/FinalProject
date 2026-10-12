@@ -10,27 +10,27 @@ public class RegisterDtoValidator : AbstractValidator<RegisterDto>
     public RegisterDtoValidator()
     {
         RuleFor(x => x.FullName)
-            .NotEmpty().WithMessage("Full name is required.")
+            .NotEmpty().WithMessage(_ => Loc.T("val.fullName.required"))
             .MaximumLength(100);
 
         RuleFor(x => x.UserName)
-            .NotEmpty().WithMessage("Username is required.")
+            .NotEmpty().WithMessage(_ => Loc.T("val.userName.required"))
             .MaximumLength(50)
-            .Matches("^[a-zA-Z0-9._]+$").WithMessage("Username can only contain letters, numbers, dots, and underscores.");
+            .Matches("^[a-zA-Z0-9._]+$").WithMessage(_ => Loc.T("val.userName.chars"));
 
         RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email is required.")
-            .EmailAddress().WithMessage("A valid email address is required.");
+            .NotEmpty().WithMessage(_ => Loc.T("val.email.required"))
+            .EmailAddress().WithMessage(_ => Loc.T("val.email.invalid"));
 
         RuleFor(x => x.BirthDate)
             .Must(date => date!.Value.Date <= DateTime.UtcNow.Date)
-                .WithMessage("Birth date cannot be in the future.")
+                .WithMessage(_ => Loc.T("val.birth.future"))
             .Must(date => date!.Value.Date >= DateTime.UtcNow.Date.AddYears(-MaxAgeYears))
-                .WithMessage("Birth date is not valid.")
+                .WithMessage(_ => Loc.T("val.birth.invalid"))
             .When(x => x.BirthDate.HasValue);
 
         RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("Password is required.")
-            .MinimumLength(8).WithMessage("Password must be at least 8 characters long.");
+            .NotEmpty().WithMessage(_ => Loc.T("val.password.required"))
+            .MinimumLength(8).WithMessage(_ => Loc.T("val.password.short"));
     }
 }

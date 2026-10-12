@@ -95,17 +95,17 @@ async function renderOtherProfileActions(p) {
   // Somebody the viewer blocked: only the way back is offered, no friend or message buttons.
   if (p.isBlockedByMe) {
     area.innerHTML = `
-      <div class="small text-muted mb-2"><i class="bi bi-slash-circle me-1"></i>Bu kişiyi engelledin. Birbirinizin gönderilerini göremez, mesaj yazamazsınız.</div>
-      <button class="btn btn-outline-secondary btn-sm rounded-pill mb-2" onclick="unblockProfile('${p.id}')">Engeli Kaldır</button>`;
+      <div class="small text-muted mb-2"><i class="bi bi-slash-circle me-1"></i>${t("block.notice")}</div>
+      <button class="btn btn-outline-secondary btn-sm rounded-pill mb-2" onclick="unblockProfile('${p.id}')">${t("block.unblock")}</button>`;
     return;
   }
 
   // The "..." menu next to the buttons: the block item.
   const moreMenu = `
     <div class="dropdown d-inline-block mb-2 ms-1">
-      <button class="btn btn-light btn-sm rounded-circle shadow-sm border" data-bs-toggle="dropdown" title="Diğer"><i class="bi bi-three-dots"></i></button>
+      <button class="btn btn-light btn-sm rounded-circle shadow-sm border" data-bs-toggle="dropdown" title="${t("block.more")}"><i class="bi bi-three-dots"></i></button>
       <ul class="dropdown-menu dropdown-menu-end">
-        <li><button class="dropdown-item text-danger" onclick="blockProfile('${p.id}')"><i class="bi bi-slash-circle me-2"></i>Engelle</button></li>
+        <li><button class="dropdown-item text-danger" onclick="blockProfile('${p.id}')"><i class="bi bi-slash-circle me-2"></i>${t("block.menuItem")}</button></li>
       </ul>
     </div>`;
 
@@ -134,24 +134,24 @@ async function renderOtherProfileActions(p) {
 }
 
 async function blockProfile(userId) {
-  if (!confirm(`${currentProfile.fullName} engellensin mi? Birbirinizin gönderilerini göremezsiniz, mesaj ve arkadaşlık isteği gönderemezsiniz; arkadaşsanız arkadaşlığınız da biter.`)) return;
+  if (!confirm(t("confirm.blockUser", currentProfile.fullName))) return;
 
   try {
     await apiFetch(`/api/users/${userId}/block`, { method: "POST" });
-    toast("Kişi engellendi.");
+    toast(t("block.done"));
     await loadProfile();
   } catch (err) {
-    toast(err.message || "Engellenemedi.");
+    toast(err.message || t("block.failed"));
   }
 }
 
 async function unblockProfile(userId) {
   try {
     await apiFetch(`/api/users/${userId}/block`, { method: "DELETE" });
-    toast("Engel kaldırıldı.");
+    toast(t("block.undone"));
     await loadProfile();
   } catch (err) {
-    toast(err.message || "Engel kaldırılamadı.");
+    toast(err.message || t("block.undoFailed"));
   }
 }
 
@@ -178,6 +178,8 @@ async function respondRequest(requestId, accepted) {
 }
 
 async function removeFriend(userId) {
+  if (!confirm(t("confirm.removeFriend", currentProfile.fullName))) return;
+
   try {
     await apiFetch(`/api/friends/${userId}`, { method: "DELETE" });
     toast("Arkadaşlıktan çıkarıldı.");

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.OpenApi.Models;
 using SocialNetworkPlatformProject.Application;
+using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Extensions;
 using SocialNetworkPlatformProject.Infrastructure;
 using SocialNetworkPlatformProject.Infrastructure.Hubs;
@@ -16,7 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 JwtSecret.EnsureConfigured(builder.Configuration, Path.Combine(builder.Environment.ContentRootPath, "App_Data"));
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddMvcOptions(options => LocalizedModelBindingMessages.Apply(options));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -43,6 +44,13 @@ builder.Services
     .AddApiRateLimiting(builder.Configuration);
 
 var app = builder.Build();
+
+// The language of the request (Accept-Language, sent by the pages) decides the language of the messages. The languages
+// are the ones there is a Locales/<code>.json file for (see Loc), so adding a file adds a language.
+app.UseRequestLocalization(new RequestLocalizationOptions()
+    .SetDefaultCulture(Loc.DefaultLanguage)
+    .AddSupportedCultures(Loc.Languages.ToArray())
+    .AddSupportedUICultures(Loc.Languages.ToArray()));
 
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<GlobalExceptionMiddleware>();

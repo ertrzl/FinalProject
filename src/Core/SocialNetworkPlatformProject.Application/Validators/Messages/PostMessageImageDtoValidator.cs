@@ -8,13 +8,13 @@ public class PostMessageImageDtoValidator : AbstractValidator<PostMessageImageDt
     public PostMessageImageDtoValidator()
     {
         RuleFor(x => x.Image)
-            .NotNull().WithMessage("Choose a photo to send.");
+            .NotNull().WithMessage(_ => Loc.T("val.message.photo"));
 
         RuleFor(x => x.Text)
             .MaximumLength(2000);
 
         RuleFor(x => x)
             .Must(x => x.ConversationId.HasValue || x.ReceiverId.HasValue)
-            .WithMessage("Either ConversationId or ReceiverId must be provided.");
+            .WithMessage(_ => Loc.T("message.target"));
     }
 }

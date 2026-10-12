@@ -38,30 +38,30 @@ public class FriendService : IFriendService
     public async Task<GetFriendRequestDto> SendRequestAsync(Guid currentUserId, PostFriendRequestDto dto)
     {
         if (dto.ReceiverId == currentUserId)
-            throw new BadRequestException("You can't send a friend request to yourself.");
+            throw new BadRequestException(Loc.T("friend.self"));
 
         if (!await _users.ExistsAsync(dto.ReceiverId))
-            throw new NotFoundException("User not found.");
+            throw new NotFoundException(Loc.T("user.notFound"));
 
         // Somebody who blocked you looks as if they do not exist; somebody you blocked has to be unblocked first.
         if (await _blocks.HasBlockedAsync(dto.ReceiverId, currentUserId))
-            throw new NotFoundException("User not found.");
+            throw new NotFoundException(Loc.T("user.notFound"));
 
         if (await _blocks.HasBlockedAsync(currentUserId, dto.ReceiverId))
-            throw new BadRequestException("You blocked this user. Unblock them to send a friend request.");
+            throw new BadRequestException(Loc.T("friend.blockedByMe"));
 
         if (await AreFriendsAsync(currentUserId, dto.ReceiverId))
-            throw new ConflictException("You are already friends.");
+            throw new ConflictException(Loc.T("friend.already"));
 
         var alreadySent = await _requests.AnyAsync(r =>
             r.Status == FriendRequestStatus.Pending && r.SenderId == currentUserId && r.ReceiverId == dto.ReceiverId);
         if (alreadySent)
-            throw new ConflictException("You already sent a friend request to this user.");
+            throw new ConflictException(Loc.T("friend.alreadySent"));
 
         var alreadyReceived = await _requests.AnyAsync(r =>
             r.Status == FriendRequestStatus.Pending && r.SenderId == dto.ReceiverId && r.ReceiverId == currentUserId);
         if (alreadyReceived)
-            throw new ConflictException("This user already sent you a request — accept it instead.");
+            throw new ConflictException(Loc.T("friend.alreadyReceived"));
 
         var request = new FriendRequest { SenderId = currentUserId, ReceiverId = dto.ReceiverId };
         await _requests.AddAsync(request);
@@ -77,7 +77,7 @@ public class FriendService : IFriendService
     {
         var request = await GetPendingRequestAsync(requestId);
         if (request.ReceiverId != currentUserId)
-            throw new ForbiddenException("Only the receiver can accept this request.");
+            throw new ForbiddenException(Loc.T("friend.acceptReceiverOnly"));
 
         request.Status = FriendRequestStatus.Accepted;
         request.RespondedAt = DateTime.UtcNow;
@@ -100,7 +100,7 @@ public class FriendService : IFriendService
     {
         var request = await GetPendingRequestAsync(requestId);
         if (request.ReceiverId != currentUserId)
-            throw new ForbiddenException("Only the receiver can decline this request.");
+            throw new ForbiddenException(Loc.T("friend.declineReceiverOnly"));
 
         request.Status = FriendRequestStatus.Declined;
         request.RespondedAt = DateTime.UtcNow;
@@ -111,7 +111,7 @@ public class FriendService : IFriendService
     {
         var request = await GetPendingRequestAsync(requestId);
         if (request.SenderId != currentUserId)
-            throw new ForbiddenException("Only the sender can cancel this request.");
+            throw new ForbiddenException(Loc.T("friend.cancelSenderOnly"));
 
         request.Status = FriendRequestStatus.Cancelled;
         request.RespondedAt = DateTime.UtcNow;
@@ -180,7 +180,7 @@ public class FriendService : IFriendService
                 (f.UserOneId == currentUserId && f.UserTwoId == friendUserId) ||
                 (f.UserOneId == friendUserId && f.UserTwoId == currentUserId))
             .FirstOrDefaultAsync()
-            ?? throw new NotFoundException("You are not friends with this user.");
+            ?? throw new NotFoundException(Loc.T("friend.notFriends"));
 
         _friendships.Delete(friendship);
         await _friendships.SaveChangesAsync();
@@ -313,10 +313,10 @@ public class FriendService : IFriendService
     private async Task<FriendRequest> GetPendingRequestAsync(Guid requestId)
     {
         var request = await _requests.GetByIdAsync(requestId)
-            ?? throw new NotFoundException("Friend request not found.");
+            ?? throw new NotFoundException(Loc.T("friendRequest.notFound"));
 
         if (request.Status != FriendRequestStatus.Pending)
-            throw new BadRequestException("This friend request has already been answered.");
+            throw new BadRequestException(Loc.T("friend.answered"));
 
         return request;
     }

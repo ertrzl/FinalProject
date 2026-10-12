@@ -58,7 +58,7 @@ public class PostAccessService : IPostAccessService
     public async Task EnsureCanViewAsync(Post post, Guid viewerId)
     {
         if (!await CanViewAsync(post, viewerId))
-            throw new NotFoundException("Post not found.");
+            throw new NotFoundException(Loc.T("post.notFound"));
     }
 
     public async Task<List<Post>> FilterVisibleAsync(IEnumerable<Post> posts, Guid viewerId)

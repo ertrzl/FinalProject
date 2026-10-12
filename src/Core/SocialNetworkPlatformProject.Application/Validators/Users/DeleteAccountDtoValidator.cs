@@ -7,6 +7,6 @@ public class DeleteAccountDtoValidator : AbstractValidator<DeleteAccountDto>
 {
     public DeleteAccountDtoValidator()
     {
-        RuleFor(x => x.Password).NotEmpty().WithMessage("Password is required.");
+        RuleFor(x => x.Password).NotEmpty().WithMessage(_ => Loc.T("val.password.required"));
     }
 }

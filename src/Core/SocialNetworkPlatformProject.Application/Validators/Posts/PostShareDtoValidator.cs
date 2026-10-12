@@ -8,10 +8,10 @@ public class PostShareDtoValidator : AbstractValidator<PostShareDto>
     public PostShareDtoValidator()
     {
         RuleFor(x => x.Text)
-            .MaximumLength(5000).WithMessage("Text cannot exceed 5000 characters.");
+            .MaximumLength(5000).WithMessage(_ => Loc.T("val.share.long"));
 
         RuleFor(x => x.Privacy)
             .Must(p => p is "Public" or "FriendsOnly")
-            .WithMessage("Privacy must be either 'Public' or 'FriendsOnly'.");
+            .WithMessage(_ => Loc.T("post.privacy"));
     }
 }

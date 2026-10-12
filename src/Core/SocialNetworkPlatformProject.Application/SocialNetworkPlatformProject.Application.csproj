@@ -18,4 +18,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Loc.T("key"): the texts shown to a person come from the language files (see Common/Loc.cs). -->
+    <Using Include="SocialNetworkPlatformProject.Application.Common" />
+    <!-- Every Locales/<code>.json is a language; adding a file adds the language. -->
+    <EmbeddedResource Include="Locales\*.json" />
+  </ItemGroup>
+
 </Project>

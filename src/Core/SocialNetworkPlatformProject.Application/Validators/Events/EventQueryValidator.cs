@@ -15,15 +15,15 @@ public class EventQueryValidator : AbstractValidator<EventQuery>
         RuleFor(x => x.When)
             .Must(when => EventDateRange.All.Contains(when!))
             .When(x => !string.IsNullOrEmpty(x.When))
-            .WithMessage("When must be one of: " + string.Join(", ", EventDateRange.All));
+            .WithMessage(_ => Loc.T("val.event.when", string.Join(", ", EventDateRange.All)));
 
         RuleFor(x => x.TimeZone)
             .Must(zone => EventDateRange.TryResolveZone(zone, out _))
-            .WithMessage("Saat dilimi tanınmıyor.");
+            .WithMessage(_ => Loc.T("val.event.timeZone"));
 
         RuleFor(x => x)
             .Must(x => x.From!.Value.ToUtc() <= x.To!.Value.ToUtc())
             .When(x => x.From.HasValue && x.To.HasValue)
-            .WithMessage("Başlangıç tarihi bitiş tarihinden sonra olamaz.");
+            .WithMessage(_ => Loc.T("val.event.dateRange"));
     }
 }

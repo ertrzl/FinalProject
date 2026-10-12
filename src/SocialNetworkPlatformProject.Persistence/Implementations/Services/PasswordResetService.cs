@@ -16,7 +16,7 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 public class PasswordResetService : IPasswordResetService
 {
     // The same text for a wrong, used, expired or somebody else's code, so the reply says nothing about which it was.
-    private const string InvalidLinkMessage = "This password reset link is invalid or has expired. Request a new one.";
+    private static string InvalidLinkMessage => Loc.T("passwordReset.invalidLink");
 
     // One reset mail per address per minute, so nobody can fill a stranger's inbox. Counted for unknown addresses too.
     private static readonly TimeSpan ResendCooldown = TimeSpan.FromMinutes(1);

@@ -161,7 +161,7 @@ public class MessageService : IMessageService
         {
             var participants = await _participants.GetAll(p => p.ConversationId == conversationIdArg.Value, asNoTracking: true).ToListAsync();
             if (participants.All(p => p.UserId != currentUserId))
-                throw new NotFoundException("Conversation not found.");
+                throw new NotFoundException(Loc.T("conversation.notFound"));
 
             conversationId = conversationIdArg.Value;
             recipientId = participants.First(p => p.UserId != currentUserId).UserId;
@@ -170,10 +170,10 @@ public class MessageService : IMessageService
         {
             recipientId = receiverIdArg.Value;
             if (recipientId == currentUserId)
-                throw new BadRequestException("You can't message yourself.");
+                throw new BadRequestException(Loc.T("message.self"));
 
             if (!await _users.ExistsAsync(recipientId))
-                throw new NotFoundException("User not found.");
+                throw new NotFoundException(Loc.T("user.notFound"));
 
             var existingId = await _conversations.FindDirectAsync(currentUserId, recipientId);
             if (existingId.HasValue)
@@ -183,19 +183,19 @@ public class MessageService : IMessageService
             else
             {
                 if (!await CanStartConversationAsync(currentUserId, recipientId))
-                    throw new ForbiddenException("This person only accepts new messages from friends.");
+                    throw new ForbiddenException(Loc.T("message.friendsOnly"));
 
                 conversationId = await _conversations.GetOrCreateDirectAsync(currentUserId, recipientId);
             }
         }
         else
         {
-            throw new BadRequestException("Either ConversationId or ReceiverId must be provided.");
+            throw new BadRequestException(Loc.T("message.target"));
         }
 
         // Blocked people can't write to each other, in an old conversation or a new one.
         if (await _blocks.AreBlockedAsync(currentUserId, recipientId))
-            throw new ForbiddenException("You can't message this person.");
+            throw new ForbiddenException(Loc.T("message.cannot"));
 
         var message = new Message
         {
@@ -223,15 +223,15 @@ public class MessageService : IMessageService
     public async Task<GetMessageDto> DeleteAsync(Guid currentUserId, Guid messageId)
     {
         var message = await _messages.GetByIdAsync(messageId)
-            ?? throw new NotFoundException("Message not found.");
+            ?? throw new NotFoundException(Loc.T("message.notFound"));
 
         // Somebody outside the conversation must not learn that the message exists.
         var participants = await _participants.GetAll(p => p.ConversationId == message.ConversationId, asNoTracking: true).ToListAsync();
         if (participants.All(p => p.UserId != currentUserId))
-            throw new NotFoundException("Message not found.");
+            throw new NotFoundException(Loc.T("message.notFound"));
 
         if (message.SenderId != currentUserId)
-            throw new ForbiddenException("You can only delete your own messages.");
+            throw new ForbiddenException(Loc.T("message.deleteOwn"));
 
         if (!message.IsDeleted)
         {
@@ -278,7 +278,7 @@ public class MessageService : IMessageService
     {
         var participants = await _participants.GetAll(p => p.ConversationId == conversationId, asNoTracking: true).ToListAsync();
         if (participants.All(p => p.UserId != currentUserId))
-            throw new NotFoundException("Conversation not found.");
+            throw new NotFoundException(Loc.T("conversation.notFound"));
 
         foreach (var other in participants.Where(p => p.UserId != currentUserId))
             await _notifier.PublishToMessagesAsync(other.UserId, "UserTyping", new { conversationId, userId = currentUserId });
@@ -336,7 +336,7 @@ public class MessageService : IMessageService
     private async Task EnsureParticipantAsync(Guid userId, Guid conversationId)
     {
         if (!await _participants.AnyAsync(p => p.ConversationId == conversationId && p.UserId == userId))
-            throw new NotFoundException("Conversation not found.");
+            throw new NotFoundException(Loc.T("conversation.notFound"));
     }
 
     // What the conversation list shows as the last message.

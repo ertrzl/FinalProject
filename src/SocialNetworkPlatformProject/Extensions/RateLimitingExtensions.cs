@@ -38,7 +38,7 @@ public static class RateLimitingExtensions
                 await context.HttpContext.Response.WriteAsJsonAsync(new
                 {
                     statusCode = StatusCodes.Status429TooManyRequests,
-                    message = "Too many requests. Please slow down and try again in a moment."
+                    message = Loc.T("rateLimit.tooMany")
                 }, cancellationToken);
             };
         });

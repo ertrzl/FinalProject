@@ -9,8 +9,8 @@ public class PostOfferPriceDtoValidator : AbstractValidator<PostOfferPriceDto>
     public PostOfferPriceDtoValidator()
     {
         RuleFor(x => x.Price)
-            .GreaterThan(0).WithMessage("Price must be greater than zero.")
-            .LessThanOrEqualTo(100_000_000m).WithMessage("Price is too high.")
-            .PrecisionScale(18, 2, true).WithMessage("Price can have at most two decimal places.");
+            .GreaterThan(0).WithMessage(_ => Loc.T("val.price.positive"))
+            .LessThanOrEqualTo(100_000_000m).WithMessage(_ => Loc.T("val.price.high"))
+            .PrecisionScale(18, 2, true).WithMessage(_ => Loc.T("val.price.decimals"));
     }
 }

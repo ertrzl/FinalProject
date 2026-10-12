@@ -7,6 +7,6 @@ public class PostPollVoteDtoValidator : AbstractValidator<PostPollVoteDto>
 {
     public PostPollVoteDtoValidator()
     {
-        RuleFor(x => x.OptionId).NotEmpty().WithMessage("Choose an answer.");
+        RuleFor(x => x.OptionId).NotEmpty().WithMessage(_ => Loc.T("val.poll.choose"));
     }
 }

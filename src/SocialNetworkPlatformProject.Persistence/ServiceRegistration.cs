@@ -34,6 +34,7 @@ public static class ServiceRegistration
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
             })
             .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddErrorDescriber<LocalizedIdentityErrorDescriber>()
             .AddDefaultTokenProviders();
 
         // The code in a password reset link works for an hour (Identity's own default is a day).

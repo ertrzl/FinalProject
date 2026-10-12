@@ -9,6 +9,6 @@ public class PutListingStatusDtoValidator : AbstractValidator<PutListingStatusDt
     {
         RuleFor(x => x.Status)
             .Must(s => s is "Active" or "Sold")
-            .WithMessage("Status must be either 'Active' or 'Sold'.");
+            .WithMessage(_ => Loc.T("listing.status"));
     }
 }

@@ -51,13 +51,13 @@ public class UserService : IUserService
     public async Task<GetUserProfileDto> GetProfileAsync(Guid userId, Guid currentUserId)
     {
         var user = await _users.GetSummaryAsync(userId)
-            ?? throw new NotFoundException("User not found.");
+            ?? throw new NotFoundException(Loc.T("user.notFound"));
 
         var isOwnProfile = userId == currentUserId;
 
         // Somebody who blocked the viewer looks as if they do not exist.
         if (!isOwnProfile && await _blocks.HasBlockedAsync(userId, currentUserId))
-            throw new NotFoundException("User not found.");
+            throw new NotFoundException(Loc.T("user.notFound"));
 
         var blockedByMe = !isOwnProfile && await _blocks.HasBlockedAsync(currentUserId, userId);
         var friendCount = (await _friends.GetFriendIdsAsync(userId)).Count;
@@ -180,7 +180,7 @@ public class UserService : IUserService
         var user = await FindUserAsync(currentUserId);
 
         if (!await _passwords.VerifyAsync(user, dto.CurrentPassword))
-            throw new BadRequestException("Current password is incorrect.");
+            throw new BadRequestException(Loc.T("user.currentPasswordWrong"));
 
         var oldStamp = user.SecurityStamp!; // Identity replaces it as part of the password change
         var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
@@ -200,7 +200,7 @@ public class UserService : IUserService
         var user = await FindUserAsync(currentUserId);
 
         if (!await _passwords.VerifyAsync(user, dto.Password))
-            throw new BadRequestException("Password is incorrect.");
+            throw new BadRequestException(Loc.T("user.passwordWrong"));
 
         var orphanedFiles = await _users.DeleteUserWithDataAsync(currentUserId);
         _accessTokens.Revoke(currentUserId, user.SecurityStamp!);
@@ -246,7 +246,7 @@ public class UserService : IUserService
     private async Task<ApplicationUser> FindUserAsync(Guid userId)
     {
         return await _userManager.FindByIdAsync(userId.ToString())
-            ?? throw new NotFoundException("User not found.");
+            ?? throw new NotFoundException(Loc.T("user.notFound"));
     }
 
     private static GetNotificationSettingsDto ToNotificationSettingsDto(ApplicationUser user)

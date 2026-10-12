@@ -10,24 +10,24 @@ public abstract class MarketplaceListingInputValidator<T> : AbstractValidator<T>
     protected MarketplaceListingInputValidator()
     {
         RuleFor(x => x.Title)
-            .NotEmpty().WithMessage("Title is required.")
+            .NotEmpty().WithMessage(_ => Loc.T("val.listing.title"))
             .MaximumLength(150);
 
         RuleFor(x => x.Price)
-            .GreaterThan(0).WithMessage("Price must be greater than zero.")
-            .LessThanOrEqualTo(100_000_000m).WithMessage("Price is too high.")
-            .PrecisionScale(18, 2, true).WithMessage("Price can have at most two decimal places.");
+            .GreaterThan(0).WithMessage(_ => Loc.T("val.price.positive"))
+            .LessThanOrEqualTo(100_000_000m).WithMessage(_ => Loc.T("val.price.high"))
+            .PrecisionScale(18, 2, true).WithMessage(_ => Loc.T("val.price.decimals"));
 
         RuleFor(x => x.Category)
             .NotEmpty()
             .Must(c => MarketplaceCategories.All.Contains(c))
-            .WithMessage("Category must be one of: " + string.Join(", ", MarketplaceCategories.All));
+            .WithMessage(_ => Loc.T("val.listing.category", string.Join(", ", MarketplaceCategories.All)));
 
         RuleFor(x => x.Location).MaximumLength(200);
         RuleFor(x => x.Description).MaximumLength(2000);
 
         RuleFor(x => x.Images.Count)
             .LessThanOrEqualTo(MarketplaceLimits.MaxImagesPerListing)
-            .WithMessage($"A listing can have at most {MarketplaceLimits.MaxImagesPerListing} photos.");
+            .WithMessage(_ => Loc.T("val.listing.photos", MarketplaceLimits.MaxImagesPerListing));
     }
 }

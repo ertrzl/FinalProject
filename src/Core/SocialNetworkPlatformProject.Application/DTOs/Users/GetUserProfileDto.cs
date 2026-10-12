@@ -21,6 +21,9 @@ public class GetUserProfileDto
     public bool IsPrivateAccount { get; set; }
 
     public bool IsOwnProfile { get; set; }
+
+    // The current user blocked this person: the page offers "Engeli Kaldır" instead of the friend / message buttons.
+    public bool IsBlockedByMe { get; set; }
     public string FriendshipStatus { get; set; } = "None"; // "None" / "Friends" / "RequestSent" / "RequestReceived"
 
     // Whether the "Mesaj Gönder" button should be shown; the server applies the messaging rule (see IMessageService.CanMessageAsync).

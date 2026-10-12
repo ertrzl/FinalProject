@@ -90,11 +90,12 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync();
     }
 
-    public async Task<(List<UserSummary> Items, int TotalCount)> SearchAsync(string term, Guid currentUserId, int page, int pageSize)
+    public async Task<(List<UserSummary> Items, int TotalCount)> SearchAsync(
+        string term, Guid currentUserId, IReadOnlyCollection<Guid> excludeIds, int page, int pageSize)
     {
         // The current user is deliberately included: typing your own name should still find your own profile.
         var query = _context.Users.AsNoTracking()
-            .Where(u => u.FullName.Contains(term) || u.UserName!.Contains(term));
+            .Where(u => (u.FullName.Contains(term) || u.UserName!.Contains(term)) && !excludeIds.Contains(u.Id));
 
         var total = await query.CountAsync();
 
@@ -184,6 +185,7 @@ public class UserRepository : IUserRepository
 
         await _context.Set<FriendRequest>().Where(r => r.SenderId == userId || r.ReceiverId == userId).ExecuteDeleteAsync();
         await _context.Set<Friendship>().Where(f => f.UserOneId == userId || f.UserTwoId == userId).ExecuteDeleteAsync();
+        await _context.Set<UserBlock>().Where(b => b.BlockerId == userId || b.BlockedId == userId).ExecuteDeleteAsync();
 
         // The user's own stories take their view rows with them (cascade); the views they left on others' stories don't.
         await _context.Set<StoryView>().Where(v => v.ViewerId == userId).ExecuteDeleteAsync();

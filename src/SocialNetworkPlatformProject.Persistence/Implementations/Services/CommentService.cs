@@ -20,6 +20,7 @@ public class CommentService : ICommentService
     private readonly IPostRepository _posts;
     private readonly IUserRepository _users;
     private readonly IPostAccessService _access;
+    private readonly IBlockService _blocks;
     private readonly IMentionService _mentions;
     private readonly INotificationService _notifications;
     private readonly ILiveUpdateService _live;
@@ -31,6 +32,7 @@ public class CommentService : ICommentService
         IPostRepository posts,
         IUserRepository users,
         IPostAccessService access,
+        IBlockService blocks,
         IMentionService mentions,
         INotificationService notifications,
         ILiveUpdateService live,
@@ -41,6 +43,7 @@ public class CommentService : ICommentService
         _posts = posts;
         _users = users;
         _access = access;
+        _blocks = blocks;
         _mentions = mentions;
         _notifications = notifications;
         _live = live;
@@ -60,6 +63,10 @@ public class CommentService : ICommentService
                 asNoTracking: true,
                 includes: LikeIncludes)
             .ToListAsync();
+
+        // What blocked people wrote is hidden both ways (their replies' threads go with their comments).
+        var blockedIds = await _blocks.GetBlockedIdsAsync(currentUserId);
+        comments = comments.Where(c => !blockedIds.Contains(c.AuthorId)).ToList();
 
         return await BuildDtosAsync(InThreadOrder(comments), post, currentUserId);
     }
@@ -91,6 +98,10 @@ public class CommentService : ICommentService
 
             if (parent.PostId != dto.PostId)
                 throw new BadRequestException("The parent comment belongs to a different post.");
+
+            // A comment written by a blocked person is hidden from this user, so it can't be answered either.
+            if (parent.AuthorId != currentUserId && await _blocks.AreBlockedAsync(currentUserId, parent.AuthorId))
+                throw new NotFoundException("The comment you are replying to no longer exists.");
         }
 
         var comment = new Comment

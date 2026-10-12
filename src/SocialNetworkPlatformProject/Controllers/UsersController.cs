@@ -14,10 +14,32 @@ namespace SocialNetworkPlatformProject.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _users;
+    private readonly IBlockService _blocks;
 
-    public UsersController(IUserService users)
+    public UsersController(IUserService users, IBlockService blocks)
     {
         _users = users;
+        _blocks = blocks;
+    }
+
+    [HttpGet("blocked")]
+    public async Task<ActionResult<List<GetBlockedUserDto>>> GetBlocked()
+    {
+        return await _blocks.GetBlockedAsync(User.GetUserId());
+    }
+
+    [HttpPost("{id:guid}/block")]
+    public async Task<IActionResult> Block(Guid id)
+    {
+        await _blocks.BlockAsync(User.GetUserId(), id);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}/block")]
+    public async Task<IActionResult> Unblock(Guid id)
+    {
+        await _blocks.UnblockAsync(User.GetUserId(), id);
+        return NoContent();
     }
 
     [HttpGet("search")]

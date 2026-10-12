@@ -17,6 +17,7 @@ public class MessageService : IMessageService
     private readonly IMessageRepository _messages;
     private readonly IUserRepository _users;
     private readonly IFriendService _friends;
+    private readonly IBlockService _blocks;
     private readonly IRealTimeNotifier _notifier;
     private readonly IPresenceTracker _presence;
     private readonly IFileStorageService _files;
@@ -28,6 +29,7 @@ public class MessageService : IMessageService
         IMessageRepository messages,
         IUserRepository users,
         IFriendService friends,
+        IBlockService blocks,
         IRealTimeNotifier notifier,
         IPresenceTracker presence,
         IFileStorageService files,
@@ -38,6 +40,7 @@ public class MessageService : IMessageService
         _messages = messages;
         _users = users;
         _friends = friends;
+        _blocks = blocks;
         _notifier = notifier;
         _presence = presence;
         _files = files;
@@ -190,6 +193,10 @@ public class MessageService : IMessageService
             throw new BadRequestException("Either ConversationId or ReceiverId must be provided.");
         }
 
+        // Blocked people can't write to each other, in an old conversation or a new one.
+        if (await _blocks.AreBlockedAsync(currentUserId, recipientId))
+            throw new ForbiddenException("You can't message this person.");
+
         var message = new Message
         {
             ConversationId = conversationId,
@@ -290,7 +297,7 @@ public class MessageService : IMessageService
 
     public async Task<bool> CanMessageAsync(Guid currentUserId, Guid otherUserId)
     {
-        if (currentUserId == otherUserId)
+        if (currentUserId == otherUserId || await _blocks.AreBlockedAsync(currentUserId, otherUserId))
             return false;
 
         return await _conversations.FindDirectAsync(currentUserId, otherUserId) != null
@@ -307,11 +314,23 @@ public class MessageService : IMessageService
         return await _friends.AreFriendsAsync(currentUserId, recipientId);
     }
 
+    // The conversations the list and the unread counter show: the ones with a blocked person are hidden (not deleted:
+    // they come back when the block is lifted).
     private async Task<List<Guid>> GetMyConversationIdsAsync(Guid userId)
     {
-        return await _participants.GetAll(p => p.UserId == userId, asNoTracking: true)
+        var ids = await _participants.GetAll(p => p.UserId == userId, asNoTracking: true)
             .Select(p => p.ConversationId)
             .ToListAsync();
+
+        var blockedIds = await _blocks.GetBlockedIdsAsync(userId);
+        if (ids.Count == 0 || blockedIds.Count == 0)
+            return ids;
+
+        var hidden = await _participants.GetAll(p => ids.Contains(p.ConversationId) && blockedIds.Contains(p.UserId), asNoTracking: true)
+            .Select(p => p.ConversationId)
+            .ToListAsync();
+
+        return ids.Except(hidden).ToList();
     }
 
     private async Task EnsureParticipantAsync(Guid userId, Guid conversationId)

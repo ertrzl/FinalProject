@@ -34,6 +34,7 @@ public class NotificationService : INotificationService
 
     private readonly INotificationRepository _notifications;
     private readonly IUserRepository _users;
+    private readonly IBlockService _blocks;
     private readonly IGroupRepository _groups;
     private readonly IListingOfferRepository _offers;
     private readonly IEventRepository _events;
@@ -43,6 +44,7 @@ public class NotificationService : INotificationService
     public NotificationService(
         INotificationRepository notifications,
         IUserRepository users,
+        IBlockService blocks,
         IGroupRepository groups,
         IListingOfferRepository offers,
         IEventRepository events,
@@ -51,6 +53,7 @@ public class NotificationService : INotificationService
     {
         _notifications = notifications;
         _users = users;
+        _blocks = blocks;
         _groups = groups;
         _offers = offers;
         _events = events;
@@ -65,6 +68,10 @@ public class NotificationService : INotificationService
         // Nobody is notified about their own action, except reminders, which have no real actor (the organizer is
         // named as one so the notification has an origin, and the organizer gets reminded of their own event too).
         if (recipientId == actorId && type != NotificationType.EventReminder)
+            return;
+
+        // Nothing reaches somebody from a person they blocked or who blocked them.
+        if (recipientId != actorId && await _blocks.AreBlockedAsync(recipientId, actorId))
             return;
 
         // The recipient may have switched this kind off in their settings: then there is nothing to create or push.

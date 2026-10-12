@@ -1213,6 +1213,31 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.ToTable("StoryViews");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.UserBlock", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BlockedId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BlockerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlockedId");
+
+                    b.HasIndex("BlockerId", "BlockedId")
+                        .IsUnique();
+
+                    b.ToTable("UserBlocks");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Persistence.Identity.ApplicationUser", b =>
                 {
                     b.Property<Guid>("Id")

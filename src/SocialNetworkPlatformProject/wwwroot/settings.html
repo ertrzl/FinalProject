@@ -23,6 +23,7 @@
       <div class="card border-0 shadow-sm rounded-4 p-2">
         <a href="#section-account" class="side-nav-link active"><i class="bi bi-person"></i>Hesap</a>
         <a href="#section-privacy" class="side-nav-link"><i class="bi bi-shield-lock"></i>Gizlilik</a>
+        <a href="#section-blocked" class="side-nav-link"><i class="bi bi-slash-circle"></i>Engellenenler</a>
         <a href="#section-password" class="side-nav-link"><i class="bi bi-key"></i>Şifre</a>
         <a href="#section-notifications" class="side-nav-link"><i class="bi bi-bell"></i>Bildirimler</a>
         <a href="#section-danger" class="side-nav-link text-danger"><i class="bi bi-exclamation-triangle"></i>Tehlikeli Bölge</a>
@@ -81,6 +82,13 @@
           <label class="form-check-label small" for="showOnline">Çevrimiçi durumumu göster</label>
         </div>
         <button type="button" class="btn btn-primary rounded-pill align-self-start" onclick="savePrivacy()">Kaydet</button>
+      </div>
+
+      <!-- Blocked people -->
+      <div class="card border-0 shadow-sm rounded-4 p-3" id="section-blocked">
+        <div class="fw-bold mb-1">Engellenenler</div>
+        <p class="text-muted small mb-3">Engellediğin kişiler seni ve gönderilerini göremez, sen de onları göremezsin. Birbirinize mesaj ve arkadaşlık isteği gönderemezsiniz.</p>
+        <div id="blockedList"><div class="text-muted small">Yükleniyor...</div></div>
       </div>
 
       <!-- Password -->

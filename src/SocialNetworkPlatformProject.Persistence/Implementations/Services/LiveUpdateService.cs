@@ -11,6 +11,7 @@ public class LiveUpdateService : ILiveUpdateService
 {
     private readonly IRealTimeNotifier _notifier;
     private readonly IFriendService _friends;
+    private readonly IBlockService _blocks;
     private readonly IGroupMemberRepository _groupMembers;
     private readonly IUserRepository _users;
     private readonly IPresenceTracker _presence;
@@ -18,12 +19,14 @@ public class LiveUpdateService : ILiveUpdateService
     public LiveUpdateService(
         IRealTimeNotifier notifier,
         IFriendService friends,
+        IBlockService blocks,
         IGroupMemberRepository groupMembers,
         IUserRepository users,
         IPresenceTracker presence)
     {
         _notifier = notifier;
         _friends = friends;
+        _blocks = blocks;
         _groupMembers = groupMembers;
         _users = users;
         _presence = presence;
@@ -106,6 +109,10 @@ public class LiveUpdateService : ILiveUpdateService
             audience.Add(post.AuthorId);
             foreach (var id in alsoInclude)
                 audience.Add(id);
+
+            // Whoever is blocked with the post's author, or with the one who acted (a comment's writer...), hears nothing.
+            foreach (var id in alsoInclude.Append(post.AuthorId))
+                audience.ExceptWith(await _blocks.GetBlockedIdsAsync(id));
 
             await _notifier.PublishAsync(audience, eventName, payload);
         }

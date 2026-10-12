@@ -15,6 +15,7 @@ public class FriendService : IFriendService
     private readonly IFriendRequestRepository _requests;
     private readonly IFriendshipRepository _friendships;
     private readonly IUserRepository _users;
+    private readonly IBlockService _blocks;
     private readonly INotificationService _notifications;
     private readonly IMapper _mapper;
 
@@ -22,12 +23,14 @@ public class FriendService : IFriendService
         IFriendRequestRepository requests,
         IFriendshipRepository friendships,
         IUserRepository users,
+        IBlockService blocks,
         INotificationService notifications,
         IMapper mapper)
     {
         _requests = requests;
         _friendships = friendships;
         _users = users;
+        _blocks = blocks;
         _notifications = notifications;
         _mapper = mapper;
     }
@@ -39,6 +42,13 @@ public class FriendService : IFriendService
 
         if (!await _users.ExistsAsync(dto.ReceiverId))
             throw new NotFoundException("User not found.");
+
+        // Somebody who blocked you looks as if they do not exist; somebody you blocked has to be unblocked first.
+        if (await _blocks.HasBlockedAsync(dto.ReceiverId, currentUserId))
+            throw new NotFoundException("User not found.");
+
+        if (await _blocks.HasBlockedAsync(currentUserId, dto.ReceiverId))
+            throw new BadRequestException("You blocked this user. Unblock them to send a friend request.");
 
         if (await AreFriendsAsync(currentUserId, dto.ReceiverId))
             throw new ConflictException("You are already friends.");
@@ -188,7 +198,8 @@ public class FriendService : IFriendService
             .Select(r => r.SenderId == currentUserId ? r.ReceiverId : r.SenderId)
             .ToListAsync();
 
-        var excluded = new HashSet<Guid>(myFriendIds.Concat(pendingCounterparts)) { currentUserId };
+        var blockedIds = await _blocks.GetBlockedIdsAsync(currentUserId);
+        var excluded = new HashSet<Guid>(myFriendIds.Concat(pendingCounterparts).Concat(blockedIds)) { currentUserId };
 
         // Friends of friends, ranked by how many friends they share with the current user.
         var friendsOfFriends = await _friendships.GetAll(

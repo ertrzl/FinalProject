@@ -28,6 +28,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     // F2: friends
     public DbSet<FriendRequest> FriendRequests => Set<FriendRequest>();
     public DbSet<Friendship> Friendships => Set<Friendship>();
+    public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
 
     // F8: notifications
     public DbSet<Notification> Notifications => Set<Notification>();

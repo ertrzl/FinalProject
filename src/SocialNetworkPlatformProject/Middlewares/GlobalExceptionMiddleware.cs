@@ -37,12 +37,12 @@ public class GlobalExceptionMiddleware
         {
             // Two requests slipped past the "does it exist yet?" check at the same moment; the unique index
             // caught the second one. To the client that is the same as being told "already exists".
-            await WriteErrorAsync(context, StatusCodes.Status409Conflict, "This already exists.");
+            await WriteErrorAsync(context, StatusCodes.Status409Conflict, Loc.T("server.exists"));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception for {Method} {Path}", context.Request.Method, context.Request.Path);
-            await WriteErrorAsync(context, StatusCodes.Status500InternalServerError, "An unexpected error occurred.");
+            await WriteErrorAsync(context, StatusCodes.Status500InternalServerError, Loc.T("server.unexpected"));
         }
     }
 

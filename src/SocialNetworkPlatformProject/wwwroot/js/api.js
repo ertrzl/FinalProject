@@ -75,14 +75,14 @@ async function getValidAccessToken(forceRefresh = false) {
   if (!session.refreshToken) {
     clearSession();
     window.location.href = "index.html";
-    throw new Error("Oturum sona erdi.");
+    throw new Error(t("session.expired"));
   }
 
   // Several requests can notice the stale token at nearly the same time — only one of them should refresh.
   if (!refreshPromise) {
     refreshPromise = fetch("/api/auth/refresh", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Accept-Language": getLang() },
       body: JSON.stringify({ refreshToken: session.refreshToken })
     })
       .then(response => { if (!response.ok) throw new Error("refresh failed"); return response.json(); })
@@ -103,7 +103,33 @@ async function getValidAccessToken(forceRefresh = false) {
 
     clearSession();
     window.location.href = "index.html";
-    throw new Error("Oturum sona erdi.");
+    throw new Error(t("session.expired"));
+  }
+}
+
+// How long a request may take before the page gives up (so a "Yükleniyor..." never stays forever); uploads get longer.
+const REQUEST_TIMEOUT_MS = 30000;
+const UPLOAD_TIMEOUT_MS = 120000;
+
+// fetch() with a time limit, the chosen language (the server answers its messages in it: Accept-Language) and
+// messages in that language for the two ways a request can fail before the server answers (no connection, too
+// slow): the browser's own texts are English ("Failed to fetch").
+async function timedFetch(path, init) {
+  const controller = new AbortController();
+  const limit = init.body instanceof FormData ? UPLOAD_TIMEOUT_MS : REQUEST_TIMEOUT_MS;
+  const timer = setTimeout(() => controller.abort(), limit);
+
+  try {
+    return await fetch(path, {
+      ...init,
+      headers: { ...(init.headers || {}), "Accept-Language": getLang() },
+      signal: controller.signal
+    });
+  } catch (err) {
+    if (err.name === "AbortError") throw new Error(t("net.timeout"));
+    throw new Error(t("net.offline"));
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -111,7 +137,7 @@ async function getValidAccessToken(forceRefresh = false) {
 // accepts it (the password was changed, the signing key was replaced...): the session is renewed once and the request
 // is repeated. Only when the renewal fails too does the user go back to the login page (getValidAccessToken does that).
 async function fetchWithToken(path, init) {
-  const send = token => fetch(path, {
+  const send = token => timedFetch(path, {
     ...init,
     headers: { ...(init.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}) }
   });
@@ -167,7 +193,7 @@ async function apiFetchForm(path, options = {}) {
 // For pages used while signed out (password reset): no token is attached and nothing is renewed, so a leftover
 // session in this browser can never send the person to the login page before the request has gone out.
 async function apiFetchAnonymous(path, options = {}) {
-  const response = await fetch(path, {
+  const response = await timedFetch(path, {
     ...options,
     headers: { "Content-Type": "application/json" },
     body: options.body ? JSON.stringify(options.body) : undefined
@@ -182,7 +208,7 @@ async function handleResponse(response, hadTokenAttached) {
   if (response.status === 401 && hadTokenAttached) {
     clearSession();
     window.location.href = "index.html";
-    throw new Error("Oturum sona erdi.");
+    throw new Error(t("session.expired"));
   }
 
   if (response.status === 204) return null;
@@ -204,12 +230,12 @@ async function handleResponse(response, hadTokenAttached) {
 // - [ApiController]'s automatic FluentValidation 400s: ASP.NET's ValidationProblemDetails,
 //   { title, errors: { FieldName: ["reason", ...] } } — no "message" field at all.
 function extractErrorMessage(data) {
-  if (!data) return "Bir hata oluştu.";
+  if (!data) return t("error.generic");
   if (data.message) return data.message;
   if (data.errors) {
     return Object.values(data.errors).flat().join(" ");
   }
-  return data.title || "Bir hata oluştu.";
+  return data.title || t("error.generic");
 }
 
 // ---- Shared rendering helpers (every page-specific *.js file uses these) ----

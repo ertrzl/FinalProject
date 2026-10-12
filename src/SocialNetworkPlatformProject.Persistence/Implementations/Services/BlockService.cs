@@ -34,13 +34,13 @@ public class BlockService : IBlockService
     public async Task BlockAsync(Guid currentUserId, Guid userId)
     {
         if (userId == currentUserId)
-            throw new BadRequestException("You can't block yourself.");
+            throw new BadRequestException(Loc.T("block.self"));
 
         if (!await _users.ExistsAsync(userId))
-            throw new NotFoundException("User not found.");
+            throw new NotFoundException(Loc.T("user.notFound"));
 
         if (await HasBlockedAsync(currentUserId, userId))
-            throw new ConflictException("You already blocked this user.");
+            throw new ConflictException(Loc.T("block.already"));
 
         await _blocks.AddAsync(new UserBlock { BlockerId = currentUserId, BlockedId = userId });
 
@@ -75,14 +75,14 @@ public class BlockService : IBlockService
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
             // A second tab blocked the same person a moment earlier.
-            throw new ConflictException("You already blocked this user.");
+            throw new ConflictException(Loc.T("block.already"));
         }
     }
 
     public async Task UnblockAsync(Guid currentUserId, Guid userId)
     {
         var block = await _blocks.GetAll(b => b.BlockerId == currentUserId && b.BlockedId == userId).FirstOrDefaultAsync()
-            ?? throw new NotFoundException("You have not blocked this user.");
+            ?? throw new NotFoundException(Loc.T("block.notBlocked"));
 
         _blocks.Delete(block);
         await _blocks.SaveChangesAsync();

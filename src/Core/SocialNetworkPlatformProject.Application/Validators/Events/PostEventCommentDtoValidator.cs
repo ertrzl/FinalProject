@@ -10,7 +10,7 @@ public class PostEventCommentDtoValidator : AbstractValidator<PostEventCommentDt
     public PostEventCommentDtoValidator()
     {
         RuleFor(x => x.Content)
-            .Must(content => !string.IsNullOrWhiteSpace(content)).WithMessage("Mesaj boş olamaz.")
-            .MaximumLength(MaxContentLength).WithMessage($"Mesaj en fazla {MaxContentLength} karakter olabilir.");
+            .Must(content => !string.IsNullOrWhiteSpace(content)).WithMessage(_ => Loc.T("val.message.empty"))
+            .MaximumLength(MaxContentLength).WithMessage(_ => Loc.T("val.eventMessage.long", MaxContentLength));
     }
 }

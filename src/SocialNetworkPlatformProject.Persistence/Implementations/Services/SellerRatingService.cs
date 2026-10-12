@@ -31,13 +31,13 @@ public class SellerRatingService : ISellerRatingService
     public async Task<GetSellerRatingDto> RateAsync(Guid currentUserId, Guid offerId, PostSellerRatingDto dto)
     {
         var offer = await _offers.GetAll(o => o.Id == offerId, asNoTracking: true, includes: "Listing").FirstOrDefaultAsync()
-            ?? throw new NotFoundException("Deal not found.");
+            ?? throw new NotFoundException(Loc.T("deal.notFound"));
 
         if (offer.BuyerId != currentUserId)
-            throw new ForbiddenException("Only the buyer of an accepted deal can rate the seller.");
+            throw new ForbiddenException(Loc.T("rating.buyerOnly"));
 
         if (offer.Status != OfferStatus.Accepted)
-            throw new BadRequestException("You can only rate a seller once the deal has been accepted.");
+            throw new BadRequestException(Loc.T("rating.afterAccepted"));
 
         var comment = string.IsNullOrWhiteSpace(dto.Comment) ? null : dto.Comment.Trim();
         var rating = await _ratings.GetAll(r => r.OfferId == offerId).FirstOrDefaultAsync();
@@ -70,7 +70,7 @@ public class SellerRatingService : ISellerRatingService
         catch (DbUpdateException) when (isNew)
         {
             // A double submit lost the race for the one-rating-per-deal unique index.
-            throw new ConflictException("This deal was just rated. Refresh and edit your rating instead.");
+            throw new ConflictException(Loc.T("rating.justRated"));
         }
 
         // Only the first rating notifies the seller; edits would just be noise.
@@ -84,10 +84,10 @@ public class SellerRatingService : ISellerRatingService
     public async Task DeleteAsync(Guid currentUserId, Guid offerId)
     {
         var rating = await _ratings.GetAll(r => r.OfferId == offerId).FirstOrDefaultAsync()
-            ?? throw new NotFoundException("Rating not found.");
+            ?? throw new NotFoundException(Loc.T("rating.notFound"));
 
         if (rating.BuyerId != currentUserId)
-            throw new ForbiddenException("You can only delete your own rating.");
+            throw new ForbiddenException(Loc.T("rating.deleteOwn"));
 
         _ratings.Delete(rating);
         await _ratings.SaveChangesAsync();
@@ -96,7 +96,7 @@ public class SellerRatingService : ISellerRatingService
     public async Task<GetSellerRatingSummaryDto> GetSummaryAsync(Guid sellerId)
     {
         var seller = await _users.GetSummaryAsync(sellerId)
-            ?? throw new NotFoundException("User not found.");
+            ?? throw new NotFoundException(Loc.T("user.notFound"));
 
         // Grouping happens in SQL: five rows at most, however many reviews the seller has.
         var perStar = await _ratings.GetAll(r => r.SellerId == sellerId, asNoTracking: true)

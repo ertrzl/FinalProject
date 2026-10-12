@@ -8,9 +8,9 @@ public class PostSellerRatingDtoValidator : AbstractValidator<PostSellerRatingDt
     public PostSellerRatingDtoValidator()
     {
         RuleFor(x => x.Stars)
-            .InclusiveBetween(1, 5).WithMessage("Rating must be between 1 and 5 stars.");
+            .InclusiveBetween(1, 5).WithMessage(_ => Loc.T("val.rating.stars"));
 
         RuleFor(x => x.Comment)
-            .MaximumLength(500).WithMessage("Comment cannot exceed 500 characters.");
+            .MaximumLength(500).WithMessage(_ => Loc.T("val.rating.comment"));
     }
 }

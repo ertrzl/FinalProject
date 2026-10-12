@@ -7,6 +7,6 @@ public class PostEventInviteDtoValidator : AbstractValidator<PostEventInviteDto>
 {
     public PostEventInviteDtoValidator()
     {
-        RuleFor(x => x.UserId).NotEmpty().WithMessage("Davet edilecek kişi seçilmeli.");
+        RuleFor(x => x.UserId).NotEmpty().WithMessage(_ => Loc.T("val.eventInvite.user"));
     }
 }

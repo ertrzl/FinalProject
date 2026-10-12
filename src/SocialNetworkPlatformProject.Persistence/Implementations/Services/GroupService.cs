@@ -54,7 +54,7 @@ public class GroupService : IGroupService
     public async Task<GetGroupDto> CreateAsync(Guid currentUserId, PostGroupDto dto)
     {
         if (!Enum.TryParse<GroupPrivacy>(dto.Privacy, out var privacy))
-            throw new BadRequestException("Privacy must be either 'Public' or 'Private'.");
+            throw new BadRequestException(Loc.T("group.privacy"));
 
         string? coverUrl = null;
         if (dto.CoverImage != null)
@@ -79,12 +79,12 @@ public class GroupService : IGroupService
     public async Task<GetGroupDto> UpdateAsync(Guid currentUserId, Guid groupId, PutGroupDto dto)
     {
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
-            ?? throw new NotFoundException("Group not found.");
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         EnsureAdmin(group, currentUserId);
 
         if (!Enum.TryParse<GroupPrivacy>(dto.Privacy, out var privacy))
-            throw new BadRequestException("Privacy must be either 'Public' or 'Private'.");
+            throw new BadRequestException(Loc.T("group.privacy"));
 
         if (dto.CoverImage != null)
         {
@@ -122,11 +122,11 @@ public class GroupService : IGroupService
     public async Task<GetGroupDto> GetByIdAsync(Guid currentUserId, Guid groupId)
     {
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
-            ?? throw new NotFoundException("Group not found.");
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         // Private groups behave as if they don't exist for non-members.
         if (group.Privacy == GroupPrivacy.Private && group.Members.All(m => m.UserId != currentUserId))
-            throw new NotFoundException("Group not found.");
+            throw new NotFoundException(Loc.T("group.notFound"));
 
         return await ToDtoAsync(group, currentUserId, includeMembers: true);
     }
@@ -183,15 +183,15 @@ public class GroupService : IGroupService
     public async Task<GetGroupDto> JoinAsync(Guid currentUserId, Guid groupId)
     {
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
-            ?? throw new NotFoundException("Group not found.");
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         if (group.Members.Any(m => m.UserId == currentUserId))
-            throw new ConflictException("You are already a member of this group.");
+            throw new ConflictException(Loc.T("group.alreadyMember"));
 
         if (group.Privacy == GroupPrivacy.Private)
         {
             if (await _joinRequests.AnyAsync(r => r.GroupId == groupId && r.UserId == currentUserId))
-                throw new ConflictException("You already requested to join this group.");
+                throw new ConflictException(Loc.T("group.alreadyRequested"));
 
             await _joinRequests.AddAsync(new GroupJoinRequest { GroupId = groupId, UserId = currentUserId });
             await _joinRequests.SaveChangesAsync();
@@ -215,7 +215,7 @@ public class GroupService : IGroupService
     public async Task<List<GetJoinRequestDto>> GetJoinRequestsAsync(Guid currentUserId, Guid groupId)
     {
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
-            ?? throw new NotFoundException("Group not found.");
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         EnsureAdmin(group, currentUserId);
 
@@ -246,12 +246,12 @@ public class GroupService : IGroupService
     public async Task ApproveJoinRequestAsync(Guid currentUserId, Guid groupId, Guid requesterUserId)
     {
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
-            ?? throw new NotFoundException("Group not found.");
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         EnsureAdmin(group, currentUserId);
 
         var request = await _joinRequests.GetAll(r => r.GroupId == groupId && r.UserId == requesterUserId).FirstOrDefaultAsync()
-            ?? throw new NotFoundException("Join request not found.");
+            ?? throw new NotFoundException(Loc.T("joinRequest.notFound"));
 
         _joinRequests.Delete(request);
         await _members.AddAsync(new GroupMember { GroupId = groupId, UserId = requesterUserId, Role = GroupMemberRole.Member });
@@ -263,12 +263,12 @@ public class GroupService : IGroupService
     public async Task RejectJoinRequestAsync(Guid currentUserId, Guid groupId, Guid requesterUserId)
     {
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
-            ?? throw new NotFoundException("Group not found.");
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         EnsureAdmin(group, currentUserId);
 
         var request = await _joinRequests.GetAll(r => r.GroupId == groupId && r.UserId == requesterUserId).FirstOrDefaultAsync()
-            ?? throw new NotFoundException("Join request not found.");
+            ?? throw new NotFoundException(Loc.T("joinRequest.notFound"));
 
         _joinRequests.Delete(request);
         await _joinRequests.SaveChangesAsync();
@@ -279,18 +279,18 @@ public class GroupService : IGroupService
     public async Task InviteMemberAsync(Guid currentUserId, Guid groupId, Guid targetUserId)
     {
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
-            ?? throw new NotFoundException("Group not found.");
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         EnsureAdmin(group, currentUserId);
 
         if (currentUserId == targetUserId)
-            throw new BadRequestException("Kendini davet edemezsin.");
+            throw new BadRequestException(Loc.T("invite.self"));
 
         if (!await _users.ExistsAsync(targetUserId))
-            throw new NotFoundException("User not found.");
+            throw new NotFoundException(Loc.T("user.notFound"));
 
         if (group.Members.Any(m => m.UserId == targetUserId))
-            throw new ConflictException("This user is already a member.");
+            throw new ConflictException(Loc.T("group.memberAlready"));
 
         // Mutual intent already exists (they already asked to join) — just let them straight in.
         var existingRequest = await _joinRequests.GetAll(r => r.GroupId == groupId && r.UserId == targetUserId).FirstOrDefaultAsync();
@@ -303,7 +303,7 @@ public class GroupService : IGroupService
         }
 
         if (await _invites.AnyAsync(i => i.GroupId == groupId && i.UserId == targetUserId))
-            throw new ConflictException("This user has already been invited.");
+            throw new ConflictException(Loc.T("group.invitedAlready"));
 
         await _invites.AddAsync(new GroupInvite { GroupId = groupId, UserId = targetUserId, InvitedByUserId = currentUserId });
         await _invites.SaveChangesAsync();
@@ -343,10 +343,10 @@ public class GroupService : IGroupService
     public async Task AcceptInviteAsync(Guid currentUserId, Guid groupId)
     {
         var invite = await _invites.GetAll(i => i.GroupId == groupId && i.UserId == currentUserId).FirstOrDefaultAsync()
-            ?? throw new NotFoundException("Invite not found.");
+            ?? throw new NotFoundException(Loc.T("groupInvite.notFound"));
 
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
-            ?? throw new NotFoundException("Group not found.");
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         if (group.Members.Any(m => m.UserId == currentUserId))
         {
@@ -364,7 +364,7 @@ public class GroupService : IGroupService
     public async Task DeclineInviteAsync(Guid currentUserId, Guid groupId)
     {
         var invite = await _invites.GetAll(i => i.GroupId == groupId && i.UserId == currentUserId).FirstOrDefaultAsync()
-            ?? throw new NotFoundException("Invite not found.");
+            ?? throw new NotFoundException(Loc.T("groupInvite.notFound"));
 
         _invites.Delete(invite);
         await _invites.SaveChangesAsync();
@@ -373,10 +373,10 @@ public class GroupService : IGroupService
     public async Task LeaveAsync(Guid currentUserId, Guid groupId)
     {
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
-            ?? throw new NotFoundException("Group not found.");
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         var membership = group.Members.FirstOrDefault(m => m.UserId == currentUserId)
-            ?? throw new BadRequestException("You are not a member of this group.");
+            ?? throw new BadRequestException(Loc.T("group.notMember"));
 
         var others = group.Members.Where(m => m.UserId != currentUserId).ToList();
 
@@ -389,11 +389,11 @@ public class GroupService : IGroupService
 
         // The owner can't slip out unnoticed: they must hand the group to someone else first.
         if (group.CreatedByUserId == currentUserId)
-            throw new BadRequestException("Grubun sahibisin. Ayrılmadan önce grubu başka bir üyeye devretmelisin.");
+            throw new BadRequestException(Loc.T("group.ownerMustTransfer"));
 
         // Never leave a group without an admin: the last admin must promote someone else first.
         if (membership.Role == GroupMemberRole.Admin && others.All(m => m.Role != GroupMemberRole.Admin))
-            throw new BadRequestException("Grupta başka yönetici kalmıyor. Ayrılmadan önce bir üyeyi yönetici yap.");
+            throw new BadRequestException(Loc.T("group.lastAdmin"));
 
         _members.Delete(membership);
         await _members.SaveChangesAsync();
@@ -404,11 +404,11 @@ public class GroupService : IGroupService
     public async Task DeleteAsync(Guid currentUserId, Guid groupId)
     {
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
-            ?? throw new NotFoundException("Group not found.");
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         var isAdmin = group.Members.Any(m => m.UserId == currentUserId && m.Role == GroupMemberRole.Admin);
         if (!isAdmin)
-            throw new ForbiddenException("Only a group admin can delete the group.");
+            throw new ForbiddenException(Loc.T("group.deleteAdminOnly"));
 
         await DeleteGroupWithEventsAsync(group);
     }
@@ -436,27 +436,27 @@ public class GroupService : IGroupService
     public async Task RemoveMemberAsync(Guid currentUserId, Guid groupId, Guid targetUserId)
     {
         if (currentUserId == targetUserId)
-            throw new BadRequestException("Kendini gruptan çıkaramazsın, bunun için 'Ayrıl' seçeneğini kullan.");
+            throw new BadRequestException(Loc.T("group.removeSelf"));
 
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
-            ?? throw new NotFoundException("Group not found.");
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         var acting = group.Members.FirstOrDefault(m => m.UserId == currentUserId)
-            ?? throw new ForbiddenException("Bu grubun üyesi değilsin.");
+            ?? throw new ForbiddenException(Loc.T("group.notMember"));
 
         if (acting.Role == GroupMemberRole.Member)
-            throw new ForbiddenException("Üye çıkarmak için yönetici ya da moderatör olmalısın.");
+            throw new ForbiddenException(Loc.T("group.removeNeedsAdminOrMod"));
 
         var target = group.Members.FirstOrDefault(m => m.UserId == targetUserId)
-            ?? throw new NotFoundException("Bu kullanıcı grubun üyesi değil.");
+            ?? throw new NotFoundException(Loc.T("group.targetNotMember"));
 
         // Admins can only be removed by leaving on their own (after handing off admin/ownership).
         if (target.Role == GroupMemberRole.Admin)
-            throw new ForbiddenException("Bir yöneticiyi gruptan çıkaramazsın.");
+            throw new ForbiddenException(Loc.T("group.removeAdminDenied"));
 
         // Moderators can clear out regular members but can't touch each other.
         if (acting.Role == GroupMemberRole.Moderator && target.Role == GroupMemberRole.Moderator)
-            throw new ForbiddenException("Bir moderatör başka bir moderatörü çıkaramaz.");
+            throw new ForbiddenException(Loc.T("group.modRemoveMod"));
 
         _members.Delete(target);
         await _members.SaveChangesAsync();
@@ -469,28 +469,28 @@ public class GroupService : IGroupService
     public async Task<GetGroupDto> SetMemberRoleAsync(Guid currentUserId, Guid groupId, Guid targetUserId, string role)
     {
         if (!Enum.TryParse<GroupMemberRole>(role, out var newRole))
-            throw new BadRequestException("Role must be 'Admin', 'Moderator' or 'Member'.");
+            throw new BadRequestException(Loc.T("group.role"));
 
         if (currentUserId == targetUserId)
-            throw new BadRequestException("Kendi rolünü değiştiremezsin.");
+            throw new BadRequestException(Loc.T("group.roleSelf"));
 
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
-            ?? throw new NotFoundException("Group not found.");
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         var acting = group.Members.FirstOrDefault(m => m.UserId == currentUserId)
-            ?? throw new ForbiddenException("Bu grubun üyesi değilsin.");
+            ?? throw new ForbiddenException(Loc.T("group.notMember"));
         if (acting.Role != GroupMemberRole.Admin)
-            throw new ForbiddenException("Sadece yöneticiler rol değiştirebilir.");
+            throw new ForbiddenException(Loc.T("group.roleAdminsOnly"));
 
         var target = group.Members.FirstOrDefault(m => m.UserId == targetUserId)
-            ?? throw new NotFoundException("Bu kullanıcı grubun üyesi değil.");
+            ?? throw new NotFoundException(Loc.T("group.targetNotMember"));
 
         if (target.UserId == group.CreatedByUserId && newRole != GroupMemberRole.Admin)
-            throw new BadRequestException("Grup sahibinin rütbesini indiremezsin, önce grubu devretmeli.");
+            throw new BadRequestException(Loc.T("group.demoteOwner"));
 
         if (target.Role == GroupMemberRole.Admin && newRole != GroupMemberRole.Admin
             && group.Members.Count(m => m.Role == GroupMemberRole.Admin) == 1)
-            throw new BadRequestException("Gruptaki tek yöneticiyi rütbesini indiremezsin.");
+            throw new BadRequestException(Loc.T("group.demoteLastAdmin"));
 
         target.Role = newRole;
         await _groups.SaveChangesAsync();
@@ -503,16 +503,16 @@ public class GroupService : IGroupService
     public async Task<GetGroupDto> TransferOwnershipAsync(Guid currentUserId, Guid groupId, Guid newOwnerUserId)
     {
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
-            ?? throw new NotFoundException("Group not found.");
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         if (group.CreatedByUserId != currentUserId)
-            throw new ForbiddenException("Sadece grubun sahibi bu grubu devredebilir.");
+            throw new ForbiddenException(Loc.T("group.transferOwnerOnly"));
 
         if (newOwnerUserId == currentUserId)
-            throw new BadRequestException("Grup zaten sende.");
+            throw new BadRequestException(Loc.T("group.alreadyOwner"));
 
         var newOwner = group.Members.FirstOrDefault(m => m.UserId == newOwnerUserId)
-            ?? throw new BadRequestException("Devredilecek kişi grubun bir üyesi olmalı.");
+            ?? throw new BadRequestException(Loc.T("group.transferMember"));
 
         newOwner.Role = GroupMemberRole.Admin;
         group.CreatedByUserId = newOwnerUserId;
@@ -525,7 +525,7 @@ public class GroupService : IGroupService
     {
         var isAdmin = group.Members.Any(m => m.UserId == currentUserId && m.Role == GroupMemberRole.Admin);
         if (!isAdmin)
-            throw new ForbiddenException("Only a group admin can do this.");
+            throw new ForbiddenException(Loc.T("group.adminOnly"));
     }
 
     private async Task<GetGroupDto> ToDtoAsync(Group group, Guid currentUserId, bool includeMembers)

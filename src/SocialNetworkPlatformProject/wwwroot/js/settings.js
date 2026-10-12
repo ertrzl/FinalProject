@@ -120,9 +120,9 @@ async function loadBlockedUsers() {
               <div class="fw-semibold text-truncate">${escapeHtml(u.name)}</div>
               <div class="small text-muted text-truncate">@${escapeHtml(u.userName)}</div>
             </div>
-            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" onclick="unblockUser('${u.userId}', this)">Engeli Kaldır</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" onclick="unblockUser('${u.userId}', this)">${t("block.unblock")}</button>
           </div>`).join("")
-      : `<div class="text-muted small">Kimseyi engellemedin.</div>`;
+      : `<div class="text-muted small">${t("settings.blocked.empty")}</div>`;
   } catch (err) {
     list.innerHTML = `<div class="alert alert-danger small mb-0">${escapeHtml(err.message)}</div>`;
   }
@@ -132,11 +132,11 @@ async function unblockUser(userId, btn) {
   btn.disabled = true;
   try {
     await apiFetch(`/api/users/${userId}/block`, { method: "DELETE" });
-    toast("Engel kaldırıldı.");
+    toast(t("block.undone"));
     await loadBlockedUsers();
   } catch (err) {
     btn.disabled = false;
-    toast(err.message || "Engel kaldırılamadı.");
+    toast(err.message || t("block.undoFailed"));
   }
 }
 

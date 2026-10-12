@@ -77,10 +77,10 @@ public class StoryService : IStoryService
     public async Task DeleteAsync(Guid currentUserId, Guid storyId)
     {
         var story = await _stories.GetByIdAsync(storyId)
-            ?? throw new NotFoundException("Story not found.");
+            ?? throw new NotFoundException(Loc.T("story.notFound"));
 
         if (story.UserId != currentUserId)
-            throw new ForbiddenException("You can only delete your own stories.");
+            throw new ForbiddenException(Loc.T("story.deleteOwn"));
 
         _stories.Delete(story);
         await _stories.SaveChangesAsync();
@@ -92,13 +92,13 @@ public class StoryService : IStoryService
     {
         var story = await _stories.GetByIdAsync(storyId);
         if (story == null || story.ExpiresAt <= DateTime.UtcNow)
-            throw new NotFoundException("Story not found.");
+            throw new NotFoundException(Loc.T("story.notFound"));
 
         if (story.UserId == currentUserId)
             return;
 
         if (!await _friends.AreFriendsAsync(currentUserId, story.UserId))
-            throw new NotFoundException("Story not found.");
+            throw new NotFoundException(Loc.T("story.notFound"));
 
         if (await _views.AnyAsync(v => v.StoryId == storyId && v.ViewerId == currentUserId))
             return;
@@ -118,10 +118,10 @@ public class StoryService : IStoryService
     {
         var story = await _stories.GetByIdAsync(storyId);
         if (story == null || story.ExpiresAt <= DateTime.UtcNow)
-            throw new NotFoundException("Story not found.");
+            throw new NotFoundException(Loc.T("story.notFound"));
 
         if (story.UserId != currentUserId)
-            throw new ForbiddenException("Only the owner of a story can see who watched it.");
+            throw new ForbiddenException(Loc.T("story.viewersOwner"));
 
         var views = await _views.GetNewestAsync(storyId, MaxViewersListed);
         var users = await _users.GetSummariesAsync(views.Select(v => v.ViewerId));

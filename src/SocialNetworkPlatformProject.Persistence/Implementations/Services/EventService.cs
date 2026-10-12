@@ -85,11 +85,11 @@ public class EventService : IEventService
         var found = await _access.GetViewableAsync(currentUserId, eventId, AttendeeIncludes);
 
         if (found.CreatedByUserId != currentUserId)
-            throw new ForbiddenException("Only the creator can edit this event.");
+            throw new ForbiddenException(Loc.T("event.editCreatorOnly"));
 
         var now = DateTime.UtcNow;
         if (found.EndsAt <= now)
-            throw new BadRequestException("Sona ermiş bir etkinlik düzenlenemez.");
+            throw new BadRequestException(Loc.T("event.editEnded"));
 
         var (startsAt, endsAt) = ResolveTimes(dto);
         var hasStarted = found.StartsAt <= now;
@@ -98,7 +98,7 @@ public class EventService : IEventService
             startsAt = found.StartsAt; // the rounded value the form re-sent is not a change
 
         if (dto.IsPrivate && found.GroupId.HasValue)
-            throw new BadRequestException("Grup etkinlikleri zaten sadece grup üyelerine açıktır, ayrıca özel yapılamaz.");
+            throw new BadRequestException(Loc.T("event.groupNotPrivate"));
 
         // The limit can't drop below the people who already said they're coming.
         var goingNow = found.GoingCount;
@@ -157,7 +157,7 @@ public class EventService : IEventService
 
         // Leaving ("None") is always fine; joining is open until the event has finished (an ongoing event can still be joined).
         if (dto.Status != "None" && found.EndsAt <= DateTime.UtcNow)
-            throw new BadRequestException("Bu etkinlik sona erdi.");
+            throw new BadRequestException(Loc.T("event.ended"));
 
         var newStatus = dto.Status == "None" ? (EventAttendeeStatus?)null : Enum.Parse<EventAttendeeStatus>(dto.Status);
 
@@ -219,7 +219,7 @@ public class EventService : IEventService
         var found = await _access.GetViewableAsync(currentUserId, eventId, AttendeeIncludes);
 
         if (found.CreatedByUserId != currentUserId)
-            throw new ForbiddenException("Only the creator can delete this event.");
+            throw new ForbiddenException(Loc.T("event.deleteCreatorOnly"));
 
         var attendeeIds = found.Attendees.Select(a => a.UserId).ToList(); // read before the rows are deleted
 
@@ -282,7 +282,7 @@ public class EventService : IEventService
         if (status == EventAttendeeStatus.Going && existing?.Status != EventAttendeeStatus.Going && ev.Capacity.HasValue)
         {
             if (ev.IsFull)
-                throw new BadRequestException("Etkinlik dolu. Bekleme listesine katılabilir ya da 'İlgileniyorum' diyebilirsin.");
+                throw new BadRequestException(Loc.T("event.full"));
 
             ev.AttendanceVersion++;
         }
@@ -290,10 +290,10 @@ public class EventService : IEventService
         if (status == EventAttendeeStatus.Waitlisted)
         {
             if (existing?.Status == EventAttendeeStatus.Going)
-                throw new BadRequestException("Zaten katılıyorsun, bekleme listesine girmene gerek yok.");
+                throw new BadRequestException(Loc.T("event.alreadyGoing"));
 
             if (!ev.Capacity.HasValue)
-                throw new BadRequestException("Bu etkinliğin kontenjan sınırı yok, doğrudan katılabilirsin.");
+                throw new BadRequestException(Loc.T("event.noCapacity"));
 
             if (existing?.Status != EventAttendeeStatus.Waitlisted)
                 ev.AttendanceVersion++;
@@ -315,15 +315,15 @@ public class EventService : IEventService
         {
             // The edit form re-sends the start it displays, which is rounded to the minute.
             if (Math.Abs((startsAt - ev.StartsAt).TotalMinutes) >= 1)
-                throw new BadRequestException("Başlamış bir etkinliğin başlangıç zamanı değiştirilemez.");
+                throw new BadRequestException(Loc.T("event.startLocked"));
         }
         else if (startsAt <= now)
         {
-            throw new BadRequestException("Etkinlik başlangıcı gelecekte olmalı.");
+            throw new BadRequestException(Loc.T("event.startFuture"));
         }
 
         if (endsAt <= now)
-            throw new BadRequestException("Bitiş zamanı geçmişte olamaz.");
+            throw new BadRequestException(Loc.T("event.endPast"));
     }
 
     // Offline events never keep a link, even if the client sent one. The stored form is Uri.AbsoluteUri, which
@@ -334,10 +334,10 @@ public class EventService : IEventService
             return null;
 
         if (!Uri.TryCreate(dto.OnlineLink.Trim(), UriKind.Absolute, out var uri))
-            throw new BadRequestException("Bağlantı geçerli bir adres olmalı.");
+            throw new BadRequestException(Loc.T("event.linkInvalid"));
 
         if (uri.AbsoluteUri.Length > MaxOnlineLinkLength)
-            throw new BadRequestException("Bağlantı çok uzun.");
+            throw new BadRequestException(Loc.T("event.linkTooLong"));
 
         return uri.AbsoluteUri;
     }

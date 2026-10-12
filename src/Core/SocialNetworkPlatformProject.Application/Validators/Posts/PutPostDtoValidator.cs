@@ -8,10 +8,10 @@ public class PutPostDtoValidator : AbstractValidator<PutPostDto>
     public PutPostDtoValidator()
     {
         RuleFor(x => x.Text)
-            .MaximumLength(5000).WithMessage("Post text cannot exceed 5000 characters.");
+            .MaximumLength(5000).WithMessage(_ => Loc.T("val.post.long"));
 
         RuleFor(x => x.Privacy)
             .Must(p => p is "Public" or "FriendsOnly")
-            .WithMessage("Privacy must be either 'Public' or 'FriendsOnly'.");
+            .WithMessage(_ => Loc.T("post.privacy"));
     }
 }

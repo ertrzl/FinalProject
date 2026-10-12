@@ -10,7 +10,7 @@ public class PostCommentDtoValidator : AbstractValidator<PostCommentDto>
         RuleFor(x => x.PostId).NotEmpty();
 
         RuleFor(x => x.Text)
-            .NotEmpty().WithMessage("Comment text cannot be empty.")
-            .MaximumLength(1000).WithMessage("Comment text cannot exceed 1000 characters.");
+            .NotEmpty().WithMessage(_ => Loc.T("val.comment.empty"))
+            .MaximumLength(1000).WithMessage(_ => Loc.T("val.comment.long"));
     }
 }

@@ -81,7 +81,7 @@ public class PostService : IPostService
         {
             var isMember = await _groupMembers.AnyAsync(m => m.GroupId == dto.GroupId.Value && m.UserId == currentUserId);
             if (!isMember)
-                throw new ForbiddenException("You must be a member of this group to post in it.");
+                throw new ForbiddenException(Loc.T("post.groupMember"));
         }
 
         var post = new Post
@@ -110,18 +110,18 @@ public class PostService : IPostService
     public async Task<GetPostDto> UpdateAsync(Guid currentUserId, Guid postId, PutPostDto dto)
     {
         var post = await _posts.GetByIdAsync(postId, PostIncludes)
-            ?? throw new NotFoundException("Post not found.");
+            ?? throw new NotFoundException(Loc.T("post.notFound"));
 
         if (post.AuthorId != currentUserId)
-            throw new ForbiddenException("You can only edit your own posts.");
+            throw new ForbiddenException(Loc.T("post.editOwn"));
 
         var text = string.IsNullOrWhiteSpace(dto.Text) ? null : dto.Text.Trim();
         if (text == null && post.Poll != null)
-            throw new BadRequestException("A poll needs a question: the text cannot be empty.");
+            throw new BadRequestException(Loc.T("post.pollQuestion"));
 
         // A share may have no text of its own: it shows the original.
         if (text == null && post.Media.Count == 0 && !post.IsShare)
-            throw new BadRequestException("A post must have either text or media.");
+            throw new BadRequestException(Loc.T("post.needContent"));
 
         var previousText = post.Text;
         post.Text = text;
@@ -137,10 +137,10 @@ public class PostService : IPostService
     public async Task DeleteAsync(Guid currentUserId, Guid postId)
     {
         var post = await _posts.GetByIdAsync(postId, "Media")
-            ?? throw new NotFoundException("Post not found.");
+            ?? throw new NotFoundException(Loc.T("post.notFound"));
 
         if (!await _access.CanModerateAsync(post, currentUserId))
-            throw new ForbiddenException("You can only delete your own posts.");
+            throw new ForbiddenException(Loc.T("post.deleteOwn"));
 
         // Its shares stay (they say the original is gone), so they stop pointing at it first.
         await _posts.DetachSharesAsync(new[] { postId });
@@ -158,7 +158,7 @@ public class PostService : IPostService
     public async Task<GetPostDto> GetByIdAsync(Guid currentUserId, Guid postId)
     {
         var post = await _posts.GetByIdAsync(postId, PostIncludes)
-            ?? throw new NotFoundException("Post not found.");
+            ?? throw new NotFoundException(Loc.T("post.notFound"));
 
         await _access.EnsureCanViewAsync(post, currentUserId);
 
@@ -177,7 +177,7 @@ public class PostService : IPostService
     public async Task<PagedResult<GetPostDto>> GetUserPostsAsync(Guid profileUserId, Guid currentUserId, int page, int pageSize)
     {
         var owner = await _users.GetSummaryAsync(profileUserId)
-            ?? throw new NotFoundException("User not found.");
+            ?? throw new NotFoundException(Loc.T("user.notFound"));
 
         var canSeeEverything = profileUserId == currentUserId || await _friends.AreFriendsAsync(profileUserId, currentUserId);
 
@@ -232,7 +232,7 @@ public class PostService : IPostService
         if (!string.IsNullOrEmpty(type))
         {
             if (!Enum.TryParse<ReactionType>(type, out var parsed))
-                throw new BadRequestException("Unknown reaction.");
+                throw new BadRequestException(Loc.T("post.unknownReaction"));
             filter = parsed;
         }
 
@@ -297,14 +297,14 @@ public class PostService : IPostService
         {
             original = shown.SharedPostId is { } rootId ? await _posts.GetByIdAsync(rootId) : null;
             if (original == null)
-                throw new BadRequestException("This post can't be shared: the original is gone.");
+                throw new BadRequestException(Loc.T("post.shareGone"));
         }
 
         // Only what everybody may see can be passed on: a friends-only or group post, or a private account's, would
         // otherwise be shown to people its author never chose.
         var author = await _users.GetSummaryAsync(original.AuthorId);
         if (original.GroupId != null || original.Privacy != PostPrivacy.Public || author is not { IsPrivateAccount: false })
-            throw new BadRequestException("This post can't be shared.");
+            throw new BadRequestException(Loc.T("post.shareNot"));
 
         var share = new Post
         {
@@ -330,7 +330,7 @@ public class PostService : IPostService
     private async Task<Post> GetViewablePostAsync(Guid currentUserId, Guid postId)
     {
         var post = await _posts.GetByIdAsync(postId)
-            ?? throw new NotFoundException("Post not found.");
+            ?? throw new NotFoundException(Loc.T("post.notFound"));
 
         await _access.EnsureCanViewAsync(post, currentUserId);
         return post;
@@ -339,7 +339,7 @@ public class PostService : IPostService
     public async Task<bool> ToggleSaveAsync(Guid currentUserId, Guid postId)
     {
         var post = await _posts.GetByIdAsync(postId)
-            ?? throw new NotFoundException("Post not found.");
+            ?? throw new NotFoundException(Loc.T("post.notFound"));
 
         await _access.EnsureCanViewAsync(post, currentUserId);
 
@@ -573,6 +573,6 @@ public class PostService : IPostService
     {
         return Enum.TryParse<PostPrivacy>(value, out var privacy)
             ? privacy
-            : throw new BadRequestException("Privacy must be either 'Public' or 'FriendsOnly'.");
+            : throw new BadRequestException(Loc.T("post.privacy"));
     }
 }

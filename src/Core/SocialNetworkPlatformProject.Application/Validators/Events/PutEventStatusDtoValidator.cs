@@ -9,6 +9,6 @@ public class PutEventStatusDtoValidator : AbstractValidator<PutEventStatusDto>
     {
         RuleFor(x => x.Status)
             .Must(s => s is "Going" or "Interested" or "Waitlisted" or "None")
-            .WithMessage("Status must be 'Going', 'Interested', 'Waitlisted' or 'None'.");
+            .WithMessage(_ => Loc.T("val.event.status"));
     }
 }

@@ -41,6 +41,6 @@ public class PasswordVerifier
 
         var remaining = (user.LockoutEnd ?? DateTimeOffset.UtcNow) - DateTimeOffset.UtcNow;
         var minutes = Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
-        throw new TooManyRequestsException($"Too many failed attempts. Try again in {minutes} minute(s).");
+        throw new TooManyRequestsException(Loc.T("auth.tooManyAttempts", minutes));
     }
 }

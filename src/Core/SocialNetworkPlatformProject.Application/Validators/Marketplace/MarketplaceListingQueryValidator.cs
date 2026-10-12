@@ -9,7 +9,7 @@ public class MarketplaceListingQueryValidator : AbstractValidator<MarketplaceLis
     {
         RuleFor(x => x.Sort)
             .Must(s => MarketplaceSort.All.Contains(s))
-            .WithMessage("Sort must be one of: " + string.Join(", ", MarketplaceSort.All));
+            .WithMessage(_ => Loc.T("val.listing.sort", string.Join(", ", MarketplaceSort.All)));
 
         RuleFor(x => x.MinPrice).GreaterThanOrEqualTo(0).When(x => x.MinPrice.HasValue);
         RuleFor(x => x.MaxPrice).GreaterThanOrEqualTo(0).When(x => x.MaxPrice.HasValue);
@@ -17,6 +17,6 @@ public class MarketplaceListingQueryValidator : AbstractValidator<MarketplaceLis
         RuleFor(x => x)
             .Must(x => x.MinPrice <= x.MaxPrice)
             .When(x => x.MinPrice.HasValue && x.MaxPrice.HasValue)
-            .WithMessage("Minimum price can't be higher than maximum price.");
+            .WithMessage(_ => Loc.T("val.listing.priceRange"));
     }
 }

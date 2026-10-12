@@ -72,22 +72,22 @@ public class SessionIssuer
         var stored = await FindAsync(refreshToken);
 
         if (stored == null || stored.ExpiresAt < now)
-            throw new UnauthorizedException("Invalid or expired refresh token.");
+            throw new UnauthorizedException(Loc.T("auth.sessionInvalid"));
 
         if (stored.RevokedAt != null)
         {
             if (now - stored.RevokedAt.Value > ReuseGracePeriod)
                 await _refreshTokens.RevokeAllAsync(stored.UserId, now);
 
-            throw new UnauthorizedException("Invalid or expired refresh token.");
+            throw new UnauthorizedException(Loc.T("auth.sessionInvalid"));
         }
 
         var user = await _userManager.FindByIdAsync(stored.UserId.ToString())
-            ?? throw new UnauthorizedException("Invalid or expired refresh token.");
+            ?? throw new UnauthorizedException(Loc.T("auth.sessionInvalid"));
 
         // Two requests with the same token at once: only the one that flips RevokedAt first gets a new pair.
         if (!await _refreshTokens.TryRevokeAsync(stored.Id, now))
-            throw new UnauthorizedException("Invalid or expired refresh token.");
+            throw new UnauthorizedException(Loc.T("auth.sessionInvalid"));
 
         return await IssueAsync(user);
     }

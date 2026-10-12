@@ -40,26 +40,26 @@ public class EventInviteService : IEventInviteService
         var found = await _access.GetViewableAsync(currentUserId, eventId, AttendeeIncludes);
 
         if (found.EndsAt <= DateTime.UtcNow)
-            throw new BadRequestException("Sona ermiş bir etkinliğe davet gönderilemez.");
+            throw new BadRequestException(Loc.T("eventInvite.ended"));
 
         EnsureCanInvite(found, currentUserId);
 
         var targetId = dto.UserId;
         if (targetId == currentUserId)
-            throw new BadRequestException("Kendini davet edemezsin.");
+            throw new BadRequestException(Loc.T("invite.self"));
 
         if (!await _users.ExistsAsync(targetId))
-            throw new NotFoundException("Kullanıcı bulunamadı.");
+            throw new NotFoundException(Loc.T("user.notFound"));
 
         if (targetId == found.CreatedByUserId || found.Attendees.Any(a => a.UserId == targetId))
-            throw new BadRequestException("Bu kişi zaten etkinlikte.");
+            throw new BadRequestException(Loc.T("eventInvite.alreadyIn"));
 
         // A group event is invisible to non-members, so inviting one would only send them to a 404.
         if (found.GroupId.HasValue && !await _access.IsGroupMemberAsync(found.GroupId.Value, targetId))
-            throw new BadRequestException("Bu kişi grubun üyesi değil, grup etkinliğine davet edilemez.");
+            throw new BadRequestException(Loc.T("eventInvite.notGroupMember"));
 
         if (await _invites.AnyAsync(i => i.EventId == eventId && i.InvitedUserId == targetId))
-            throw new ConflictException("Bu kişiye zaten davet gönderilmiş.");
+            throw new ConflictException(Loc.T("eventInvite.already"));
 
         await _invites.AddAsync(new EventInvite { EventId = eventId, InvitedUserId = targetId, InvitedByUserId = currentUserId });
 
@@ -70,7 +70,7 @@ public class EventInviteService : IEventInviteService
         catch (DbUpdateException)
         {
             // Two people invited the same person at the same moment: the unique index let only one through.
-            throw new ConflictException("Bu kişiye zaten davet gönderilmiş.");
+            throw new ConflictException(Loc.T("eventInvite.already"));
         }
 
         await _notifier.InvitedAsync(found, targetId, currentUserId);
@@ -145,7 +145,7 @@ public class EventInviteService : IEventInviteService
     public async Task<GetEventDto> AcceptAsync(Guid currentUserId, Guid eventId)
     {
         if (!await _invites.AnyAsync(i => i.EventId == eventId && i.InvitedUserId == currentUserId))
-            throw new NotFoundException("Davet bulunamadı.");
+            throw new NotFoundException(Loc.T("eventInvite.notFound"));
 
         // Accepting is just "Katılıyorum": capacity, started-event and visibility rules all apply, and
         // SetStatusAsync deletes the invite in the same save.
@@ -155,7 +155,7 @@ public class EventInviteService : IEventInviteService
     public async Task DeclineAsync(Guid currentUserId, Guid eventId)
     {
         var invite = await _invites.GetAll(i => i.EventId == eventId && i.InvitedUserId == currentUserId).FirstOrDefaultAsync()
-            ?? throw new NotFoundException("Davet bulunamadı.");
+            ?? throw new NotFoundException(Loc.T("eventInvite.notFound"));
 
         _invites.Delete(invite);
         await _invites.SaveChangesAsync();
@@ -167,10 +167,10 @@ public class EventInviteService : IEventInviteService
     {
         var isOrganizer = ev.CreatedByUserId == userId;
         if (ev.IsPrivate && !isOrganizer)
-            throw new ForbiddenException("Özel bir etkinliğe sadece etkinliği düzenleyen davet gönderebilir.");
+            throw new ForbiddenException(Loc.T("eventInvite.privateOrganizerOnly"));
 
         var isGoing = ev.Attendees.Any(a => a.UserId == userId && a.Status == EventAttendeeStatus.Going);
         if (!isOrganizer && !isGoing)
-            throw new ForbiddenException("Davet göndermek için etkinliği düzenleyen ya da katılan biri olmalısın.");
+            throw new ForbiddenException(Loc.T("eventInvite.needAttendee"));
     }
 }

@@ -35,20 +35,20 @@ public class PollService : IPollService
     public async Task<GetPostDto> VoteAsync(Guid currentUserId, Guid postId, Guid optionId)
     {
         var post = await _posts.GetByIdAsync(postId, PostIncludes)
-            ?? throw new NotFoundException("Post not found.");
+            ?? throw new NotFoundException(Loc.T("post.notFound"));
 
         await _access.EnsureCanViewAsync(post, currentUserId);
 
-        var poll = post.Poll ?? throw new BadRequestException("This post has no poll.");
+        var poll = post.Poll ?? throw new BadRequestException(Loc.T("poll.none"));
 
         if (poll.IsEnded(DateTime.UtcNow))
-            throw new BadRequestException("This poll has ended.");
+            throw new BadRequestException(Loc.T("poll.ended"));
 
         if (poll.Options.All(o => o.Id != optionId))
-            throw new BadRequestException("That answer does not belong to this poll.");
+            throw new BadRequestException(Loc.T("poll.otherOption"));
 
         if (await _votes.AnyAsync(v => v.PollId == poll.Id && v.UserId == currentUserId))
-            throw new ConflictException("You have already voted in this poll.");
+            throw new ConflictException(Loc.T("poll.voted"));
 
         await _votes.AddAsync(new PollVote { PollId = poll.Id, OptionId = optionId, UserId = currentUserId });
         try
@@ -58,7 +58,7 @@ public class PollService : IPollService
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
             // Two requests of the same person at the same moment: the other one counted.
-            throw new ConflictException("You have already voted in this poll.");
+            throw new ConflictException(Loc.T("poll.voted"));
         }
 
         await _live.PollVotedAsync(post, currentUserId);

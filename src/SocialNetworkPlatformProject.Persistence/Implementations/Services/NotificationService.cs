@@ -219,10 +219,10 @@ public class NotificationService : INotificationService
     public async Task MarkAsReadAsync(Guid currentUserId, Guid notificationId)
     {
         var notification = await _notifications.GetByIdAsync(notificationId)
-            ?? throw new NotFoundException("Notification not found.");
+            ?? throw new NotFoundException(Loc.T("notification.notFound"));
 
         if (notification.RecipientId != currentUserId)
-            throw new ForbiddenException("This notification doesn't belong to you.");
+            throw new ForbiddenException(Loc.T("notification.notYours"));
 
         notification.IsRead = true;
         await _notifications.SaveChangesAsync();

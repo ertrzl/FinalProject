@@ -31,13 +31,13 @@ public class LocalFileStorageService : IFileStorageService
     public Task<string> SaveImageAsync(IFormFile file, string folder)
     {
         return SaveAsync(file, folder, MaxImageSizeBytes, AllowedImageExtensions, "image/",
-            "Only JPG, PNG, GIF and WEBP images are allowed.", "Images can be at most 5 MB.");
+            Loc.T("file.imageType"), Loc.T("file.imageSize"));
     }
 
     public Task<string> SaveVideoAsync(IFormFile file, string folder)
     {
         return SaveAsync(file, folder, MaxVideoSizeBytes, AllowedVideoExtensions, "video/",
-            "Only MP4, WEBM and MOV videos are allowed.", "Videos can be at most 25 MB.");
+            Loc.T("file.videoType"), Loc.T("file.videoSize"));
     }
 
     private async Task<string> SaveAsync(
@@ -45,7 +45,7 @@ public class LocalFileStorageService : IFileStorageService
         string requiredContentTypePrefix, string typeErrorMessage, string sizeErrorMessage)
     {
         if (file.Length == 0)
-            throw new BadRequestException("The uploaded file is empty.");
+            throw new BadRequestException(Loc.T("file.empty"));
 
         if (file.Length > maxSizeBytes)
             throw new BadRequestException(sizeErrorMessage);

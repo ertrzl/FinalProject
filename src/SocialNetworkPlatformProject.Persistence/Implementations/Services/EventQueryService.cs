@@ -56,7 +56,7 @@ public class EventQueryService : IEventQueryService
         {
             // Names only: Enum.TryParse would also accept "2" or "99".
             if (!Enum.GetNames<EventAttendeeStatus>().Contains(status, StringComparer.OrdinalIgnoreCase))
-                throw new BadRequestException("Status must be 'Going', 'Interested' or 'Waitlisted'.");
+                throw new BadRequestException(Loc.T("eventQuery.status"));
             wanted = Enum.Parse<EventAttendeeStatus>(status, ignoreCase: true);
         }
 
@@ -156,7 +156,7 @@ public class EventQueryService : IEventQueryService
     public async Task<List<GetEventDto>> GetGroupEventsAsync(Guid currentUserId, Guid groupId)
     {
         if (!await _access.IsGroupMemberAsync(groupId, currentUserId))
-            throw new ForbiddenException("Grubun etkinliklerini görmek için üye olmalısın.");
+            throw new ForbiddenException(Loc.T("eventQuery.groupMembersOnly"));
 
         var now = DateTime.UtcNow;
 
@@ -178,7 +178,7 @@ public class EventQueryService : IEventQueryService
             EventMineScope.Created => e => e.CreatedByUserId == currentUserId,
             EventMineScope.Past => e => e.EndsAt <= now && e.Attendees.Any(a => a.UserId == currentUserId),
             EventMineScope.Attending => e => e.EndsAt > now && e.Attendees.Any(a => a.UserId == currentUserId),
-            _ => throw new BadRequestException("Scope must be 'created', 'past' or 'attending'.")
+            _ => throw new BadRequestException(Loc.T("eventQuery.scope"))
         };
 
         var query = _events.GetAll(filter: filter, asNoTracking: true)

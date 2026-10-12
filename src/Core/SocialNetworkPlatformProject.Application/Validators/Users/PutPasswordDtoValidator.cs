@@ -7,13 +7,13 @@ public class PutPasswordDtoValidator : AbstractValidator<PutPasswordDto>
 {
     public PutPasswordDtoValidator()
     {
-        RuleFor(x => x.CurrentPassword).NotEmpty().WithMessage("Current password is required.");
+        RuleFor(x => x.CurrentPassword).NotEmpty().WithMessage(_ => Loc.T("val.password.currentRequired"));
 
         RuleFor(x => x.NewPassword)
-            .NotEmpty().WithMessage("New password is required.")
-            .MinimumLength(8).WithMessage("Password must be at least 8 characters long.");
+            .NotEmpty().WithMessage(_ => Loc.T("val.password.newRequired"))
+            .MinimumLength(8).WithMessage(_ => Loc.T("val.password.short"));
 
         RuleFor(x => x.ConfirmNewPassword)
-            .Equal(x => x.NewPassword).WithMessage("Passwords do not match.");
+            .Equal(x => x.NewPassword).WithMessage(_ => Loc.T("val.password.mismatch"));
     }
 }

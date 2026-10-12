@@ -66,10 +66,10 @@ public class EventCommentService : IEventCommentService
         if (dto.IsAnnouncement)
         {
             if (found.CreatedByUserId != currentUserId)
-                throw new ForbiddenException("Duyuruyu sadece etkinliği düzenleyen yapabilir.");
+                throw new ForbiddenException(Loc.T("eventComment.announceOrganizer"));
 
             if (found.EndsAt <= DateTime.UtcNow)
-                throw new BadRequestException("Sona ermiş bir etkinlik için duyuru yapılamaz.");
+                throw new BadRequestException(Loc.T("eventComment.announceEnded"));
         }
 
         var comment = new EventComment
@@ -98,10 +98,10 @@ public class EventCommentService : IEventCommentService
         var found = await _access.GetViewableAsync(currentUserId, eventId);
 
         var comment = await _comments.GetAll(c => c.Id == commentId && c.EventId == eventId).FirstOrDefaultAsync()
-            ?? throw new NotFoundException("Comment not found.");
+            ?? throw new NotFoundException(Loc.T("message.notFound"));
 
         if (comment.AuthorId != currentUserId && found.CreatedByUserId != currentUserId)
-            throw new ForbiddenException("Bu mesajı silme yetkin yok.");
+            throw new ForbiddenException(Loc.T("eventComment.deleteDenied"));
 
         _comments.Delete(comment);
         await _comments.SaveChangesAsync();

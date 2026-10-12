@@ -107,6 +107,39 @@ async function savePrivacy() {
   }
 }
 
+// "Engellenenler": the people this user blocked, each with a button that lifts the block.
+async function loadBlockedUsers() {
+  const list = document.getElementById("blockedList");
+  try {
+    const blocked = await apiFetch("/api/users/blocked");
+    list.innerHTML = blocked.length
+      ? blocked.map(u => `
+          <div class="d-flex align-items-center gap-3 py-2 border-top" data-blocked-user="${u.userId}">
+            <img src="${u.avatarUrl || DEFAULT_AVATAR}" class="avatar-sm flex-shrink-0" alt="">
+            <div class="flex-grow-1 min-w-0">
+              <div class="fw-semibold text-truncate">${escapeHtml(u.name)}</div>
+              <div class="small text-muted text-truncate">@${escapeHtml(u.userName)}</div>
+            </div>
+            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" onclick="unblockUser('${u.userId}', this)">Engeli Kaldır</button>
+          </div>`).join("")
+      : `<div class="text-muted small">Kimseyi engellemedin.</div>`;
+  } catch (err) {
+    list.innerHTML = `<div class="alert alert-danger small mb-0">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function unblockUser(userId, btn) {
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/users/${userId}/block`, { method: "DELETE" });
+    toast("Engel kaldırıldı.");
+    await loadBlockedUsers();
+  } catch (err) {
+    btn.disabled = false;
+    toast(err.message || "Engel kaldırılamadı.");
+  }
+}
+
 async function submitPasswordForm(event) {
   event.preventDefault();
   const newPassword = document.getElementById("newPassword").value;
@@ -159,3 +192,4 @@ document.getElementById("deleteAccountModal").addEventListener("hidden.bs.modal"
 
 loadSettings();
 loadNotificationSettings();
+loadBlockedUsers();

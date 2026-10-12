@@ -16,6 +16,7 @@ public class UserService : IUserService
     private readonly IAccessTokenRevoker _accessTokens;
     private readonly IUserRepository _users;
     private readonly IFriendService _friends;
+    private readonly IBlockService _blocks;
     private readonly IMessageService _messages;
     private readonly IFileStorageService _files;
     private readonly IPresenceTracker _presence;
@@ -28,6 +29,7 @@ public class UserService : IUserService
         IAccessTokenRevoker accessTokens,
         IUserRepository users,
         IFriendService friends,
+        IBlockService blocks,
         IMessageService messages,
         IFileStorageService files,
         IPresenceTracker presence,
@@ -39,6 +41,7 @@ public class UserService : IUserService
         _accessTokens = accessTokens;
         _users = users;
         _friends = friends;
+        _blocks = blocks;
         _messages = messages;
         _files = files;
         _presence = presence;
@@ -51,10 +54,16 @@ public class UserService : IUserService
             ?? throw new NotFoundException("User not found.");
 
         var isOwnProfile = userId == currentUserId;
+
+        // Somebody who blocked the viewer looks as if they do not exist.
+        if (!isOwnProfile && await _blocks.HasBlockedAsync(userId, currentUserId))
+            throw new NotFoundException("User not found.");
+
+        var blockedByMe = !isOwnProfile && await _blocks.HasBlockedAsync(currentUserId, userId);
         var friendCount = (await _friends.GetFriendIdsAsync(userId)).Count;
 
         var friendshipStatus = "None";
-        if (!isOwnProfile)
+        if (!isOwnProfile && !blockedByMe)
         {
             var statuses = await _friends.GetFriendshipStatusesAsync(currentUserId, new[] { userId });
             friendshipStatus = statuses[userId];
@@ -76,8 +85,9 @@ public class UserService : IUserService
             IsOnline = user.ShowOnlineStatus && _presence.IsOnline(user.Id),
             IsPrivateAccount = user.IsPrivateAccount,
             IsOwnProfile = isOwnProfile,
+            IsBlockedByMe = blockedByMe,
             FriendshipStatus = friendshipStatus,
-            CanMessage = !isOwnProfile && await _messages.CanMessageAsync(currentUserId, userId)
+            CanMessage = !isOwnProfile && !blockedByMe && await _messages.CanMessageAsync(currentUserId, userId)
         };
     }
 
@@ -208,7 +218,8 @@ public class UserService : IUserService
         if (term.Length == 0)
             return new PagedResult<GetUserSearchResultDto> { Page = page, PageSize = pageSize };
 
-        var (found, total) = await _users.SearchAsync(term, currentUserId, page, pageSize);
+        var hidden = await _blocks.GetBlockedIdsAsync(currentUserId);
+        var (found, total) = await _users.SearchAsync(term, currentUserId, hidden, page, pageSize);
 
         var ids = found.Select(u => u.Id).ToList();
         var statuses = await _friends.GetFriendshipStatusesAsync(currentUserId, ids);

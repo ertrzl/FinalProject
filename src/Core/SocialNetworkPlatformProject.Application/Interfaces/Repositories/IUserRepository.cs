@@ -21,7 +21,8 @@ public interface IUserRepository
     Task<NotificationPreferences?> GetNotificationPreferencesAsync(Guid id);
 
     // Includes the current user in results — typing your own name should still find your own profile.
-    Task<(List<UserSummary> Items, int TotalCount)> SearchAsync(string term, Guid currentUserId, int page, int pageSize);
+    // The excluded ids (the people blocked either way) never show up.
+    Task<(List<UserSummary> Items, int TotalCount)> SearchAsync(string term, Guid currentUserId, IReadOnlyCollection<Guid> excludeIds, int page, int pageSize);
 
     // Newest users first, skipping the given ids — used to pad friend suggestions.
     Task<List<UserSummary>> GetRecentAsync(IEnumerable<Guid> excludeIds, int take);

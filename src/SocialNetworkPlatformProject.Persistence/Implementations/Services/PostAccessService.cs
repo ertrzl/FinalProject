@@ -11,6 +11,7 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 public class PostAccessService : IPostAccessService
 {
     private readonly IFriendService _friends;
+    private readonly IBlockService _blocks;
     private readonly IUserRepository _users;
     private readonly IGroupRepository _groups;
     private readonly IGroupMemberRepository _groupMembers;
@@ -18,12 +19,14 @@ public class PostAccessService : IPostAccessService
 
     public PostAccessService(
         IFriendService friends,
+        IBlockService blocks,
         IUserRepository users,
         IGroupRepository groups,
         IGroupMemberRepository groupMembers,
         ApplicationDbContext context)
     {
         _friends = friends;
+        _blocks = blocks;
         _users = users;
         _groups = groups;
         _groupMembers = groupMembers;
@@ -32,6 +35,10 @@ public class PostAccessService : IPostAccessService
 
     public async Task<bool> CanViewAsync(Post post, Guid viewerId)
     {
+        // Blocked people never see each other's posts, wherever they were written (groups included).
+        if (post.AuthorId != viewerId && await _blocks.AreBlockedAsync(post.AuthorId, viewerId))
+            return false;
+
         if (post.GroupId.HasValue)
             return await CanViewGroupPostAsync(post.GroupId.Value, viewerId);
 
@@ -59,6 +66,9 @@ public class PostAccessService : IPostAccessService
         var list = posts.ToList();
         if (list.Count == 0)
             return list;
+
+        var blockedIds = await _blocks.GetBlockedIdsAsync(viewerId);
+        list = list.Where(p => !blockedIds.Contains(p.AuthorId)).ToList();
 
         var personal = list.Where(p => !p.GroupId.HasValue).ToList();
         var groupPosts = list.Where(p => p.GroupId.HasValue).ToList();
@@ -97,8 +107,12 @@ public class PostAccessService : IPostAccessService
         var friendships = _context.Set<Friendship>();
         var users = _context.Users;
         var memberships = _context.Set<GroupMember>();
+        var blocks = _context.Set<UserBlock>();
 
-        return posts.Where(p => p.GroupId == null
+        return posts
+            // Posts of somebody the viewer blocked, or who blocked the viewer, are never shown.
+            .Where(p => !blocks.Any(b => (b.BlockerId == viewerId && b.BlockedId == p.AuthorId) || (b.BlockerId == p.AuthorId && b.BlockedId == viewerId)))
+            .Where(p => p.GroupId == null
             // A personal post: its author, the author's friends, or anyone if it is public and the account is open.
             ? p.AuthorId == viewerId
                 || friendships.Any(f => (f.UserOneId == viewerId && f.UserTwoId == p.AuthorId) || (f.UserTwoId == viewerId && f.UserOneId == p.AuthorId))

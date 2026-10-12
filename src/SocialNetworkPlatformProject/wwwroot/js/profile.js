@@ -92,27 +92,66 @@ async function loadProfile() {
 async function renderOtherProfileActions(p) {
   const area = document.getElementById("profileActionArea");
 
+  // Somebody the viewer blocked: only the way back is offered, no friend or message buttons.
+  if (p.isBlockedByMe) {
+    area.innerHTML = `
+      <div class="small text-muted mb-2"><i class="bi bi-slash-circle me-1"></i>Bu kişiyi engelledin. Birbirinizin gönderilerini göremez, mesaj yazamazsınız.</div>
+      <button class="btn btn-outline-secondary btn-sm rounded-pill mb-2" onclick="unblockProfile('${p.id}')">Engeli Kaldır</button>`;
+    return;
+  }
+
+  // The "..." menu next to the buttons: the block item.
+  const moreMenu = `
+    <div class="dropdown d-inline-block mb-2 ms-1">
+      <button class="btn btn-light btn-sm rounded-circle shadow-sm border" data-bs-toggle="dropdown" title="Diğer"><i class="bi bi-three-dots"></i></button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><button class="dropdown-item text-danger" onclick="blockProfile('${p.id}')"><i class="bi bi-slash-circle me-2"></i>Engelle</button></li>
+      </ul>
+    </div>`;
+
   if (p.friendshipStatus === "Friends") {
     area.innerHTML = `
       <a href="messages.html?userId=${p.id}" class="btn btn-primary btn-sm rounded-pill mb-2 me-2"><i class="bi bi-chat-dots me-1"></i>Mesaj Gönder</a>
-      <button class="btn btn-light btn-sm rounded-pill shadow-sm border mb-2" onclick="removeFriend('${p.id}')"><i class="bi bi-person-dash me-1"></i>Arkadaşlıktan Çıkar</button>`;
+      <button class="btn btn-light btn-sm rounded-pill shadow-sm border mb-2" onclick="removeFriend('${p.id}')"><i class="bi bi-person-dash me-1"></i>Arkadaşlıktan Çıkar</button>${moreMenu}`;
   } else if (p.friendshipStatus === "RequestSent") {
-    area.innerHTML = `<button class="btn btn-secondary btn-sm rounded-pill mb-2" disabled>İstek Gönderildi</button>`;
+    area.innerHTML = `<button class="btn btn-secondary btn-sm rounded-pill mb-2" disabled>İstek Gönderildi</button>${moreMenu}`;
   } else if (p.friendshipStatus === "RequestReceived") {
-    area.innerHTML = `<button class="btn btn-primary btn-sm rounded-pill mb-2" disabled>İstek Bekliyor...</button>`;
+    area.innerHTML = `<button class="btn btn-primary btn-sm rounded-pill mb-2" disabled>İstek Bekliyor...</button>${moreMenu}`;
     try {
       const incoming = await apiFetch("/api/friends/requests/incoming");
       const match = incoming.find(r => r.senderId === p.id);
       if (match) {
         area.innerHTML = `
           <button class="btn btn-primary btn-sm rounded-pill mb-2 me-2" onclick="respondRequest('${match.id}', true)">Kabul Et</button>
-          <button class="btn btn-outline-danger btn-sm rounded-pill mb-2" onclick="respondRequest('${match.id}', false)">Reddet</button>`;
+          <button class="btn btn-outline-danger btn-sm rounded-pill mb-2" onclick="respondRequest('${match.id}', false)">Reddet</button>${moreMenu}`;
       }
     } catch (err) { /* leave the disabled hint */ }
   } else {
     area.innerHTML = `
       <button class="btn btn-primary btn-sm rounded-pill mb-2 me-2" onclick="sendRequest('${p.id}', this)"><i class="bi bi-person-plus me-1"></i>Arkadaş Ekle</button>
-      ${p.canMessage ? `<a href="messages.html?userId=${p.id}" class="btn btn-light btn-sm rounded-pill shadow-sm border mb-2"><i class="bi bi-chat-dots me-1"></i>Mesaj Gönder</a>` : ""}`;
+      ${p.canMessage ? `<a href="messages.html?userId=${p.id}" class="btn btn-light btn-sm rounded-pill shadow-sm border mb-2"><i class="bi bi-chat-dots me-1"></i>Mesaj Gönder</a>` : ""}${moreMenu}`;
+  }
+}
+
+async function blockProfile(userId) {
+  if (!confirm(`${currentProfile.fullName} engellensin mi? Birbirinizin gönderilerini göremezsiniz, mesaj ve arkadaşlık isteği gönderemezsiniz; arkadaşsanız arkadaşlığınız da biter.`)) return;
+
+  try {
+    await apiFetch(`/api/users/${userId}/block`, { method: "POST" });
+    toast("Kişi engellendi.");
+    await loadProfile();
+  } catch (err) {
+    toast(err.message || "Engellenemedi.");
+  }
+}
+
+async function unblockProfile(userId) {
+  try {
+    await apiFetch(`/api/users/${userId}/block`, { method: "DELETE" });
+    toast("Engel kaldırıldı.");
+    await loadProfile();
+  } catch (err) {
+    toast(err.message || "Engel kaldırılamadı.");
   }
 }
 

@@ -393,25 +393,11 @@ public class PostService : IPostService
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 50);
 
-        var total = await _posts.GetAll(filter).CountAsync();
+        // The filters of the callers (friends' feed, a profile, a group wall) choose which posts are wanted; what the
+        // viewer may see (blocks included) is decided here, for all of them the same way.
+        var visible = _access.VisibleTo(_posts.GetAll(filter, asNoTracking: true), currentUserId);
 
-        var posts = await _posts.GetAll(
-                filter: filter,
-                orderBy: p => p.CreatedAt,
-                isDescending: true,
-                asNoTracking: true,
-                page: page,
-                take: pageSize,
-                includes: PostIncludes)
-            .ToListAsync();
-
-        return new PagedResult<GetPostDto>
-        {
-            Items = await _dtos.BuildAsync(posts, currentUserId),
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = total
-        };
+        return await PageOfVisibleAsync(visible, posts => posts.OrderByDescending(p => p.CreatedAt), currentUserId, page, pageSize);
     }
 
     private static Poll NewPoll(PostPostDto dto)

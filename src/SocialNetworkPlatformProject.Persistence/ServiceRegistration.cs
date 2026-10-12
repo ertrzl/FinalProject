@@ -52,6 +52,7 @@ public static class ServiceRegistration
         // F2
         services.AddScoped<IFriendRequestRepository, FriendRequestRepository>();
         services.AddScoped<IFriendshipRepository, FriendshipRepository>();
+        services.AddScoped<IUserBlockRepository, UserBlockRepository>();
 
         // F8
         services.AddScoped<INotificationRepository, NotificationRepository>();
@@ -98,6 +99,7 @@ public static class ServiceRegistration
         services.AddScoped<IPasswordResetService, PasswordResetService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IFriendService, FriendService>();
+        services.AddScoped<IBlockService, BlockService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPostAccessService, PostAccessService>();
         services.AddScoped<IMentionService, MentionService>();

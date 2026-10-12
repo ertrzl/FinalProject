@@ -124,34 +124,48 @@ public class PasswordResetService : IPasswordResetService
         var htmlLink = WebUtility.HtmlEncode(link);
         var htmlName = WebUtility.HtmlEncode(user.FullName);
 
-        var text = $"""
-            Merhaba {user.FullName},
+        // The e-mail is written in the language of the request that asked for it (the texts are in the language files).
+        var hello = Loc.T("email.reset.hello", user.FullName);
+        var helloHtml = Loc.T("email.reset.hello", htmlName);
+        var validity = Loc.T("email.reset.validity", lifetime);
+        var ignore = Loc.T("email.reset.ignore");
 
-            SocialNet hesabın için şifre sıfırlama isteği aldık. Yeni şifre belirlemek için bu bağlantıyı aç:
+        var text = $"""
+            {hello}
+
+            {Loc.T("email.reset.introText")}
 
             {link}
 
-            Bağlantı {lifetime} geçerlidir ve yalnızca bir kez kullanılabilir.
-            Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin, şifren değişmez.
+            {validity}
+            {ignore}
             """;
 
         var html = $"""
             <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1c2436;line-height:1.5">
               <h2 style="color:#4a6cf7;margin-bottom:4px">SocialNet</h2>
-              <p>Merhaba {htmlName},</p>
-              <p>Hesabın için şifre sıfırlama isteği aldık. Yeni şifre belirlemek için aşağıdaki düğmeye tıkla.</p>
-              <p><a href="{htmlLink}" style="display:inline-block;background:#4a6cf7;color:#ffffff;padding:10px 24px;border-radius:24px;text-decoration:none;font-weight:bold">Şifremi sıfırla</a></p>
-              <p style="font-size:13px;color:#6b7385">Bağlantı {lifetime} geçerlidir ve yalnızca bir kez kullanılabilir. Düğme çalışmazsa bu adresi tarayıcına yapıştır:<br>{htmlLink}</p>
-              <p style="font-size:13px;color:#6b7385">Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin, şifren değişmez.</p>
+              <p>{helloHtml}</p>
+              <p>{Loc.T("email.reset.introHtml")}</p>
+              <p><a href="{htmlLink}" style="display:inline-block;background:#4a6cf7;color:#ffffff;padding:10px 24px;border-radius:24px;text-decoration:none;font-weight:bold">{Loc.T("email.reset.button")}</a></p>
+              <p style="font-size:13px;color:#6b7385">{validity} {Loc.T("email.reset.buttonFallback")}<br>{htmlLink}</p>
+              <p style="font-size:13px;color:#6b7385">{ignore}</p>
             </div>
             """;
 
-        return new EmailMessage(user.Email!, "SocialNet şifre sıfırlama", text, html);
+        return new EmailMessage(user.Email!, Loc.T("email.reset.subject"), text, html);
     }
 
-    private static string Describe(TimeSpan lifespan) => lifespan.TotalMinutes < 60
-        ? $"{Math.Max(1, (int)Math.Round(lifespan.TotalMinutes))} dakika"
-        : $"{(int)Math.Round(lifespan.TotalHours)} saat";
+    private static string Describe(TimeSpan lifespan)
+    {
+        if (lifespan.TotalMinutes < 60)
+        {
+            var minutes = Math.Max(1, (int)Math.Round(lifespan.TotalMinutes));
+            return Loc.T(minutes == 1 ? "time.minute" : "time.minutes", minutes);
+        }
+
+        var hours = (int)Math.Round(lifespan.TotalHours);
+        return Loc.T(hours == 1 ? "time.hour" : "time.hours", hours);
+    }
 
     private async Task SendAsync(EmailMessage message)
     {

@@ -164,7 +164,7 @@ async function submitComment(event, postId) {
 
 async function removeComment(event, link) {
   event.preventDefault();
-  if (!confirm(t("confirm.deleteComment"))) return;
+  if (!(await confirmDialog(i18n("confirm.deleteComment")))) return;
 
   const card = link.closest(".card[data-post-id]");
   const commentId = link.closest("[data-comment-id]").dataset.commentId;
@@ -513,7 +513,7 @@ async function votePoll(postId, optionId) {
 }
 
 async function removePost(postId, btn) {
-  if (!confirm(t("confirm.deletePost"))) return;
+  if (!(await confirmDialog(i18n("confirm.deletePost")))) return;
 
   try {
     await apiFetch(`/api/posts/${postId}`, { method: "DELETE" });

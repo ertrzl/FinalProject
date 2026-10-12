@@ -120,9 +120,9 @@ async function loadBlockedUsers() {
               <div class="fw-semibold text-truncate">${escapeHtml(u.name)}</div>
               <div class="small text-muted text-truncate">@${escapeHtml(u.userName)}</div>
             </div>
-            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" onclick="unblockUser('${u.userId}', this)">${t("block.unblock")}</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" onclick="unblockUser('${u.userId}', this)">${i18n("block.unblock")}</button>
           </div>`).join("")
-      : `<div class="text-muted small">${t("settings.blocked.empty")}</div>`;
+      : `<div class="text-muted small">${i18n("settings.blocked.empty")}</div>`;
   } catch (err) {
     list.innerHTML = `<div class="alert alert-danger small mb-0">${escapeHtml(err.message)}</div>`;
   }
@@ -132,11 +132,11 @@ async function unblockUser(userId, btn) {
   btn.disabled = true;
   try {
     await apiFetch(`/api/users/${userId}/block`, { method: "DELETE" });
-    toast(t("block.undone"));
+    toast(i18n("block.undone"));
     await loadBlockedUsers();
   } catch (err) {
     btn.disabled = false;
-    toast(err.message || t("block.undoFailed"));
+    toast(err.message || i18n("block.undoFailed"));
   }
 }
 
@@ -189,6 +189,10 @@ document.getElementById("deleteAccountModal").addEventListener("hidden.bs.modal"
   document.getElementById("deleteAccountPassword").value = "";
   document.getElementById("deleteAccountError").classList.add("d-none");
 });
+
+// "Dil": every language in locales/languages.js; picking one reloads the page in it.
+document.getElementById("languageSelect").innerHTML = (window.LANGUAGES || [])
+  .map(l => `<option value="${l.code}" ${l.code === getLang() ? "selected" : ""}>${l.name}</option>`).join("");
 
 loadSettings();
 loadNotificationSettings();

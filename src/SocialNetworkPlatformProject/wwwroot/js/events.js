@@ -214,7 +214,7 @@ function openEventModal(eventId) {
 async function deleteEvent(eventId) {
   const ev = eventsById.get(eventId);
   const attendeeNote = ev && ev.goingCount + ev.interestedCount > 0 ? " Katılımcılar da etkinlikten düşer." : "";
-  if (!confirm(`"${ev ? ev.title : "Bu etkinlik"}" silinsin mi?${attendeeNote} Bu işlem geri alınamaz.`)) return;
+  if (!(await confirmDialog(`"${ev ? ev.title : "Bu etkinlik"}" silinsin mi?${attendeeNote} Bu işlem geri alınamaz.`))) return;
 
   try {
     await apiFetch(`/api/events/${eventId}`, { method: "DELETE" });

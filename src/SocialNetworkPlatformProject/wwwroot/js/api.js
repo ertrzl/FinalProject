@@ -75,7 +75,7 @@ async function getValidAccessToken(forceRefresh = false) {
   if (!session.refreshToken) {
     clearSession();
     window.location.href = "index.html";
-    throw new Error(t("session.expired"));
+    throw new Error(i18n("session.expired"));
   }
 
   // Several requests can notice the stale token at nearly the same time — only one of them should refresh.
@@ -103,7 +103,7 @@ async function getValidAccessToken(forceRefresh = false) {
 
     clearSession();
     window.location.href = "index.html";
-    throw new Error(t("session.expired"));
+    throw new Error(i18n("session.expired"));
   }
 }
 
@@ -126,8 +126,8 @@ async function timedFetch(path, init) {
       signal: controller.signal
     });
   } catch (err) {
-    if (err.name === "AbortError") throw new Error(t("net.timeout"));
-    throw new Error(t("net.offline"));
+    if (err.name === "AbortError") throw new Error(i18n("net.timeout"));
+    throw new Error(i18n("net.offline"));
   } finally {
     clearTimeout(timer);
   }
@@ -208,7 +208,7 @@ async function handleResponse(response, hadTokenAttached) {
   if (response.status === 401 && hadTokenAttached) {
     clearSession();
     window.location.href = "index.html";
-    throw new Error(t("session.expired"));
+    throw new Error(i18n("session.expired"));
   }
 
   if (response.status === 204) return null;
@@ -230,12 +230,12 @@ async function handleResponse(response, hadTokenAttached) {
 // - [ApiController]'s automatic FluentValidation 400s: ASP.NET's ValidationProblemDetails,
 //   { title, errors: { FieldName: ["reason", ...] } } — no "message" field at all.
 function extractErrorMessage(data) {
-  if (!data) return t("error.generic");
+  if (!data) return i18n("error.generic");
   if (data.message) return data.message;
   if (data.errors) {
     return Object.values(data.errors).flat().join(" ");
   }
-  return data.title || t("error.generic");
+  return data.title || i18n("error.generic");
 }
 
 // ---- Shared rendering helpers (every page-specific *.js file uses these) ----
@@ -279,7 +279,8 @@ const REACTIONS = {
 
 // The text of a post or a comment as html: escaped, with its @tags and #hashtags turned into links.
 function richTextHtml(text, mentions) {
-  return linkifyHashtags(linkifyMentions(escapeHtml(text), mentions));
+  // data-no-i18n: somebody's own words are never run through the page translation (see js/i18n.js).
+  return `<span data-no-i18n>${linkifyHashtags(linkifyMentions(escapeHtml(text), mentions))}</span>`;
 }
 
 function timeAgo(isoDate) {
@@ -318,12 +319,12 @@ function starsHtml(value) {
 // "6 Ekim Salı · 18:00". Shared by events.html, event.html and group.html.
 function formatEventDate(isoDate) {
   const date = new Date(isoDate);
-  return date.toLocaleDateString("tr-TR", { day: "numeric", month: "long", weekday: "long" })
-    + " · " + date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleDateString(localeTag(), { day: "numeric", month: "long", weekday: "long" })
+    + " · " + date.toLocaleTimeString(localeTag(), { hour: "2-digit", minute: "2-digit" });
 }
 
 function formatEventTime(date) {
-  return date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString(localeTag(), { hour: "2-digit", minute: "2-digit" });
 }
 
 // "6 Ekim Salı · 18:00 – 21:00", or "6 Ekim · 22:00 → 7 Ekim · 02:00" when the event runs past midnight.
@@ -333,7 +334,7 @@ function formatEventRange(startsAt, endsAt) {
   if (start.toDateString() === end.toDateString()) {
     return `${formatEventDate(startsAt)} – ${formatEventTime(end)}`;
   }
-  const short = d => `${d.toLocaleDateString("tr-TR", { day: "numeric", month: "long" })} · ${formatEventTime(d)}`;
+  const short = d => `${d.toLocaleDateString(localeTag(), { day: "numeric", month: "long" })} · ${formatEventTime(d)}`;
   return `${short(start)} → ${short(end)}`;
 }
 

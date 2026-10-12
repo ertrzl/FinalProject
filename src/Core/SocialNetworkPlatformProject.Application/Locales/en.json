@@ -233,5 +233,18 @@
   "val.refresh.required": "Refresh token is required.",
   "val.birth.future": "Birth date cannot be in the future.",
   "val.birth.invalid": "Birth date is not valid.",
-  "val.reset.code": "The reset code is missing."
+  "val.reset.code": "The reset code is missing.",
+
+  "email.reset.subject": "SocialNet password reset",
+  "email.reset.hello": "Hi {0},",
+  "email.reset.introText": "We received a password reset request for your SocialNet account. Open this link to set a new password:",
+  "email.reset.introHtml": "We received a password reset request for your account. Click the button below to set a new password.",
+  "email.reset.button": "Reset my password",
+  "email.reset.validity": "The link is valid for {0} and can only be used once.",
+  "email.reset.buttonFallback": "If the button doesn't work, paste this address into your browser:",
+  "email.reset.ignore": "If you didn't make this request you can ignore this email; your password won't change.",
+  "time.minute": "{0} minute",
+  "time.minutes": "{0} minutes",
+  "time.hour": "{0} hour",
+  "time.hours": "{0} hours"
 }

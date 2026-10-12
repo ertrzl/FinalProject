@@ -32,7 +32,7 @@ let removedPhotoIds = [];
 let pendingPhotos = []; // { file, url }
 
 function formatPrice(n) {
-  return n.toLocaleString("tr-TR", { maximumFractionDigits: 2 });
+  return n.toLocaleString(localeTag(), { maximumFractionDigits: 2 });
 }
 
 function priceLabel(n) {
@@ -367,7 +367,7 @@ function closeListingModal() {
 }
 
 async function deleteListing() {
-  if (!selectedListing || !confirm("Bu ilanı kaldırmak istediğine emin misin?")) return;
+  if (!selectedListing || !(await confirmDialog("Bu ilanı kaldırmak istediğine emin misin?", { confirmText: "İlanı Kaldır" }))) return;
   try {
     await apiFetch(`/api/marketplace/${selectedListing.id}`, { method: "DELETE" });
     listingIndex.delete(selectedListing.id);
@@ -685,7 +685,7 @@ async function copyListingLink() {
     toast("İlan bağlantısı kopyalandı.");
   } catch (err) {
     // Clipboard access can be blocked (insecure origin, permissions): show the link so it can be copied by hand.
-    window.prompt("Bağlantıyı kopyala:", link);
+    linkDialog(link);
   }
 }
 
@@ -770,7 +770,12 @@ async function respondOffer(offerId, action) {
     reject: "Bu teklifi reddetmek istediğine emin misin?",
     withdraw: "Teklifini geri çekmek istediğine emin misin?"
   }[action];
-  if (!confirm(confirmText)) return;
+  const asked = {
+    accept: { confirmText: "Kabul Et", danger: false },
+    reject: { confirmText: "Reddet" },
+    withdraw: { confirmText: "Geri Çek" }
+  }[action];
+  if (!(await confirmDialog(confirmText, asked))) return;
 
   try {
     await apiFetch(`/api/marketplace/offers/${offerId}/${action}`, { method: "POST" });
@@ -886,7 +891,7 @@ async function submitRating() {
 }
 
 async function deleteRating() {
-  if (!ratingState || !confirm("Verdiğin puanı silmek istediğine emin misin?")) return;
+  if (!ratingState || !(await confirmDialog("Verdiğin puanı silmek istediğine emin misin?", { confirmText: "Puanı Sil" }))) return;
   try {
     await apiFetch(`/api/marketplace/offers/${ratingState.offerId}/rating`, { method: "DELETE" });
     bootstrap.Modal.getInstance(document.getElementById("rateModal"))?.hide();

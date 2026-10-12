@@ -35,47 +35,53 @@ const NOTIF_ICON = {
 };
 
 function offerMoney(n) {
-  return n == null ? "" : n.toLocaleString("tr-TR", { maximumFractionDigits: 2 }) + " ₺";
+  return n == null ? "" : n.toLocaleString(localeTag(), { maximumFractionDigits: 2 }) + " ₺";
 }
 
 // The title links to the listing itself; once the listing is deleted there is nothing left to link to.
 function offerListing(n) {
-  if (!n.listingId) return `<b>silinmiş bir</b>`;
-  return `<a href="marketplace.html?listing=${n.listingId}" class="fw-bold text-decoration-none" onclick="event.stopPropagation()">${escapeHtml(n.listingTitle || "ilan")}</a>`;
+  if (!n.listingId) return `<b>${i18n("notif.deletedListing")}</b>`;
+  return `<a href="marketplace.html?listing=${n.listingId}" class="fw-bold text-decoration-none" onclick="event.stopPropagation()">${escapeHtml(n.listingTitle || i18n("notif.listing"))}</a>`;
 }
 
+// The sentences are templates in the language files (the word order differs between languages): {0} is the person,
+// {1}... the group / listing / event and money, already made safe and in bold.
+const notifBold = text => `<b>${escapeHtml(text)}</b>`;
+const notifEventName = n => notifBold(n.eventTitle || i18n("notif.untitled"));
+const notifGroupName = n => notifBold(n.groupName || "");
+
 const NOTIF_TEXT = {
-  FriendRequestReceived: n => `<b>${escapeHtml(n.actorName)}</b> sana arkadaşlık isteği gönderdi.`,
-  FriendRequestAccepted: n => `<b>${escapeHtml(n.actorName)}</b> arkadaşlık isteğini kabul etti.`,
+  FriendRequestReceived: n => i18n("notif.friendRequestReceived", notifBold(n.actorName)),
+  FriendRequestAccepted: n => i18n("notif.friendRequestAccepted", notifBold(n.actorName)),
   PostLiked: n => n.reaction && n.reaction !== "Like" && REACTIONS[n.reaction]
-    ? `<b>${escapeHtml(n.actorName)}</b> gönderine ${REACTIONS[n.reaction].emoji} tepkisi verdi.`
-    : `<b>${escapeHtml(n.actorName)}</b> gönderini beğendi.`,
-  PostShared: n => `<b>${escapeHtml(n.actorName)}</b> gönderini paylaştı.`,
-  CommentAdded: n => `<b>${escapeHtml(n.actorName)}</b> gönderine yorum yaptı.`,
-  CommentLiked: n => `<b>${escapeHtml(n.actorName)}</b> yorumunu beğendi.`,
-  CommentReplied: n => `<b>${escapeHtml(n.actorName)}</b> yorumuna yanıt verdi.`,
-  Mentioned: n => `<b>${escapeHtml(n.actorName)}</b> seni ${n.commentId ? "bir yorumda" : "bir gönderide"} etiketledi.`,
-  GroupJoinRequestReceived: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubuna katılmak istiyor.`,
-  GroupInviteReceived: n => `<b>${escapeHtml(n.actorName)}</b> seni <b>${escapeHtml(n.groupName || "")}</b> grubuna davet etti.`,
-  GroupMemberRemoved: n => `<b>${escapeHtml(n.actorName)}</b> seni <b>${escapeHtml(n.groupName || "")}</b> grubundan çıkardı.`,
-  GroupRoleChanged: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubundaki rolünü değiştirdi.`,
-  GroupJoinRequestApproved: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubuna katılma isteğini onayladı.`,
-  GroupJoinRequestRejected: n => `<b>${escapeHtml(n.actorName)}</b> <b>${escapeHtml(n.groupName || "")}</b> grubuna katılma isteğini reddetti.`,
-  MarketplaceOfferReceived: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} ilanına <b>${offerMoney(n.amount)}</b> teklif verdi.`,
-  MarketplaceOfferCountered: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} ilanında <b>${offerMoney(n.amount)}</b> karşı teklif yaptı.`,
-  MarketplaceOfferAccepted: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} ilanındaki <b>${offerMoney(n.amount)}</b> teklifi kabul etti.`,
-  MarketplaceOfferRejected: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} ilanındaki teklifini reddetti.`,
-  MarketplaceOfferWithdrawn: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} ilanındaki teklifini geri çekti.`,
-  MarketplaceOfferClosed: n => `${offerListing(n)} ilanı satıldığı için teklifin kapandı.`,
-  MarketplaceRatingReceived: n => `<b>${escapeHtml(n.actorName)}</b>, ${offerListing(n)} satışı için seni puanladı: ${starsHtml(n.amount)}`,
-  EventUpdated: n => `<b>${escapeHtml(n.actorName)}</b>, katıldığın <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğini güncelledi.`,
-  EventCancelled: n => `<b>${escapeHtml(n.actorName)}</b>, katılacağın <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğini iptal etti.`,
-  EventInviteReceived: n => `<b>${escapeHtml(n.actorName)}</b> seni <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğine davet etti.`,
-  EventAnnouncement: n => `<b>${escapeHtml(n.actorName)}</b>, <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğinde yeni bir duyuru yaptı.`,
-  EventJoined: n => `<b>${escapeHtml(n.actorName)}</b>, <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğine katılıyor.`,
-  EventCommentAdded: n => `<b>${escapeHtml(n.actorName)}</b>, <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğine yorum yaptı.`,
-  EventWaitlistPromoted: n => `Bekleme listesindeydin: <b>${escapeHtml(n.eventTitle || "bir")}</b> etkinliğinde yer açıldı, artık katılıyorsun.`,
-  EventReminder: n => `<b>${escapeHtml(n.eventTitle || "Bir etkinlik")}</b> yaklaşıyor${n.eventStartsAt ? `: ${formatEventDate(n.eventStartsAt)}` : ""}.`
+    ? i18n("notif.postReacted", notifBold(n.actorName), REACTIONS[n.reaction].emoji)
+    : i18n("notif.postLiked", notifBold(n.actorName)),
+  PostShared: n => i18n("notif.postShared", notifBold(n.actorName)),
+  CommentAdded: n => i18n("notif.commentAdded", notifBold(n.actorName)),
+  CommentLiked: n => i18n("notif.commentLiked", notifBold(n.actorName)),
+  CommentReplied: n => i18n("notif.commentReplied", notifBold(n.actorName)),
+  Mentioned: n => i18n(n.commentId ? "notif.mentionedInComment" : "notif.mentionedInPost", notifBold(n.actorName)),
+  GroupJoinRequestReceived: n => i18n("notif.groupJoinRequest", notifBold(n.actorName), notifGroupName(n)),
+  GroupInviteReceived: n => i18n("notif.groupInvite", notifBold(n.actorName), notifGroupName(n)),
+  GroupMemberRemoved: n => i18n("notif.groupRemoved", notifBold(n.actorName), notifGroupName(n)),
+  GroupRoleChanged: n => i18n("notif.groupRole", notifBold(n.actorName), notifGroupName(n)),
+  GroupJoinRequestApproved: n => i18n("notif.groupApproved", notifBold(n.actorName), notifGroupName(n)),
+  GroupJoinRequestRejected: n => i18n("notif.groupRejected", notifBold(n.actorName), notifGroupName(n)),
+  MarketplaceOfferReceived: n => i18n("notif.offerReceived", notifBold(n.actorName), offerListing(n), notifBold(offerMoney(n.amount))),
+  MarketplaceOfferCountered: n => i18n("notif.offerCountered", notifBold(n.actorName), offerListing(n), notifBold(offerMoney(n.amount))),
+  MarketplaceOfferAccepted: n => i18n("notif.offerAccepted", notifBold(n.actorName), offerListing(n), notifBold(offerMoney(n.amount))),
+  MarketplaceOfferRejected: n => i18n("notif.offerRejected", notifBold(n.actorName), offerListing(n)),
+  MarketplaceOfferWithdrawn: n => i18n("notif.offerWithdrawn", notifBold(n.actorName), offerListing(n)),
+  MarketplaceOfferClosed: n => i18n("notif.offerClosed", offerListing(n)),
+  MarketplaceRatingReceived: n => i18n("notif.ratingReceived", notifBold(n.actorName), offerListing(n), starsHtml(n.amount)),
+  EventUpdated: n => i18n("notif.eventUpdated", notifBold(n.actorName), notifEventName(n)),
+  EventCancelled: n => i18n("notif.eventCancelled", notifBold(n.actorName), notifEventName(n)),
+  EventInviteReceived: n => i18n("notif.eventInvite", notifBold(n.actorName), notifEventName(n)),
+  EventAnnouncement: n => i18n("notif.eventAnnouncement", notifBold(n.actorName), notifEventName(n)),
+  EventJoined: n => i18n("notif.eventJoined", notifBold(n.actorName), notifEventName(n)),
+  EventCommentAdded: n => i18n("notif.eventComment", notifBold(n.actorName), notifEventName(n)),
+  EventWaitlistPromoted: n => i18n("notif.eventWaitlist", notifEventName(n)),
+  EventReminder: n => i18n("notif.eventReminder", notifBold(n.eventTitle || i18n("notif.anEvent")), n.eventStartsAt ? `: ${formatEventDate(n.eventStartsAt)}` : "")
 };
 
 function notificationHtml(n) {

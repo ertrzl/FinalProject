@@ -183,7 +183,7 @@ function closeStoryViewers() {
 
 async function deleteCurrentStory() {
   const story = activeStories[currentStory];
-  if (!confirm("Bu hikâye silinsin mi?")) return;
+  if (!(await confirmDialog("Bu hikâye silinsin mi?"))) return;
 
   try {
     await apiFetch(`/api/stories/${story.id}`, { method: "DELETE" });

@@ -34,7 +34,7 @@ window.chatMessageBodyHtml = function (m, compact) {
   if (m.type === "Image") {
     html += `<img src="${m.mediaUrl}" class="chat-image d-block rounded-3" style="max-width:${compact ? 170 : 260}px;max-height:${compact ? 180 : 300}px;" onclick="openChatImage('${m.mediaUrl}')" alt="Fotoğraf">`;
   }
-  if (m.text) html += `<div class="${compact ? "" : "small"}${m.type === "Image" ? " mt-1" : ""}">${escapeHtml(m.text)}</div>`;
+  if (m.text) html += `<div class="${compact ? "" : "small"}${m.type === "Image" ? " mt-1" : ""}" data-no-i18n>${escapeHtml(m.text)}</div>`;
   return html;
 };
 
@@ -54,7 +54,7 @@ window.chatDeleteButtonHtml = function (m) {
 // "Delete for everyone". The server tells every open tab of both people ("MessageDeleted"); the event is also raised
 // here from the answer, so this tab updates even when the live connection is down. Pages redraw on the event.
 window.deleteChatMessage = async function (id) {
-  if (!confirm("Bu mesaj herkes için silinsin mi?")) return;
+  if (!(await confirmDialog("Bu mesaj herkes için silinsin mi?"))) return;
   try {
     const deleted = await apiFetch(`/api/messages/${id}`, { method: "DELETE" });
     document.dispatchEvent(new CustomEvent("realtime:message-deleted", { detail: deleted }));

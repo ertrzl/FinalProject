@@ -24,6 +24,82 @@ function toast(message) {
   el.addEventListener("hidden.bs.toast", () => el.remove());
 }
 
+// ---- Asking before something that cannot be undone ----
+// The site's own box, not the browser's confirm(): it looks like the rest of the page, follows the language and the dark
+// mode, and opens on top of modals and the story viewer. It is not a Bootstrap modal for that last reason (Bootstrap
+// cannot stack them). Resolves true when confirmed, false on "Vazgeç", Esc or a click outside.
+//   if (!(await confirmDialog("Bu gönderi silinsin mi?"))) return;
+//   if (!(await confirmDialog("...", { confirmText: "Kabul Et", danger: false }))) return;
+function openSiteDialog(innerHtml, onOpen) {
+  const previousFocus = document.activeElement;
+  const overlay = document.createElement("div");
+  overlay.className = "confirm-overlay";
+  overlay.innerHTML = `<div class="confirm-box bg-body text-body rounded-4 shadow-lg p-4" role="alertdialog" aria-modal="true">${innerHtml}</div>`;
+  document.body.appendChild(overlay);
+
+  const close = () => {
+    document.removeEventListener("keydown", onKey, true);
+    overlay.remove();
+    if (previousFocus && previousFocus.focus) previousFocus.focus();
+  };
+
+  // Esc closes; Tab stays inside the box.
+  const onKey = event => {
+    if (event.key === "Escape") { event.stopPropagation(); overlay.dispatchEvent(new CustomEvent("dismiss")); return; }
+    if (event.key !== "Tab") return;
+
+    const focusable = [...overlay.querySelectorAll("button, input")];
+    const at = focusable.indexOf(document.activeElement);
+    const next = event.shiftKey ? (at <= 0 ? focusable.length - 1 : at - 1) : (at === focusable.length - 1 ? 0 : at + 1);
+    event.preventDefault();
+    focusable[next].focus();
+  };
+  document.addEventListener("keydown", onKey, true);
+  overlay.addEventListener("click", event => { if (event.target === overlay) overlay.dispatchEvent(new CustomEvent("dismiss")); });
+
+  onOpen(overlay, close);
+  return overlay;
+}
+
+function confirmDialog(message, { confirmText = "Sil", danger = true } = {}) {
+  return new Promise(resolve => {
+    const overlay = openSiteDialog(`
+      <div class="confirm-message mb-4" style="white-space:pre-line"></div>
+      <div class="d-flex justify-content-end flex-wrap gap-2">
+        <button type="button" class="btn btn-light rounded-pill px-4" data-answer="no">Vazgeç</button>
+        <button type="button" class="btn ${danger ? "btn-danger" : "btn-primary"} rounded-pill px-4" data-answer="yes"></button>
+      </div>`,
+      (box, close) => {
+        const answer = value => { close(); resolve(value); };
+        box.querySelector(".confirm-message").textContent = message;
+        box.querySelector('[data-answer="yes"]').textContent = confirmText;
+        box.querySelector('[data-answer="yes"]').addEventListener("click", () => answer(true));
+        box.querySelector('[data-answer="no"]').addEventListener("click", () => answer(false));
+        box.addEventListener("dismiss", () => answer(false));
+      });
+
+    // A destructive question starts on "Vazgeç" so a stray Enter cannot delete anything.
+    overlay.querySelector(danger ? '[data-answer="no"]' : '[data-answer="yes"]').focus();
+  });
+}
+
+// Shows a link to be copied by hand (when the browser does not let the page use the clipboard).
+function linkDialog(link) {
+  const overlay = openSiteDialog(`
+    <div class="mb-3">Bağlantıyı kopyala:</div>
+    <input type="text" readonly class="form-control rounded-pill mb-4 link-field">
+    <div class="d-flex justify-content-end"><button type="button" class="btn btn-primary rounded-pill px-4" data-answer="close">Kapat</button></div>`,
+    (box, close) => {
+      box.querySelector(".link-field").value = link;
+      box.querySelector('[data-answer="close"]').addEventListener("click", close);
+      box.addEventListener("dismiss", close);
+    });
+
+  const field = overlay.querySelector(".link-field");
+  field.focus();
+  field.select();
+}
+
 // ---- Auth: avatar preview on register page ----
 function previewAvatar(input) {
   const preview = document.getElementById("avatarPreview");

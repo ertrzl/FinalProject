@@ -254,7 +254,7 @@ function renderMembers(group) {
 }
 
 async function kickMember(userId) {
-  if (!confirm("Bu kişiyi gruptan çıkarmak istediğine emin misin?")) return;
+  if (!(await confirmDialog("Bu kişiyi gruptan çıkarmak istediğine emin misin?", { confirmText: "Gruptan Çıkar" }))) return;
   try {
     await apiFetch(`/api/groups/${groupId}/members/${userId}`, { method: "DELETE" });
     toast("Üye gruptan çıkarıldı.");
@@ -275,7 +275,7 @@ async function setMemberRole(userId, role) {
 }
 
 async function transferOwnershipPage(userId) {
-  if (!confirm("Grup sahipliğini bu kişiye devretmek istediğine emin misin? Bu işlem geri alınamaz.")) return;
+  if (!(await confirmDialog("Grup sahipliğini bu kişiye devretmek istediğine emin misin? Bu işlem geri alınamaz.", { confirmText: "Devret" }))) return;
   try {
     const group = await apiFetch(`/api/groups/${groupId}/transfer-ownership/${userId}`, { method: "POST" });
     renderGroup(group);

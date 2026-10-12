@@ -208,7 +208,7 @@ function editEvent() {
 
 async function deleteEvent() {
   const attendeeNote = currentEvent.goingCount + currentEvent.interestedCount > 0 ? " Katılımcılar da etkinlikten düşer." : "";
-  if (!confirm(`"${currentEvent.title}" silinsin mi?${attendeeNote} Bu işlem geri alınamaz.`)) return;
+  if (!(await confirmDialog(`"${currentEvent.title}" silinsin mi?${attendeeNote} Bu işlem geri alınamaz.`))) return;
 
   try {
     await apiFetch(`/api/events/${eventId}`, { method: "DELETE" });
@@ -225,7 +225,7 @@ async function copyEventLink() {
     toast("Etkinlik bağlantısı kopyalandı.");
   } catch (err) {
     // Clipboard access can be blocked (insecure origin, permissions): show the link so it can be copied by hand.
-    window.prompt("Bağlantıyı kopyala:", link);
+    linkDialog(link);
   }
 }
 
@@ -359,7 +359,7 @@ async function postComment() {
 }
 
 async function deleteComment(commentId) {
-  if (!confirm("Bu mesaj silinsin mi?")) return;
+  if (!(await confirmDialog("Bu mesaj silinsin mi?"))) return;
   try {
     await apiFetch(`/api/events/${eventId}/comments/${commentId}`, { method: "DELETE" });
     await loadComments(true);

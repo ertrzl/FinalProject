@@ -24,8 +24,9 @@
     <div class="col-md-3 d-none d-md-block side-nav">
       <div class="card border-0 shadow-sm rounded-4 p-2">
         <a href="#section-account" class="side-nav-link active"><i class="bi bi-person"></i>Hesap</a>
+        <a href="#section-language" class="side-nav-link"><i class="bi bi-translate"></i>Dil</a>
         <a href="#section-privacy" class="side-nav-link"><i class="bi bi-shield-lock"></i>Gizlilik</a>
-        <a href="#section-blocked" class="side-nav-link"><i class="bi bi-slash-circle"></i><span data-i18n="settings.blocked.title">Engellenenler</span></a>
+        <a href="#section-blocked" class="side-nav-link"><i class="bi bi-slash-circle"></i>Engellenenler</a>
         <a href="#section-password" class="side-nav-link"><i class="bi bi-key"></i>Şifre</a>
         <a href="#section-notifications" class="side-nav-link"><i class="bi bi-bell"></i>Bildirimler</a>
         <a href="#section-danger" class="side-nav-link text-danger"><i class="bi bi-exclamation-triangle"></i>Tehlikeli Bölge</a>
@@ -70,6 +71,13 @@
           </div>
         </div>
         <button type="button" id="saveAccountBtn" class="btn btn-primary rounded-pill mt-3 align-self-start" onclick="saveAccount()">Kaydet</button>
+      </div>
+
+      <!-- Language -->
+      <div class="card border-0 shadow-sm rounded-4 p-3" id="section-language">
+        <div class="fw-bold mb-1">Dil</div>
+        <p class="text-muted small mb-3">Sayfaların ve mesajların hangi dilde gösterileceğini seç. Seçim bu tarayıcıda saklanır.</p>
+        <select id="languageSelect" class="form-select rounded-pill" style="max-width: 260px;" onchange="setLang(this.value)" data-no-i18n></select>
       </div>
 
       <!-- Privacy -->

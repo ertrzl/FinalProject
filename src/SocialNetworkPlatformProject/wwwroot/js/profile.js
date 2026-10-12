@@ -10,7 +10,7 @@ let loadedPosts = [];
 enableLocationAutocomplete(document.getElementById("editLocation"));
 
 function monthYear(isoDate) {
-  return new Date(isoDate).toLocaleDateString("tr-TR", { month: "long", year: "numeric" });
+  return new Date(isoDate).toLocaleDateString(localeTag(), { month: "long", year: "numeric" });
 }
 
 // Marketplace seller rating next to the handle (hidden until the user has been rated); links to the reviews.
@@ -62,7 +62,7 @@ async function loadProfile() {
   document.getElementById("removeCoverBtn")?.classList.toggle("d-none", !p.coverPhotoUrl);
 
   const aboutHtml = `
-    ${p.bio ? `<p class="small mb-3"><i class="bi bi-chat-quote me-1 text-primary"></i> ${escapeHtml(p.bio)}</p>` : ""}
+    ${p.bio ? `<p class="small mb-3"><i class="bi bi-chat-quote me-1 text-primary"></i> <span data-no-i18n>${escapeHtml(p.bio)}</span></p>` : ""}
     ${p.location ? `<div class="small border-top pt-2 mb-2 d-flex"><span class="text-muted" style="width:110px;"><i class="bi bi-geo-alt me-1"></i>Konum</span><span>${escapeHtml(p.location)}</span></div>` : ""}
     ${p.occupation ? `<div class="small border-top pt-2 mb-2 d-flex"><span class="text-muted" style="width:110px;"><i class="bi bi-briefcase me-1"></i>Meslek</span><span>${escapeHtml(p.occupation)}</span></div>` : ""}
     ${p.education ? `<div class="small border-top pt-2 mb-2 d-flex"><span class="text-muted" style="width:110px;"><i class="bi bi-mortarboard me-1"></i>Eğitim</span><span>${escapeHtml(p.education)}</span></div>` : ""}
@@ -95,17 +95,17 @@ async function renderOtherProfileActions(p) {
   // Somebody the viewer blocked: only the way back is offered, no friend or message buttons.
   if (p.isBlockedByMe) {
     area.innerHTML = `
-      <div class="small text-muted mb-2"><i class="bi bi-slash-circle me-1"></i>${t("block.notice")}</div>
-      <button class="btn btn-outline-secondary btn-sm rounded-pill mb-2" onclick="unblockProfile('${p.id}')">${t("block.unblock")}</button>`;
+      <div class="small text-muted mb-2"><i class="bi bi-slash-circle me-1"></i>${i18n("block.notice")}</div>
+      <button class="btn btn-outline-secondary btn-sm rounded-pill mb-2" onclick="unblockProfile('${p.id}')">${i18n("block.unblock")}</button>`;
     return;
   }
 
   // The "..." menu next to the buttons: the block item.
   const moreMenu = `
     <div class="dropdown d-inline-block mb-2 ms-1">
-      <button class="btn btn-light btn-sm rounded-circle shadow-sm border" data-bs-toggle="dropdown" title="${t("block.more")}"><i class="bi bi-three-dots"></i></button>
+      <button class="btn btn-light btn-sm rounded-circle shadow-sm border" data-bs-toggle="dropdown" title="${i18n("block.more")}"><i class="bi bi-three-dots"></i></button>
       <ul class="dropdown-menu dropdown-menu-end">
-        <li><button class="dropdown-item text-danger" onclick="blockProfile('${p.id}')"><i class="bi bi-slash-circle me-2"></i>${t("block.menuItem")}</button></li>
+        <li><button class="dropdown-item text-danger" onclick="blockProfile('${p.id}')"><i class="bi bi-slash-circle me-2"></i>${i18n("block.menuItem")}</button></li>
       </ul>
     </div>`;
 
@@ -134,24 +134,24 @@ async function renderOtherProfileActions(p) {
 }
 
 async function blockProfile(userId) {
-  if (!confirm(t("confirm.blockUser", currentProfile.fullName))) return;
+  if (!(await confirmDialog(i18n("confirm.blockUser", currentProfile.fullName), { confirmText: "Engelle" }))) return;
 
   try {
     await apiFetch(`/api/users/${userId}/block`, { method: "POST" });
-    toast(t("block.done"));
+    toast(i18n("block.done"));
     await loadProfile();
   } catch (err) {
-    toast(err.message || t("block.failed"));
+    toast(err.message || i18n("block.failed"));
   }
 }
 
 async function unblockProfile(userId) {
   try {
     await apiFetch(`/api/users/${userId}/block`, { method: "DELETE" });
-    toast(t("block.undone"));
+    toast(i18n("block.undone"));
     await loadProfile();
   } catch (err) {
-    toast(err.message || t("block.undoFailed"));
+    toast(err.message || i18n("block.undoFailed"));
   }
 }
 
@@ -178,7 +178,7 @@ async function respondRequest(requestId, accepted) {
 }
 
 async function removeFriend(userId) {
-  if (!confirm(t("confirm.removeFriend", currentProfile.fullName))) return;
+  if (!(await confirmDialog(i18n("confirm.removeFriend", currentProfile.fullName), { confirmText: "Arkadaşlıktan Çıkar" }))) return;
 
   try {
     await apiFetch(`/api/friends/${userId}`, { method: "DELETE" });

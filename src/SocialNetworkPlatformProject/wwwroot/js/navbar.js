@@ -55,9 +55,7 @@ function topMenuHtml(active) {
 
       <div class="d-none d-md-flex align-items-center gap-1 ms-auto">
         ${MAIN_LINKS.map(link => navLinkHtml(link, active)).join("")}
-        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Temayı Değiştir"><i class="bi bi-moon-stars-fill"></i></button>
-        ${languagePickerHtml("ms-1")}
-        <div class="dropdown ms-2">
+        <button type="button" class="theme-toggle-btn" onclick="toggleTheme()" title="Temayı Değiştir"><i class="bi bi-moon-stars-fill"></i></button>        <div class="dropdown ms-2">
           <button class="btn p-0 border-0 bg-transparent position-relative" data-bs-toggle="dropdown">
             <img src="images/default-avatar.png" class="avatar-xs nav-profile-avatar" alt="Profilim">
             <span class="position-absolute bg-success border border-2 border-white rounded-circle" style="width:11px;height:11px;bottom:0;right:0;" title="Çevrimiçi"></span>
@@ -109,9 +107,7 @@ function menuPanelHtml(active) {
           ${MAIN_LINKS.map(row).join("")}
           <div class="border-top my-2"></div>
           ${ACCOUNT_LINKS.map(row).join("")}
-          <button type="button" class="list-group-item list-group-item-action d-flex align-items-center gap-3" onclick="toggleTheme()"><i class="bi bi-moon-stars-fill theme-icon"></i>Temayı Değiştir</button>
-          <div class="list-group-item d-flex align-items-center gap-3"><i class="bi bi-translate"></i>${languagePickerHtml()}</div>
-          <a href="#" class="list-group-item list-group-item-action d-flex align-items-center gap-3 text-danger" onclick="logout(); return false;"><i class="bi bi-box-arrow-right"></i>Çıkış Yap</a>
+          <button type="button" class="list-group-item list-group-item-action d-flex align-items-center gap-3" onclick="toggleTheme()"><i class="bi bi-moon-stars-fill theme-icon"></i>Temayı Değiştir</button>          <a href="#" class="list-group-item list-group-item-action d-flex align-items-center gap-3 text-danger" onclick="logout(); return false;"><i class="bi bi-box-arrow-right"></i>Çıkış Yap</a>
         </div>
       </div>
     </div>`;

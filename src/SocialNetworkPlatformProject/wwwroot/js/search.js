@@ -87,5 +87,5 @@ async function sendRequestTo(userId, btn) {
 }
 
 const initialQuery = new URLSearchParams(window.location.search).get("q");
-if (initialQuery) document.getElementById("searchInput").value = initialQuery;
+if (initialQuery) document.querySelectorAll("[data-search-input]").forEach(input => { input.value = initialQuery; });
 runSearch(initialQuery || "");

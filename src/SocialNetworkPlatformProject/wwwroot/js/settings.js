@@ -194,6 +194,10 @@ document.getElementById("deleteAccountModal").addEventListener("hidden.bs.modal"
 document.getElementById("languageSelect").innerHTML = (window.LANGUAGES || [])
   .map(l => `<option value="${l.code}" ${l.code === getLang() ? "selected" : ""}>${l.name}</option>`).join("");
 
+// "Görünüm": every design listed in js/design.js; picking one reloads the page in it.
+document.getElementById("designSelect").innerHTML = DESIGNS
+  .map(d => `<option value="${d.code}" ${d.code === getDesign() ? "selected" : ""}>${d.name}</option>`).join("");
+
 loadSettings();
 loadNotificationSettings();
 loadBlockedUsers();

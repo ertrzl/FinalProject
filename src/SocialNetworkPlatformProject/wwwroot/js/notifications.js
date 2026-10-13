@@ -116,7 +116,7 @@ function notificationHtml(n) {
   }
 
   return `
-    <div class="d-flex align-items-start gap-3 p-3 rounded-3 ${unreadClass} mb-2" data-notification-id="${n.id}" onclick="markRead('${n.id}')">
+    <div class="d-flex align-items-start gap-3 p-3 rounded-3 ${unreadClass} mb-2" data-notification-id="${n.id}" data-created="${n.createdAt}" onclick="markRead('${n.id}')">
       <div class="position-relative flex-shrink-0">
         <img src="${n.actorAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt="">
         <span class="notif-icon-badge ${iconInfo.badge}"><i class="bi ${iconInfo.icon}"></i></span>
@@ -129,13 +129,37 @@ function notificationHtml(n) {
     </div>`;
 }
 
+// The inbox design groups the list by day: a small caption ("Bugün", "Dün", a date) above the first notification of each day.
+// Drawn again whenever the list changes, so the captions are always right.
+function labelNotificationDays() {
+  if (getDesign() !== "inbox") return;
+
+  const list = document.getElementById("notificationsList");
+  list.querySelectorAll(".day-caption").forEach(el => el.remove());
+
+  const today = new Date().toDateString();
+  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  let lastDay = null;
+
+  list.querySelectorAll("[data-notification-id]").forEach(row => {
+    const day = parseServerDate(row.dataset.created).toDateString();
+    if (day === lastDay) return;
+    lastDay = day;
+
+    const label = day === today ? "Bugün" : day === yesterday ? "Dün"
+      : parseServerDate(row.dataset.created).toLocaleDateString(localeTag(), { day: "numeric", month: "long", year: "numeric" });
+    row.insertAdjacentHTML("beforebegin", `<div class="day-caption cap"${day === today || day === yesterday ? "" : " data-no-i18n"}>${label}</div>`);
+  });
+}
+
 // 30 notifications at a time (pager.js).
 const notificationsPager = createPager({
   list: "notificationsList",
   url: page => `/api/notifications?page=${page}&pageSize=30`,
   render: notificationHtml,
   shown: n => !!document.querySelector(`[data-notification-id="${n.id}"]`),
-  emptyHtml: `<div class="text-center text-muted small py-4">Henüz bildirim yok.</div>`
+  emptyHtml: `<div class="text-center text-muted small py-4">Henüz bildirim yok.</div>`,
+  onLoaded: labelNotificationDays
 });
 
 function loadNotifications() {
@@ -212,6 +236,7 @@ document.addEventListener("realtime:notification", e => {
   if (list.querySelector(`[data-notification-id="${n.id}"]`)) return;
   if (!list.querySelector("[data-notification-id]")) list.innerHTML = "";
   list.insertAdjacentHTML("afterbegin", notificationHtml(n));
+  labelNotificationDays();
 });
 
 document.addEventListener("realtime:reconnected", loadNotifications);

@@ -283,11 +283,14 @@ function richTextHtml(text, mentions) {
   return `<span data-no-i18n>${linkifyHashtags(linkifyMentions(escapeHtml(text), mentions))}</span>`;
 }
 
+// A date the server sent, as a Date. ASP.NET Core serializes DateTime (not DateTimeOffset) without a "Z" suffix even
+// though it's UTC — without it, JS's Date parser treats the string as local time and skews every timestamp.
+function parseServerDate(isoDate) {
+  return new Date(/Z$|[+-]\d\d:\d\d$/.test(isoDate) ? isoDate : `${isoDate}Z`);
+}
+
 function timeAgo(isoDate) {
-  // ASP.NET Core serializes DateTime (not DateTimeOffset) without a "Z" suffix even though it's UTC —
-  // without it, JS's Date parser treats the string as local time and skews every timestamp.
-  const utcDate = /Z$|[+-]\d\d:\d\d$/.test(isoDate) ? isoDate : `${isoDate}Z`;
-  const seconds = Math.floor((Date.now() - new Date(utcDate).getTime()) / 1000);
+  const seconds = Math.floor((Date.now() - parseServerDate(isoDate).getTime()) / 1000);
   if (seconds < 60) return "Şimdi";
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes} dakika önce`;
@@ -350,6 +353,12 @@ function toLocalInputValue(isoDate, kind) {
 // The other direction: what the viewer typed (local, no offset) -> a UTC ISO string for the API.
 function localInputToIso(value) {
   return new Date(value).toISOString();
+}
+
+// The small calendar page of the inbox design (the cover photo of the card is hidden there): month above, day below.
+function eventDateBlockHtml(startsAt) {
+  const d = new Date(startsAt);
+  return `<div class="event-date inbox-only" data-no-i18n><b>${d.toLocaleDateString(localeTag(), { month: "short" }).replace(".", "").toUpperCase()}</b><span>${d.getDate()}</span></div>`;
 }
 
 // Small pills for an event's state: "Devam ediyor" (started, not finished) and "Özel" (invite-only).

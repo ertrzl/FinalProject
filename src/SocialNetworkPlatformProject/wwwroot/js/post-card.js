@@ -6,6 +6,11 @@
 // The posts as they were last drawn, so "Düzenle" can fill its dialog without asking the server again.
 const drawnPosts = new Map();
 
+// What a post holds, for the filter tabs of the inbox design ("photo", "poll"; both, one or none).
+function postKinds(post) {
+  return [post.media?.length ? "photo" : "", post.poll ? "poll" : ""].filter(Boolean).join(" ");
+}
+
 function postCardHtml(post) {
   drawnPosts.set(post.id, post);
 
@@ -26,7 +31,7 @@ function postCardHtml(post) {
        </div>`;
 
   return `
-    <div class="card border-0 shadow-sm rounded-4 p-3 mb-4" data-post-id="${post.id}">
+    <div class="card border-0 shadow-sm rounded-4 p-3 mb-4" data-post-id="${post.id}" data-kind="${postKinds(post)}">
       <div class="d-flex align-items-center gap-3">
         <a href="${authorUrl}"><img src="${post.authorAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt=""></a>
         <div class="flex-grow-1">

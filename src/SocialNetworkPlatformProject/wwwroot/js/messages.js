@@ -27,6 +27,16 @@ async function renderList() {
   list.innerHTML = conversations.length
     ? conversations.map(conversationListItemHtml).join("")
     : `<div class="p-3 text-muted small">Henüz mesajın yok.</div>`;
+  filterConversations();
+}
+
+// The search box above the list (inbox design): hides the conversations whose name does not contain what was typed.
+function filterConversations() {
+  const box = document.getElementById("conversationSearch");
+  const term = (box ? box.value : "").trim().toLocaleLowerCase(localeTag());
+  document.querySelectorAll("#conversationList > button").forEach(row => {
+    row.classList.toggle("d-none", !!term && !row.textContent.toLocaleLowerCase(localeTag()).includes(term));
+  });
 }
 
 // One tick = delivered, two ticks = the other person has seen it.

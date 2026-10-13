@@ -21,6 +21,13 @@ function loadFeed() {
   return feedPager.reload();
 }
 
+// The tabs above the list (inbox design): show only the posts with a photo or a poll. The posts stay drawn, the
+// attribute on the list tells the stylesheet which ones to hide.
+function filterFeed(tab) {
+  document.querySelectorAll("#feedFilter .nav-link").forEach(el => el.classList.toggle("active", el === tab));
+  document.getElementById("feedList").dataset.filter = tab.dataset.filter;
+}
+
 async function publishPost(btn) {
   const composer = btn.closest(".composer");
   const textarea = document.getElementById("composerText");

@@ -4,7 +4,10 @@
 // data-active names the section the page belongs to: home, explore, friends, notifications, messages, groups, marketplace, events
 // (the main links) or profile, saved, settings (the account links); leave it empty on any other page.
 //
-// Wide screens: the top menu (logo, search, the links, theme button, account menu).
+// The menu is drawn for the chosen design (js/design.js):
+//   inbox    a column of text links on the left (wide screens), with the search, "Gruplarım" and the account at its ends;
+//            below 992 px a top bar (logo, search, burger) and the bottom bar of the phone
+//   classic  the old top menu (logo, search, links, theme button, account menu); the phone bar below 768 px
 // Phones: the top has the logo, the search and a burger button (☰) that opens a panel with every link; the four most
 // used links are also on a bar at the bottom, whose "Daha fazla" button opens the same panel.
 
@@ -28,6 +31,20 @@ const ACCOUNT_LINKS = [
 // Which main links also get a place on the phone's bottom bar (the panel has all of them).
 const PHONE_BAR_KEYS = ["home", "friends", "notifications", "messages"];
 
+// The inbox design: the order of the column on the left, and the keys that press with "g" (js/shortcuts.js reads data-shortcut).
+const SIDE_LINKS = [
+  { key: "home", shortcut: "a" }, { key: "explore", shortcut: "k" }, { key: "friends", shortcut: "r" },
+  { key: "messages", shortcut: "m" }, { key: "notifications", shortcut: "b" }, { key: "groups", shortcut: "g" },
+  { key: "events", shortcut: "e" }, { key: "marketplace", shortcut: "p" }, { key: "saved", shortcut: "s" }, { key: "settings", shortcut: "t" }
+];
+
+// The width where the menu turns into the phone layout: inbox has a column on the left from "lg", classic a top menu from "md".
+const MENU_BREAKPOINT = getDesign() === "inbox" ? "lg" : "md";
+
+function findLink(key) {
+  return MAIN_LINKS.find(link => link.key === key) || ACCOUNT_LINKS.find(link => link.key === key);
+}
+
 // The red counter on a link; navbar-badge.js fills every element with the badge's class.
 function navBadgeHtml(badgeClass) {
   return badgeClass ? `<span class="position-absolute top-0 end-0 badge rounded-pill bg-danger ${badgeClass} d-none">0</span>` : "";
@@ -41,15 +58,20 @@ function accountMenuItemHtml(link, active) {
   return `<li><a class="dropdown-item ${active === link.key ? "active" : ""}" href="${link.href}"><i class="bi ${link.icon} me-2"></i>${link.label}</a></li>`;
 }
 
+function searchFormHtml(extraClass = "") {
+  return `
+      <form class="d-flex align-items-center bg-body-tertiary rounded-pill px-3 py-2 nav-search-wrap ${extraClass}" onsubmit="return submitSearch(this)">
+        <i class="bi bi-search text-muted me-2"></i>
+        <input type="text" class="form-control form-control-sm border-0 bg-transparent p-0 shadow-none" placeholder="Kullanıcı ara..." name="q" data-search-input>
+      </form>`;
+}
+
 function topMenuHtml(active) {
   return `
     <div class="container-fluid px-3 px-md-4">
       <a class="navbar-brand site-brand" href="home.html">SocialNet</a>
 
-      <form class="d-flex align-items-center bg-body-tertiary rounded-pill px-3 py-2 mx-2 mx-md-3 nav-search-wrap" onsubmit="return submitSearch(this)">
-        <i class="bi bi-search text-muted me-2"></i>
-        <input type="text" id="searchInput" class="form-control form-control-sm border-0 bg-transparent p-0 shadow-none" placeholder="Kullanıcı ara..." name="q">
-      </form>
+      ${searchFormHtml("mx-2 mx-md-3")}
 
       <button type="button" class="burger-btn d-md-none" data-bs-toggle="offcanvas" data-bs-target="#siteMenu" aria-label="Menü"><i class="bi bi-list"></i></button>
 
@@ -70,6 +92,63 @@ function topMenuHtml(active) {
     </div>`;
 }
 
+// ---- Inbox design ----
+
+// A row of the column on the left: the name, a counter if the link has one, and (on the page you are on) the key that jumps to it.
+function sideLinkHtml(item, active) {
+  const link = findLink(item.key);
+  const isActive = active === item.key;
+  const counter = link.badge ? `<span class="badge bg-danger ${link.badge} d-none">0</span>` : "";
+  const hint = isActive ? `<span class="kbd" title="g, sonra ${item.shortcut}">g ${item.shortcut}</span>` : "";
+  const label = link.key === "marketplace" ? "Pazar" : link.label; // the design calls it "Pazar" (the classic menu says Marketplace)
+  return `<a href="${link.href}" data-section="${link.key}" data-shortcut="${item.shortcut}" class="side-link ${isActive ? "active" : ""}"><span>${label}</span><span class="side-link-end">${counter}${hint}</span></a>`;
+}
+
+function sideMenuHtml(active) {
+  const me = getSession();
+  return `
+    <div class="side-menu d-none d-lg-flex">
+      <a class="side-brand" href="home.html"><span class="side-brand-mark"></span>SocialNet</a>
+      ${searchFormHtml("side-search")}
+      <div class="side-links">${SIDE_LINKS.map(item => sideLinkHtml(item, active)).join("")}</div>
+      <div class="side-groups d-none" id="sideGroups">
+        <div class="side-caption">Gruplarım</div>
+        <div id="sideGroupsList"></div>
+      </div>
+      <div class="side-grow"></div>
+      <div class="side-account">
+        <a href="profile.html" class="side-me ${active === "profile" ? "active" : ""}" title="Profilim">
+          <img src="images/default-avatar.png" class="avatar-xs nav-profile-avatar" alt="">
+          <span class="side-me-name">${escapeHtml(me?.fullName || "Profilim")}</span>
+        </a>
+        <button type="button" class="side-tool" onclick="toggleTheme()" title="Temayı Değiştir"><i class="bi bi-moon-stars-fill theme-icon"></i></button>
+        <button type="button" class="side-tool" onclick="logout()" title="Çıkış Yap"><i class="bi bi-box-arrow-right"></i></button>
+      </div>
+    </div>
+    <div class="top-bar d-flex d-lg-none">
+      <a class="side-brand" href="home.html"><span class="side-brand-mark"></span>SocialNet</a>
+      ${searchFormHtml("top-bar-search")}
+      <button type="button" class="burger-btn" data-bs-toggle="offcanvas" data-bs-target="#siteMenu" aria-label="Menü"><i class="bi bi-list"></i></button>
+    </div>`;
+}
+
+// "Gruplarım": the groups the person is in, under the links. A person with no group sees nothing there.
+async function loadSideGroups() {
+  const box = document.getElementById("sideGroups");
+  if (!box) return;
+
+  try {
+    const groups = await apiFetch("/api/groups/mine");
+    if (!groups.length) return;
+
+    document.getElementById("sideGroupsList").innerHTML = groups.slice(0, 6)
+      .map(g => `<a href="group.html?id=${g.id}" class="side-link" data-no-i18n><span>${escapeHtml(g.name)}</span></a>`).join("");
+    box.classList.remove("d-none");
+  } catch (err) {
+    // Silent: the column works without the list.
+  }
+}
+
 // The bottom bar of a phone. "Daha fazla" lights up when the current page is not one of the four links on the bar.
 function phoneBarHtml(active) {
   const tabs = PHONE_BAR_KEYS
@@ -79,7 +158,7 @@ function phoneBarHtml(active) {
   const moreIsActive = active !== "" && !PHONE_BAR_KEYS.includes(active);
 
   return `
-    <div class="phone-tabbar d-md-none bg-body border-top">
+    <div class="phone-tabbar d-${MENU_BREAKPOINT}-none bg-body border-top">
       ${tabs}
       <button type="button" class="nav-pill-link phone-tab border-0 bg-transparent ${moreIsActive ? "active" : ""}" data-bs-toggle="offcanvas" data-bs-target="#siteMenu">
         <i class="bi bi-three-dots"></i>Daha fazla
@@ -94,7 +173,7 @@ function menuPanelHtml(active) {
   const me = getSession();
 
   return `
-    <div class="offcanvas offcanvas-end d-md-none" tabindex="-1" id="siteMenu">
+    <div class="offcanvas offcanvas-end d-${MENU_BREAKPOINT}-none" tabindex="-1" id="siteMenu">
       <div class="offcanvas-header">
         <a href="profile.html" class="d-flex align-items-center gap-2 fw-bold min-w-0">
           <img src="images/default-avatar.png" class="avatar-sm nav-profile-avatar" alt="">
@@ -118,7 +197,13 @@ function menuPanelHtml(active) {
   if (!nav) return;
 
   const active = nav.dataset.active || "";
-  nav.className = "navbar navbar-expand bg-body border-bottom sticky-top py-2";
-  nav.innerHTML = topMenuHtml(active);
+  if (getDesign() === "inbox") {
+    nav.className = "inbox-nav";
+    nav.innerHTML = sideMenuHtml(active);
+    loadSideGroups();
+  } else {
+    nav.className = "navbar navbar-expand bg-body border-bottom sticky-top py-2";
+    nav.innerHTML = topMenuHtml(active);
+  }
   document.body.insertAdjacentHTML("beforeend", phoneBarHtml(active) + menuPanelHtml(active));
 })();

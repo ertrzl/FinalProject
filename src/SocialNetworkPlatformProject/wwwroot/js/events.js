@@ -13,6 +13,7 @@ function eventCardHtml(ev) {
     <div class="col-md-6" data-event-id="${ev.id}">
       <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
         <a href="event.html?id=${ev.id}"><img src="${ev.coverImageUrl || NO_PHOTO}" class="w-100" style="height:150px;object-fit:cover;" alt=""></a>
+        ${eventDateBlockHtml(ev.startsAt)}
         <div class="p-3">
           <div class="text-danger fw-bold small mb-1"><i class="bi bi-calendar3 me-1"></i>${formatEventRange(ev.startsAt, ev.endsAt)} ${eventStateBadgeHtml(ev)}</div>
           <div class="fw-bold fs-6"><a href="event.html?id=${ev.id}" class="text-body text-decoration-none">${escapeHtml(ev.title)}</a></div>
@@ -144,6 +145,7 @@ function inviteCardHtml(invite) {
     <div class="col-md-6" data-invite-event-id="${invite.eventId}">
       <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100">
         <a href="event.html?id=${invite.eventId}"><img src="${invite.coverImageUrl || NO_PHOTO}" class="w-100" style="height:120px;object-fit:cover;" alt=""></a>
+        ${eventDateBlockHtml(invite.startsAt)}
         <div class="p-3">
           <div class="text-danger fw-bold small mb-1"><i class="bi bi-calendar3 me-1"></i>${formatEventRange(invite.startsAt, invite.endsAt)}</div>
           <div class="fw-bold fs-6"><a href="event.html?id=${invite.eventId}" class="text-body text-decoration-none">${escapeHtml(invite.title)}</a></div>

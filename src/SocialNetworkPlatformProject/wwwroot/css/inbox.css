@@ -1,0 +1,733 @@
+/* =========================================================
+   Design "inbox": calm, dense lists, cool greys, one orange accent, Geist.
+   Loaded after style.css on every page. Every rule starts with html[data-design="inbox"] (set by js/design.js), so with
+   the design "classic" none of it applies and style.css alone gives the old look.
+   Order of this file: tokens, Bootstrap parts, the shell (column on the left + page), the lists (posts, comments),
+   then one section per page.
+   ========================================================= */
+
+/* The fonts come from the CDN the pages already use for Bootstrap (the content security policy allows only that one). */
+@import url("https://cdn.jsdelivr.net/npm/@fontsource-variable/geist@5.3.0/index.css");
+@import url("https://cdn.jsdelivr.net/npm/@fontsource-variable/geist-mono@5.3.0/index.css");
+
+/* Things only one of the designs shows. */
+html:not([data-design="inbox"]) .inbox-only { display: none !important; }
+html[data-design="inbox"] .classic-only { display: none !important; }
+
+/* ---------- Tokens ---------- */
+html[data-design="inbox"] {
+  --ink: #1a1a18;
+  --ink-2: #44443f;
+  --muted: #6b6b64;
+  --faint: #8a8a82;
+  --line: #e4e4e0;
+  --line-2: #d2d2cc;
+  --canvas: #f4f4f2;
+  --surface: #ffffff;
+  --surface-2: #fafaf8;
+  --chip: #eeeeea;
+  --accent: #f2600c;
+  --accent-ink: #b9460a;
+  --accent-wash: #fff3ea;
+  --bubble-in: #f0f0ec;
+  --danger: #c4321a;
+  --mono: "Geist Mono Variable", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --bs-body-font-family: "Geist Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --bs-body-font-size: 0.95rem;
+  --bs-body-color: var(--ink);
+  --bs-body-bg: var(--canvas);
+  --bs-emphasis-color: var(--ink);
+  --bs-secondary-color: var(--muted);
+  --bs-secondary-bg: var(--chip);
+  --bs-tertiary-bg: var(--surface-2);
+  --bs-border-color: var(--line);
+  --bs-primary: var(--accent);
+  --bs-primary-rgb: 242, 96, 12;
+  --bs-link-color: var(--accent-ink);
+  --bs-link-hover-color: var(--accent);
+  --bs-border-radius: 8px;
+  --bs-border-radius-lg: 10px;
+  --bs-border-radius-sm: 6px;
+  --brand-gradient: linear-gradient(135deg, #1a1a18 0%, #44443f 100%);
+}
+
+html[data-design="inbox"][data-bs-theme="dark"] {
+  --ink: #ecece8;
+  --ink-2: #c9c9c2;
+  --muted: #9a9a92;
+  --faint: #7a7a72;
+  --line: #2e2e2a;
+  --line-2: #42423d;
+  --canvas: #121211;
+  --surface: #1b1b19;
+  --surface-2: #222220;
+  --chip: #2a2a27;
+  --accent: #ff7a2e;
+  --accent-ink: #ff9a5c;
+  --accent-wash: #2b1d14;
+  --bubble-in: #2a2a27;
+  --danger: #ff6b4d;
+  --bs-primary-rgb: 255, 122, 46;
+}
+
+html[data-design="inbox"] body { background: var(--canvas); color: var(--ink); font-family: var(--bs-body-font-family); letter-spacing: -0.003em; }
+html[data-design="inbox"] .text-primary { color: var(--accent-ink) !important; }
+html[data-design="inbox"] .bg-primary-subtle { background-color: var(--accent-wash) !important; }
+html[data-design="inbox"] .text-muted { color: var(--muted) !important; }
+html[data-design="inbox"] .text-danger { color: var(--danger) !important; }
+html[data-design="inbox"] ::selection { background: var(--accent); color: #fff; }
+html[data-design="inbox"] :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+html[data-design="inbox"] .kbd {
+  font-family: var(--mono); font-size: 12px; font-weight: 400; line-height: 1.5; border: 1px solid var(--line-2); border-bottom-width: 2px;
+  border-radius: 4px; padding: 0 6px; background: var(--surface); color: var(--ink-2); white-space: nowrap;
+}
+html[data-design="inbox"] .tag, html[data-design="inbox"] .badge.text-bg-light {
+  font-family: var(--mono); font-size: 12px; font-weight: 400; padding: 1px 7px; border-radius: 4px; background: var(--chip); color: var(--ink-2);
+}
+html[data-design="inbox"] .cap, html[data-design="inbox"] .side-caption {
+  font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--faint); text-transform: uppercase; letter-spacing: 0.08em;
+}
+
+/* ---------- Buttons: dark primary, quiet secondary; no pills ---------- */
+html[data-design="inbox"] .rounded-pill:not(.badge):not(.avatar-xs):not(.avatar-sm):not(.avatar-md) { border-radius: 8px !important; }
+html[data-design="inbox"] .btn { font-weight: 600; border-radius: 8px; }
+html[data-design="inbox"] .btn-primary {
+  --bs-btn-color: #fff; --bs-btn-bg: var(--ink); --bs-btn-border-color: var(--ink);
+  --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #000; --bs-btn-hover-border-color: #000;
+  --bs-btn-active-color: #fff; --bs-btn-active-bg: #000; --bs-btn-active-border-color: #000;
+  --bs-btn-disabled-bg: var(--faint); --bs-btn-disabled-border-color: var(--faint);
+}
+html[data-design="inbox"][data-bs-theme="dark"] .btn-primary {
+  --bs-btn-color: #121211; --bs-btn-bg: #ecece8; --bs-btn-border-color: #ecece8;
+  --bs-btn-hover-color: #121211; --bs-btn-hover-bg: #fff; --bs-btn-hover-border-color: #fff;
+  --bs-btn-active-color: #121211; --bs-btn-active-bg: #fff; --bs-btn-active-border-color: #fff;
+}
+html[data-design="inbox"] .btn-outline-primary {
+  --bs-btn-color: var(--ink); --bs-btn-border-color: var(--line-2);
+  --bs-btn-hover-color: var(--ink); --bs-btn-hover-bg: var(--chip); --bs-btn-hover-border-color: var(--line-2);
+  --bs-btn-active-color: var(--ink); --bs-btn-active-bg: var(--chip); --bs-btn-active-border-color: var(--line-2);
+}
+html[data-design="inbox"] .btn-outline-secondary {
+  --bs-btn-color: var(--ink-2); --bs-btn-border-color: var(--line-2);
+  --bs-btn-hover-color: var(--ink); --bs-btn-hover-bg: var(--chip); --bs-btn-hover-border-color: var(--line-2);
+}
+html[data-design="inbox"] .btn-outline-danger { --bs-btn-color: var(--danger); --bs-btn-border-color: var(--danger); --bs-btn-hover-bg: var(--danger); --bs-btn-hover-border-color: var(--danger); }
+html[data-design="inbox"] .btn-danger { --bs-btn-bg: var(--danger); --bs-btn-border-color: var(--danger); --bs-btn-hover-bg: #a52914; --bs-btn-hover-border-color: #a52914; }
+html[data-design="inbox"] .btn-light, html[data-design="inbox"] .btn-secondary {
+  --bs-btn-color: var(--ink); --bs-btn-bg: var(--chip); --bs-btn-border-color: transparent;
+  --bs-btn-hover-color: var(--ink); --bs-btn-hover-bg: var(--line); --bs-btn-hover-border-color: transparent;
+  --bs-btn-active-color: var(--ink); --bs-btn-active-bg: var(--line); --bs-btn-active-border-color: transparent;
+}
+
+/* ---------- Surfaces: flat, bordered, small radius, no shadows ---------- */
+html[data-design="inbox"] .card,
+html[data-design="inbox"] .modal-content,
+html[data-design="inbox"] .dropdown-menu,
+html[data-design="inbox"] .list-group-item { background: var(--surface); }
+html[data-design="inbox"] .card { border: 1px solid var(--line) !important; border-radius: 10px !important; box-shadow: none !important; }
+html[data-design="inbox"] .rounded-4 { border-radius: 10px !important; }
+html[data-design="inbox"] .rounded-3 { border-radius: 8px !important; }
+html[data-design="inbox"] .shadow-sm { box-shadow: none !important; }
+html[data-design="inbox"] .modal-content { border: 1px solid var(--line); box-shadow: 0 12px 40px rgba(26, 26, 24, .18); }
+html[data-design="inbox"] .dropdown-menu { border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(26, 26, 24, .12); padding: 6px; }
+html[data-design="inbox"] .dropdown-item { border-radius: 6px; font-weight: 500; color: var(--ink); }
+html[data-design="inbox"] .dropdown-item:hover { background: var(--chip); }
+html[data-design="inbox"] .dropdown-item.active, html[data-design="inbox"] .dropdown-item:active { background: var(--ink); color: var(--surface); }
+html[data-design="inbox"] .form-control,
+html[data-design="inbox"] .form-select { background-color: var(--surface-2); border-color: var(--line-2); border-radius: 8px; color: var(--ink); }
+html[data-design="inbox"] .form-control:focus,
+html[data-design="inbox"] .form-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(242, 96, 12, .16); background-color: var(--surface); }
+html[data-design="inbox"] .form-label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+html[data-design="inbox"] .form-check-input:checked { background-color: var(--accent); border-color: var(--accent); }
+html[data-design="inbox"] .badge.bg-danger { background-color: var(--accent) !important; font-family: var(--mono); font-weight: 400; border-radius: 4px !important; }
+html[data-design="inbox"] .bg-body-tertiary { background-color: var(--surface-2) !important; }
+html[data-design="inbox"] hr, html[data-design="inbox"] .border-top, html[data-design="inbox"] .border-bottom, html[data-design="inbox"] .border-end { border-color: var(--line) !important; }
+html[data-design="inbox"] .alert { border-radius: 8px; }
+html[data-design="inbox"] .progress-bar { background-color: var(--accent); }
+html[data-design="inbox"] .text-bg-primary, html[data-design="inbox"] .bg-primary { background-color: var(--ink) !important; color: var(--surface) !important; }
+html[data-design="inbox"] .link-primary, html[data-design="inbox"] .btn-link { color: var(--accent-ink) !important; }
+html[data-design="inbox"] .border-primary { border-color: var(--accent) !important; }
+html[data-design="inbox"] .btn-check:checked + .btn-outline-primary { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+
+/* ---------- Tabs (Bootstrap nav-pills used by the pages become the underlined tabs of the design) ---------- */
+html[data-design="inbox"] .nav-pills, html[data-design="inbox"] .nav-tabs {
+  --bs-nav-link-color: var(--muted); --bs-nav-link-hover-color: var(--ink);
+  gap: 0; flex-wrap: nowrap; overflow-x: auto; border-bottom: 1px solid var(--line); padding: 0 8px; margin-bottom: 0 !important;
+}
+html[data-design="inbox"] .nav-pills .nav-link, html[data-design="inbox"] .nav-tabs .nav-link {
+  border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; margin: 0; min-height: 44px;
+  display: flex; align-items: center; padding: 0 14px; font-weight: 500; font-size: 14px; white-space: nowrap; color: var(--muted);
+}
+html[data-design="inbox"] .nav-pills .nav-link:hover, html[data-design="inbox"] .nav-tabs .nav-link:hover { color: var(--ink); }
+html[data-design="inbox"] .nav-pills .nav-link.active, html[data-design="inbox"] .nav-tabs .nav-link.active {
+  background: transparent; color: var(--ink); font-weight: 600; border-bottom-color: var(--accent);
+}
+
+/* ---------- Auth pages ---------- */
+html[data-design="inbox"] .auth-gradient { background: var(--canvas); }
+html[data-design="inbox"] .auth-logo { color: var(--ink); font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; justify-content: center; }
+html[data-design="inbox"] .auth-logo::before { content: ""; display: inline-block; width: 14px; height: 14px; margin-right: 8px; border-radius: 3px; background: var(--accent); }
+html[data-design="inbox"] .avatar-upload-btn { color: var(--ink); border-color: var(--line-2); }
+
+/* =========================================================
+   The shell: a column of links on the left (from 992 px), the page to its right.
+   body becomes a two-column grid; the menu (nav#siteNav.inbox-nav) is the first column and everything else that takes
+   room (the page) is the second. Fixed things (bottom bar, dialogs, chat dock, toasts) are outside the grid.
+   ========================================================= */
+html[data-design="inbox"] body { display: grid; grid-template-columns: 220px minmax(0, 1fr); align-items: start; min-height: 100vh; }
+html[data-design="inbox"] body > .inbox-nav {
+  grid-column: 1; grid-row: 1 / span 200; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 1030;
+  background: var(--canvas); border-right: 1px solid var(--line); min-height: 0; padding: 0 !important;
+}
+html[data-design="inbox"] body > :not(.inbox-nav) { grid-column: 2; min-width: 0; }
+html[data-design="inbox"] body > .modal, html[data-design="inbox"] body > .offcanvas, html[data-design="inbox"] body > .modal-backdrop { grid-column: auto; }
+
+/* The pages' own containers no longer centre themselves: the page fills the room beside the menu. */
+html[data-design="inbox"] body > .container,
+html[data-design="inbox"] body > .container-fluid { max-width: none !important; width: auto; margin: 0 !important; padding: 0 !important; }
+
+/* The column of links */
+html[data-design="inbox"] .side-menu { flex-direction: column; height: 100%; padding: 24px 14px 16px; gap: 2px; }
+html[data-design="inbox"] .side-brand { display: flex; align-items: center; gap: 8px; padding: 0 12px 14px; font-weight: 700; font-size: 18px; letter-spacing: -0.01em; color: var(--ink); }
+html[data-design="inbox"] .side-brand-mark { width: 12px; height: 12px; border-radius: 3px; background: var(--accent); display: inline-block; flex: none; }
+html[data-design="inbox"] .side-search { flex: none; margin: 0 0 12px; padding: 0 12px !important; border: 1px solid var(--line-2); border-radius: 8px !important; background: var(--surface) !important; min-height: 40px; max-width: none; }
+html[data-design="inbox"] .side-search:focus-within { border-color: var(--accent); }
+html[data-design="inbox"] .side-search .form-control { font-size: 14px; }
+html[data-design="inbox"] .side-search::after { content: "/"; font-family: var(--mono); font-size: 12px; color: var(--faint); border: 1px solid var(--line-2); border-radius: 4px; padding: 0 5px; margin-left: 6px; }
+html[data-design="inbox"] .side-links { display: flex; flex-direction: column; gap: 2px; }
+html[data-design="inbox"] .side-link {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 12px; border-radius: 6px;
+  color: var(--ink-2); font-size: 14px; font-weight: 500; border: 1px solid transparent;
+}
+html[data-design="inbox"] .side-link > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html[data-design="inbox"] .side-link:hover { background: var(--chip); color: var(--ink); }
+html[data-design="inbox"] .side-link.active { background: var(--surface); border-color: var(--line); color: var(--ink); font-weight: 600; }
+html[data-design="inbox"] .side-link-end { display: flex; align-items: center; gap: 6px; flex: none; }
+html[data-design="inbox"] .side-link .badge { position: static !important; transform: none !important; padding: 2px 6px; }
+html[data-design="inbox"] .side-groups { margin-top: 16px; display: flex; flex-direction: column; gap: 2px; }
+html[data-design="inbox"] .side-groups.d-none { display: none !important; }
+html[data-design="inbox"] .side-caption { padding: 0 12px 6px; }
+html[data-design="inbox"] .side-grow { flex: 1; min-height: 16px; }
+html[data-design="inbox"] .side-account { display: flex; align-items: center; gap: 4px; }
+html[data-design="inbox"] .side-me { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: 6px; font-weight: 500; font-size: 14px; color: var(--ink); }
+html[data-design="inbox"] .side-me:hover, html[data-design="inbox"] .side-me.active { background: var(--chip); }
+html[data-design="inbox"] .side-me-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html[data-design="inbox"] .side-tool { border: 0; background: transparent; color: var(--muted); width: 40px; height: 44px; border-radius: 6px; font-size: 17px; display: flex; align-items: center; justify-content: center; }
+html[data-design="inbox"] .side-tool:hover { background: var(--chip); color: var(--ink); }
+
+/* Below 992 px: the column becomes a bar at the top, and the links go to the bar at the bottom and the drawer (see js/navbar.js). */
+html[data-design="inbox"] .top-bar { align-items: center; gap: 10px; padding: calc(8px + env(safe-area-inset-top)) 14px 8px; background: var(--surface); }
+html[data-design="inbox"] .top-bar .side-brand { padding: 0; }
+html[data-design="inbox"] .top-bar-search { flex: 1; min-width: 0; margin: 0; padding: 0 12px !important; min-height: 40px; border: 1px solid var(--line-2); border-radius: 8px !important; background: var(--surface-2) !important; }
+html[data-design="inbox"] .burger-btn { color: var(--ink); }
+html[data-design="inbox"] .phone-tabbar { background: var(--surface) !important; border-top: 1px solid var(--line) !important; }
+html[data-design="inbox"] .nav-pill-link {
+  --nav-accent: var(--ink); font-size: 11px; font-weight: 500; color: var(--muted); border-radius: 8px;
+}
+html[data-design="inbox"] .nav-pill-link[data-section] { --nav-accent: var(--ink); }
+html[data-design="inbox"] .nav-pill-link.active { color: var(--accent-ink); background: var(--accent-wash); }
+html[data-design="inbox"] .nav-pill-link:hover { background: var(--chip); color: var(--ink); }
+html[data-design="inbox"] .list-group-item.active { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+html[data-design="inbox"] .offcanvas { background: var(--surface); }
+
+@media (max-width: 991.98px) {
+  html[data-design="inbox"] body { display: block; padding-bottom: 68px; }
+  html[data-design="inbox"] body > .inbox-nav { position: sticky; top: 0; height: auto; overflow: visible; border-right: 0; border-bottom: 1px solid var(--line); }
+  html[data-design="inbox"] .side-brand { font-size: 17px; }
+  html[data-design="inbox"] .chat-dock, html[data-design="inbox"] .chat-popups { display: none !important; }
+  html[data-design="inbox"] .toast-container { bottom: 68px !important; }
+}
+
+/* =========================================================
+   Pages: a white column of rows with a thin column of extras to its right
+   ========================================================= */
+html[data-design="inbox"] .page-row { display: flex; flex-wrap: nowrap; align-items: flex-start; margin: 0; --bs-gutter-x: 0; --bs-gutter-y: 0; }
+html[data-design="inbox"] .page-row > * { padding: 0; margin: 0; }
+html[data-design="inbox"] .page-main {
+  flex: 1 1 560px; min-width: 0; max-width: 880px; width: auto; background: var(--surface); border-right: 1px solid var(--line); min-height: 100vh;
+}
+html[data-design="inbox"] .page-aside {
+  flex: 0 1 300px; width: 300px; max-width: 300px; min-width: 0; padding: 24px 20px; display: flex !important; flex-direction: column; gap: 26px;
+  position: sticky; top: 0; align-self: flex-start; max-height: 100vh; overflow-y: auto;
+}
+html[data-design="inbox"] .page-aside .card { border: 0 !important; background: transparent; padding: 0 !important; }
+/* The home page's column of extras is hidden below 1200 px; the marketplace's filters are not (they stack above the list). */
+html[data-design="inbox"] .page-aside.d-none { display: none !important; }
+@media (min-width: 1200px) { html[data-design="inbox"] .page-aside.d-none.d-lg-block { display: flex !important; } }
+@media (max-width: 1199.98px) {
+  html[data-design="inbox"] .page-row { flex-wrap: wrap; }
+  html[data-design="inbox"] .page-row > .page-aside:not(.d-none) { flex: 1 1 100%; width: 100%; max-width: none; position: static; max-height: none; order: -1 !important; border-bottom: 1px solid var(--line); background: var(--surface); }
+  html[data-design="inbox"] .page-row > .page-main { flex: 1 1 100%; max-width: none; }
+}
+@media (max-width: 991.98px) { html[data-design="inbox"] .page-main { border-right: 0; min-height: 0; max-width: none; } }
+
+/* A page's title */
+html[data-design="inbox"] .page-head { padding: 20px 18px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 !important; }
+html[data-design="inbox"] .page-head h1, html[data-design="inbox"] .page-head .h4 { margin: 0 !important; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+html[data-design="inbox"] .page-head p { margin: 2px 0 0; color: var(--muted); }
+
+/* ---------- Rows: the posts, comments and everything else drawn as a list ---------- */
+html[data-design="inbox"] .page-main .card,
+html[data-design="inbox"] .page-list .card {
+  border: 0 !important; border-bottom: 1px solid var(--line) !important; border-radius: 0 !important; background: transparent; box-shadow: none !important;
+  margin: 0 !important; padding: 14px 18px !important;
+}
+html[data-design="inbox"] .page-main .card:hover[data-post-id] { background: var(--surface-2); }
+
+/* The composer, the post box above the list */
+html[data-design="inbox"] .composer { background: var(--surface) !important; }
+html[data-design="inbox"] .composer textarea { background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 8px; color: var(--ink); }
+html[data-design="inbox"] .composer textarea:focus { background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 3px rgba(242, 96, 12, .16); }
+html[data-design="inbox"] .composer > .d-flex:first-child { gap: 12px !important; }
+html[data-design="inbox"] .composer .border-top { border-top: 0 !important; padding-top: 0 !important; margin-top: 10px !important; }
+html[data-design="inbox"] .attach-label { background: var(--chip); color: var(--ink-2); border-radius: 6px; font-weight: 500; }
+html[data-design="inbox"] .attach-label:hover { background: var(--line); }
+html[data-design="inbox"] .privacy-select { border-radius: 6px !important; font-weight: 500; }
+
+/* Stories: a strip of small tiles */
+html[data-design="inbox"] .story-strip { padding: 14px 18px; border-bottom: 1px solid var(--line); margin: 0 !important; }
+html[data-design="inbox"] .story-card { width: 76px; height: 100px; border-radius: 10px; box-shadow: none; }
+html[data-design="inbox"] .story-card .story-ring { top: 5px; left: 5px; width: 26px; height: 26px; border-width: 2px; padding: 1px; border-color: var(--accent); }
+html[data-design="inbox"] .story-card .story-name { left: 6px; right: 6px; bottom: 6px; font-size: 12px; }
+html[data-design="inbox"] .story-card.story-seen .story-ring { border-color: var(--line-2); }
+
+/* A post: avatar on the left, the rest to its right, like a row of the inbox.
+   The first line (avatar, name, menu) is turned into grid cells of the card, so the text below lines up with the name. */
+html[data-design="inbox"] .card[data-post-id] {
+  display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; column-gap: 14px; align-items: start; animation: none;
+}
+html[data-design="inbox"] .card[data-post-id] > .d-flex:first-child { display: contents !important; }
+html[data-design="inbox"] .card[data-post-id] > .d-flex:first-child > a:first-child { grid-column: 1; grid-row: 1 / span 40; }
+html[data-design="inbox"] .card[data-post-id] > .d-flex:first-child > .flex-grow-1 { grid-column: 2; grid-row: 1; min-width: 0; }
+html[data-design="inbox"] .card[data-post-id] > .d-flex:first-child > .dropdown { grid-column: 3; grid-row: 1; }
+html[data-design="inbox"] .card[data-post-id] > :not(.d-flex:first-child) { grid-column: 2 / -1; min-width: 0; }
+html[data-design="inbox"] .card[data-post-id] .avatar-sm { width: 40px; height: 40px; }
+html[data-design="inbox"] .card[data-post-id] > p { margin: 2px 0 8px !important; color: var(--ink-2); }
+html[data-design="inbox"] .card[data-post-id] .fw-bold { font-weight: 700 !important; }
+html[data-design="inbox"] .card[data-post-id] .text-muted.small, html[data-design="inbox"] .card[data-post-id] .small.text-muted { font-family: var(--mono); font-size: 12px; }
+html[data-design="inbox"] .card[data-post-id] > .d-flex.justify-content-between { border: 0 !important; padding: 2px 0 6px !important; gap: 6px; flex-wrap: wrap; justify-content: flex-start !important; }
+html[data-design="inbox"] .card[data-post-id] > .d-flex.pt-1 { gap: 8px; padding-top: 0 !important; flex-wrap: wrap; }
+html[data-design="inbox"] .card[data-post-id] > .d-flex.pt-1 > * { flex: 0 0 auto !important; }
+html[data-design="inbox"] .card[data-post-id] > .d-flex.pt-1 .btn { background: var(--chip); color: var(--ink-2) !important; min-height: 36px; padding: 0 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+html[data-design="inbox"] .card[data-post-id] > .d-flex.pt-1 .btn:hover { background: var(--line); }
+html[data-design="inbox"] .card[data-post-id] > .d-flex.pt-1 .like-btn.liked { background: var(--accent-wash); color: var(--accent-ink) !important; }
+html[data-design="inbox"] .card[data-post-id] .btn-light.rounded-circle { background: transparent; color: var(--muted); }
+html[data-design="inbox"] .card[data-post-id] .comments-collapse { margin-left: -54px; padding: 12px 0 0 54px !important; border-top: 1px solid var(--line) !important; background: var(--accent-wash); margin-right: -18px; padding-right: 18px !important; margin-bottom: -14px; padding-bottom: 14px !important; }
+html[data-design="inbox"] .like-btn.liked { color: var(--accent-ink) !important; animation: none; }
+html[data-design="inbox"] .comment-bubble { background: transparent; padding: 0; border-radius: 0; color: var(--ink); }
+html[data-design="inbox"] .comments-list .d-flex.gap-2 { gap: 10px !important; margin-bottom: 10px !important; }
+html[data-design="inbox"] .comments-list .avatar-xs { width: 30px; height: 30px; }
+html[data-design="inbox"] .comment-bubble .small.text-muted { font-size: 12px; gap: 12px !important; }
+html[data-design="inbox"] .comment-bubble .small.text-muted > span:first-child { font-family: var(--mono); }
+html[data-design="inbox"] .comment-bubble .small.text-muted a { font-weight: 600; color: var(--muted) !important; }
+html[data-design="inbox"] .comment-bubble .small.text-muted a.text-primary { color: var(--accent-ink) !important; }
+html[data-design="inbox"] .shared-post { border-radius: 8px; background: var(--surface-2); }
+html[data-design="inbox"] .reaction-bar { border-radius: 10px; }
+html[data-design="inbox"] .reaction-summary { font-family: var(--mono); font-size: 12px; }
+html[data-design="inbox"] .post-carousel, html[data-design="inbox"] .card[data-post-id] img.rounded-3 { border-radius: 8px; }
+
+/* Polls */
+html[data-design="inbox"] .poll-row { border-radius: 8px; background: var(--surface-2); }
+html[data-design="inbox"] .poll-fill { background: rgba(242, 96, 12, .16); }
+html[data-design="inbox"] .poll-mine { border-color: var(--accent); }
+html[data-design="inbox"] .poll-mine .poll-fill { background: rgba(242, 96, 12, .28); }
+html[data-design="inbox"] .poll-clickable:hover { border-color: var(--accent); }
+
+/* ---------- Profile, notifications, search, mentions ---------- */
+html[data-design="inbox"] .profile-cover { border-radius: 10px; background: linear-gradient(120deg, #1a1a18 0%, #44443f 55%, var(--accent) 150%); }
+html[data-design="inbox"] .avatar-lg { border-color: var(--surface); background: var(--chip); }
+html[data-design="inbox"] .friend-tile img { border-radius: 8px; }
+html[data-design="inbox"] .notif-unread { background: var(--accent-wash); box-shadow: inset 3px 0 0 var(--accent); }
+html[data-design="inbox"] .notif-icon-badge { border-color: var(--surface); }
+html[data-design="inbox"] .search-suggestions,
+html[data-design="inbox"] .mention-menu,
+html[data-design="inbox"] .location-suggestions { border-radius: 10px; box-shadow: 0 8px 24px rgba(26, 26, 24, .12); }
+html[data-design="inbox"] .search-suggestions { min-width: 240px; }
+html[data-design="inbox"] .search-suggestions button:hover,
+html[data-design="inbox"] .mention-menu button:hover,
+html[data-design="inbox"] .mention-menu button.active,
+html[data-design="inbox"] .location-suggestion:hover,
+html[data-design="inbox"] .location-suggestion.active { background: var(--chip); }
+
+/* ---------- Chat ---------- */
+html[data-design="inbox"] .chat-dock-bar, html[data-design="inbox"] .chat-popup { border-radius: 10px 10px 0 0; }
+html[data-design="inbox"] .chat-popup-header { background: var(--ink); color: var(--surface); }
+html[data-design="inbox"] .chat-tool { color: var(--ink-2); }
+html[data-design="inbox"] .chat-tool:hover { background: var(--chip); }
+html[data-design="inbox"] .chat-sticker-grid button:hover { background: var(--chip); }
+
+/* ---------- Dark: the places style.css fixes in blue ---------- */
+html[data-design="inbox"][data-bs-theme="dark"] .comment-bubble,
+html[data-design="inbox"][data-bs-theme="dark"] .composer textarea,
+html[data-design="inbox"][data-bs-theme="dark"] .attach-label { color: var(--ink); }
+html[data-design="inbox"][data-bs-theme="dark"] .composer textarea, html[data-design="inbox"][data-bs-theme="dark"] .attach-label { background: var(--surface-2); }
+html[data-design="inbox"][data-bs-theme="dark"] .notif-unread { background: var(--accent-wash); }
+html[data-design="inbox"][data-bs-theme="dark"] .bg-primary-subtle { background-color: var(--accent-wash) !important; }
+html[data-design="inbox"][data-bs-theme="dark"] .btn-light { --bs-btn-bg: var(--chip); --bs-btn-hover-bg: var(--line); --bs-btn-active-bg: var(--line); }
+
+/* =========================================================
+   Home
+   ========================================================= */
+html[data-design="inbox"] #feedList[data-filter="photo"] .card[data-post-id]:not([data-kind~="photo"]),
+html[data-design="inbox"] #feedList[data-filter="poll"] .card[data-post-id]:not([data-kind~="poll"]) { display: none; }
+html[data-design="inbox"] #feedList .text-center.text-muted { padding: 40px 18px !important; }
+html[data-design="inbox"] #feedList-more { margin: 0 !important; padding: 14px; border-top: 1px solid var(--line); }
+html[data-design="inbox"] .upcoming-card { display: block; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+html[data-design="inbox"] .upcoming-card:hover { border-color: var(--line-2); }
+html[data-design="inbox"] .upcoming-when { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+html[data-design="inbox"] .upcoming-title { font-weight: 600; margin-top: 2px; }
+html[data-design="inbox"] .upcoming-place { color: var(--muted); font-size: 14px; }
+
+/* =========================================================
+   Pages made of a title, a list and a column of extras (.page-split).
+   In the DOM they come in the order title, extras, list (that is the classic order); the grid puts the extras beside both.
+   ========================================================= */
+html[data-design="inbox"] .page-split {
+  display: grid; grid-template-columns: minmax(0, 880px) 300px; grid-template-rows: auto 1fr; align-items: stretch;
+  grid-template-areas: "head aside" "main aside";
+}
+html[data-design="inbox"] .page-split.page-solo { grid-template-columns: minmax(0, 880px); grid-template-areas: "head" "main"; }
+html[data-design="inbox"] .page-split > .page-head { grid-area: head; background: var(--surface); border-right: 1px solid var(--line); }
+html[data-design="inbox"] .page-split > .page-main { grid-area: main; min-height: 0; }
+html[data-design="inbox"] .page-split > .page-aside { grid-area: aside; align-self: start; }
+html[data-design="inbox"] .page-split .page-head > div > .h4 > i { display: none; }
+html[data-design="inbox"] .page-split .page-head > div > p { margin: 2px 0 0 !important; font-size: 15px !important; }
+html[data-design="inbox"] .page-list-title { display: none; }
+@media (max-width: 1199.98px) {
+  html[data-design="inbox"] .page-split { grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "aside" "main"; }
+  html[data-design="inbox"] .page-split > .page-aside { display: flex !important; max-width: none; width: auto; position: static; padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--surface); }
+}
+html[data-design="inbox"] .page-aside .card > .fw-bold:first-child,
+html[data-design="inbox"] .page-aside .card > .d-flex:first-child > .fw-bold {
+  font-family: var(--mono); font-size: 12px; font-weight: 400 !important; color: var(--faint); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px !important;
+}
+html[data-design="inbox"] .page-aside .avatar-sm { width: 34px; height: 34px; }
+html[data-design="inbox"] .page-aside [data-user-id] { margin-bottom: 4px !important; min-height: 52px; }
+html[data-design="inbox"] .page-aside .btn-outline-primary.btn-sm, html[data-design="inbox"] .page-aside .btn-secondary.btn-sm {
+  font-family: var(--mono); font-size: 13px; background: var(--chip); border-color: transparent; color: var(--ink); min-height: 32px; padding: 0 10px;
+}
+
+/* Explore: the trending tags are rows with the count at the end */
+html[data-design="inbox"] #trendingTags { flex-direction: column; flex-wrap: nowrap; gap: 0 !important; }
+html[data-design="inbox"] #trendingTags .btn { display: flex; justify-content: space-between; align-items: center; width: 100%; background: transparent; border: 0; border-radius: 6px; min-height: 40px; padding: 0 4px; font-weight: 500; text-align: left; }
+html[data-design="inbox"] #trendingTags .btn:hover { background: var(--chip); }
+html[data-design="inbox"] #trendingTags .badge { font-family: var(--mono); font-weight: 400; background: transparent !important; color: var(--faint) !important; font-size: 13px; padding: 0; }
+
+/* =========================================================
+   Generic list rows (friends, notifications, search, saved ...): a row has an avatar, two lines of text and buttons at the end
+   ========================================================= */
+html[data-design="inbox"] .page-main .list-card { padding: 0 !important; border: 0 !important; }
+html[data-design="inbox"] .list-card > .page-head { padding: 20px 18px 14px; margin: 0 !important; }
+html[data-design="inbox"] .list-card > .page-head .fs-5 { font-size: 24px !important; font-weight: 700 !important; letter-spacing: -0.02em; }
+html[data-design="inbox"] .list-title { display: none; }
+html[data-design="inbox"] .page-main > .back-link, html[data-design="inbox"] .back-link { display: block; padding: 16px 18px 0; }
+html[data-design="inbox"] .page-main > .text-center.text-muted, html[data-design="inbox"] .list-card .text-muted.small:only-child { padding: 28px 18px; display: block; }
+html[data-design="inbox"] .list-card .nav-tabs { margin-bottom: 0 !important; }
+
+/* The rows that were grey rounded boxes */
+html[data-design="inbox"] .page-main .tab-pane[id^="panel-"] > .card { padding: 0 !important; }
+html[data-design="inbox"] .page-main .row.g-3, html[data-design="inbox"] .page-main .row.g-2 { display: block; margin: 0; --bs-gutter-x: 0; --bs-gutter-y: 0; }
+html[data-design="inbox"] .page-main .row.g-3 > *, html[data-design="inbox"] .page-main .row.g-2 > * { width: 100%; max-width: 100%; padding: 0; margin: 0; }
+html[data-design="inbox"] .page-main .bg-body-tertiary.rounded-3, html[data-design="inbox"] .page-main .request-card {
+  background: transparent !important; border-radius: 0 !important; border-bottom: 1px solid var(--line); margin: 0 !important; padding: 14px 18px !important;
+}
+html[data-design="inbox"] .page-main .bg-body-tertiary.rounded-3:hover { background: var(--surface-2) !important; }
+html[data-design="inbox"] .page-main .avatar-md { width: 44px; height: 44px; }
+html[data-design="inbox"] .page-main .tab-content .btn-sm, html[data-design="inbox"] .list-card .btn-sm { min-height: 36px; font-weight: 600; font-size: 14px; }
+html[data-design="inbox"] .page-main .btn-outline-primary.btn-sm { background: var(--chip); border-color: transparent; color: var(--ink); }
+html[data-design="inbox"] .page-main .btn-outline-primary.btn-sm:hover { background: var(--line); }
+html[data-design="inbox"] .page-main .btn-outline-danger.btn-sm { background: var(--chip); border-color: transparent; color: var(--ink); }
+html[data-design="inbox"] .page-main .btn-outline-danger.btn-sm:hover { background: var(--line); color: var(--danger); }
+
+/* Notifications */
+html[data-design="inbox"] #notificationsList > [data-notification-id] {
+  border-radius: 0 !important; border-bottom: 1px solid var(--line); margin: 0 !important; padding: 14px 18px !important; cursor: pointer;
+}
+html[data-design="inbox"] #notificationsList > [data-notification-id]:hover { background: var(--surface-2); }
+html[data-design="inbox"] #notificationsList > .notif-unread { background: var(--accent-wash); }
+html[data-design="inbox"] #notificationsList .notif-icon-badge { display: none; }
+html[data-design="inbox"] #notificationsList .avatar-sm { width: 40px; height: 40px; }
+html[data-design="inbox"] #notificationsList .small { font-size: 15px !important; }
+html[data-design="inbox"] #notificationsList .text-muted.small { font-family: var(--mono); font-size: 12px !important; }
+html[data-design="inbox"] .day-caption { padding: 12px 18px; background: var(--surface-2); border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); }
+html[data-design="inbox"] .day-caption:first-child { border-top: 0; }
+
+/* Search */
+html[data-design="inbox"] .search-page-form { padding: 16px 18px; border-bottom: 1px solid var(--line); }
+html[data-design="inbox"] .search-page-form label { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 16px; border: 1px solid var(--ink); border-radius: 8px; background: var(--surface); margin: 0; }
+html[data-design="inbox"] .search-page-form input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 17px; color: var(--ink); }
+html[data-design="inbox"] #searchResultsUsers > .d-flex, html[data-design="inbox"] #searchResultsUsers > .p-3 { padding: 14px 18px !important; }
+html[data-design="inbox"] #searchResultsUsers, html[data-design="inbox"] #searchResultsPosts { padding: 0; }
+
+/* =========================================================
+   Messages: the list of conversations and the conversation fill the room beside the menu
+   ========================================================= */
+html[data-design="inbox"] .messages-card { height: 100vh; min-height: 480px; border: 0 !important; border-radius: 0 !important; background: var(--surface); }
+html[data-design="inbox"] .messages-card .messages-list-col { flex: 0 0 340px; width: 340px; max-width: 340px; background: var(--surface); }
+html[data-design="inbox"] .messages-card .messages-thread-col { flex: 1 1 0; width: auto; max-width: none; background: var(--surface); }
+html[data-design="inbox"] .messages-list-col > .p-3 { padding: 20px 16px 12px !important; }
+html[data-design="inbox"] .messages-list-col .fs-5 { font-size: 24px !important; font-weight: 700 !important; letter-spacing: -0.02em; margin-bottom: 12px !important; }
+html[data-design="inbox"] .conv-search { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--surface-2); margin: 0; }
+html[data-design="inbox"] .conv-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; color: var(--ink); }
+html[data-design="inbox"] #conversationList > button { padding: 14px 16px !important; border-bottom: 1px solid var(--line) !important; align-items: flex-start !important; }
+html[data-design="inbox"] #conversationList > button:hover { background: var(--surface-2); }
+html[data-design="inbox"] #conversationList > .bg-primary-subtle { background: var(--accent-wash) !important; box-shadow: inset 3px 0 0 var(--accent); }
+html[data-design="inbox"] #conversationList .avatar-sm { width: 40px; height: 40px; }
+html[data-design="inbox"] #conversationList .small { font-size: 15px !important; }
+html[data-design="inbox"] #conversationList .text-muted.small { color: var(--muted) !important; }
+html[data-design="inbox"] #conversationHeader { padding: 12px 20px !important; }
+html[data-design="inbox"] #conversationHeader .small { font-family: var(--mono); font-size: 12px !important; }
+html[data-design="inbox"] #conversationThread { background: var(--surface-2); padding: 20px !important; }
+html[data-design="inbox"] #messageForm { background: var(--surface); padding: 12px 20px !important; }
+html[data-design="inbox"] .chat-msg-row { margin-bottom: 10px !important; }
+html[data-design="inbox"] .chat-msg-row > .rounded-4 { border-radius: 10px 10px 10px 2px !important; }
+html[data-design="inbox"] .chat-msg-row.justify-content-end > .rounded-4 { border-radius: 10px 10px 2px 10px !important; }
+html[data-design="inbox"] .chat-msg-row .bg-body-tertiary { background: var(--bubble-in) !important; }
+html[data-design="inbox"] .chat-msg-row .text-white-50 { font-family: var(--mono); }
+html[data-design="inbox"] .chat-msg-row .text-muted { font-family: var(--mono); }
+@media (max-width: 991.98px) {
+  html[data-design="inbox"] .messages-card { height: calc(100vh - 130px); }
+  html[data-design="inbox"] .messages-card .messages-list-col { flex: 0 0 100%; width: 100%; max-width: none; }
+}
+
+/* =========================================================
+   Groups and events: a card becomes a row (a picture or the date at the start, the text, the buttons at the end)
+   ========================================================= */
+html[data-design="inbox"] .page-head > .btn { min-height: 40px; }
+html[data-design="inbox"] .page-head > .btn > i { display: none; }
+html[data-design="inbox"] .page-main > .tab-content, html[data-design="inbox"] .page-main > .nav-pills + .tab-content { margin: 0; }
+html[data-design="inbox"] .page-main .tab-pane > .mb-3:first-child { padding: 12px 18px; margin: 0 !important; border-bottom: 1px solid var(--line); }
+html[data-design="inbox"] .page-main .tab-pane .bg-body-tertiary.rounded-pill { border: 1px solid var(--line-2); border-radius: 8px !important; background: var(--surface-2) !important; min-height: 44px; }
+html[data-design="inbox"] .page-main .tab-pane .form-select-sm { min-height: 44px; }
+html[data-design="inbox"] .page-main .tab-pane > .d-flex.flex-wrap.gap-2.mb-3 { padding: 12px 18px; margin: 0 !important; border-bottom: 1px solid var(--line); }
+html[data-design="inbox"] .page-main .tab-pane .text-center.text-muted.py-5 { padding: 40px 18px !important; }
+html[data-design="inbox"] .page-main .tab-pane .text-center.text-muted.py-5 > i { display: none; }
+html[data-design="inbox"] .page-main .tab-pane > .text-center.mt-3, html[data-design="inbox"] .page-main .tab-pane > .text-center.mt-2 { padding: 12px 18px; margin: 0 !important; }
+
+html[data-design="inbox"] #myGroupsGrid .card, html[data-design="inbox"] #discoverGrid .card, html[data-design="inbox"] #myInvitesGrid .card,
+html[data-design="inbox"] #upcomingGrid .card, html[data-design="inbox"] #goingGrid .card, html[data-design="inbox"] #createdGrid .card,
+html[data-design="inbox"] #pastGrid .card, html[data-design="inbox"] #invitesGrid .card {
+  display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; column-gap: 16px; align-items: center;
+  overflow: visible !important; padding: 16px 18px !important; height: auto !important;
+}
+html[data-design="inbox"] #upcomingGrid .card, html[data-design="inbox"] #goingGrid .card, html[data-design="inbox"] #createdGrid .card,
+html[data-design="inbox"] #pastGrid .card, html[data-design="inbox"] #invitesGrid .card { grid-template-columns: 60px minmax(0, 1fr) auto; }
+html[data-design="inbox"] .card > a:first-child, html[data-design="inbox"] .card > img:first-child { grid-column: 1; grid-row: 1 / span 6; align-self: center; }
+html[data-design="inbox"] #myGroupsGrid .card img, html[data-design="inbox"] #discoverGrid .card img, html[data-design="inbox"] #myInvitesGrid .card img {
+  width: 52px !important; height: 52px !important; border-radius: 10px; object-fit: cover; display: block;
+}
+html[data-design="inbox"] #upcomingGrid .card > a:first-child, html[data-design="inbox"] #goingGrid .card > a:first-child, html[data-design="inbox"] #createdGrid .card > a:first-child,
+html[data-design="inbox"] #pastGrid .card > a:first-child, html[data-design="inbox"] #invitesGrid .card > a:first-child { display: none; }
+html[data-design="inbox"] .event-date { grid-column: 1; grid-row: 1 / span 6; align-self: center; width: 60px; border: 1px solid var(--line); border-radius: 8px; text-align: center; overflow: hidden; background: var(--surface); }
+html[data-design="inbox"] .event-date b { display: block; background: var(--accent); color: #fff; font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 1px 0; letter-spacing: 0.06em; }
+html[data-design="inbox"] .event-date span { display: block; font-size: 24px; font-weight: 700; line-height: 1.3; }
+html[data-design="inbox"] .page-main .card > .p-3 { display: contents; }
+html[data-design="inbox"] .page-main .card > .p-3 > * { grid-column: 2; margin: 0 !important; min-width: 0; }
+html[data-design="inbox"] .page-main .card > .p-3 > .btn,
+html[data-design="inbox"] #upcomingGrid .card > .p-3 > .d-flex:last-child, html[data-design="inbox"] #goingGrid .card > .p-3 > .d-flex:last-child,
+html[data-design="inbox"] #createdGrid .card > .p-3 > .d-flex:last-child, html[data-design="inbox"] #pastGrid .card > .p-3 > .d-flex:last-child,
+html[data-design="inbox"] #invitesGrid .card > .p-3 > .d-flex:last-child, html[data-design="inbox"] #myInvitesGrid .card > .p-3 > .d-flex:last-child {
+  grid-column: 3; grid-row: 1 / span 6; align-self: center; width: auto; flex-wrap: nowrap;
+}
+html[data-design="inbox"] #createdGrid .card > .p-3 > .d-flex:not(:last-child) { grid-column: 2; margin-top: 8px !important; }
+html[data-design="inbox"] #createdGrid .card > .p-3 > .d-flex:not(:last-child) .btn { flex: 0 0 auto !important; }
+html[data-design="inbox"] .page-main .card > .p-3 .btn.flex-fill { flex: 0 0 auto !important; }
+html[data-design="inbox"] .page-main .card > .p-3 .btn.w-100 { width: auto !important; }
+html[data-design="inbox"] .page-main .card .fw-bold.fs-6, html[data-design="inbox"] #myGroupsGrid .card .fw-bold, html[data-design="inbox"] #discoverGrid .card .fw-bold, html[data-design="inbox"] #myInvitesGrid .card .fw-bold { font-size: 16px !important; font-weight: 700 !important; }
+html[data-design="inbox"] .page-main .card .text-danger.fw-bold.small { font-family: var(--mono); font-size: 12px !important; font-weight: 500 !important; color: var(--accent) !important; text-transform: none; }
+html[data-design="inbox"] .page-main .card .text-danger.fw-bold.small i, html[data-design="inbox"] .page-main .card .text-muted.small > i { display: none; }
+html[data-design="inbox"] .page-main .card .text-muted.small { font-size: 14px !important; }
+html[data-design="inbox"] .page-main .card .text-primary.small { color: var(--accent-ink) !important; font-size: 13px !important; }
+html[data-design="inbox"] .page-main .card .badge:not(.bg-danger) { font-family: var(--mono); font-weight: 400; border-radius: 4px !important; background: var(--chip) !important; color: var(--ink-2) !important; }
+html[data-design="inbox"] .page-main .card .btn-sm { min-height: 40px; padding: 0 16px; font-size: 14px; }
+html[data-design="inbox"] .page-main .card .btn-outline-secondary { background: var(--chip); border-color: transparent; color: var(--ink); }
+html[data-design="inbox"] .page-main .card .btn-outline-secondary.interested { background: var(--accent-wash); color: var(--accent-ink); }
+@media (max-width: 575.98px) {
+  html[data-design="inbox"] #myGroupsGrid .card, html[data-design="inbox"] #discoverGrid .card, html[data-design="inbox"] #myInvitesGrid .card,
+  html[data-design="inbox"] #upcomingGrid .card, html[data-design="inbox"] #goingGrid .card, html[data-design="inbox"] #createdGrid .card,
+  html[data-design="inbox"] #pastGrid .card, html[data-design="inbox"] #invitesGrid .card { grid-template-columns: 52px minmax(0, 1fr); }
+  html[data-design="inbox"] .page-main .card > .p-3 > .btn, html[data-design="inbox"] .page-main .card > .p-3 > .d-flex:last-child { grid-column: 1 / -1 !important; grid-row: auto !important; margin-top: 10px !important; }
+}
+
+/* =========================================================
+   Event and group pages
+   ========================================================= */
+html[data-design="inbox"] .page-main > .text-decoration-none.small.text-muted { display: block; padding: 16px 18px 0; }
+html[data-design="inbox"] #eventPage, html[data-design="inbox"] #eventLoading, html[data-design="inbox"] #eventPageError { margin-left: 0; margin-right: 0; }
+html[data-design="inbox"] #eventLoading, html[data-design="inbox"] #groupLoading { padding: 24px 18px; }
+html[data-design="inbox"] #eventPage .card { padding: 16px 18px !important; }
+html[data-design="inbox"] #eventPage .card > .p-4 { padding: 0 !important; }
+html[data-design="inbox"] #eventPage #evCover { height: 180px !important; border-radius: 10px; margin-bottom: 14px; }
+html[data-design="inbox"] #eventPage #evTitle { font-size: 28px !important; font-weight: 700 !important; letter-spacing: -0.02em; }
+html[data-design="inbox"] #eventPage h2.h6 { font-family: var(--mono); font-size: 12px; font-weight: 400 !important; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); margin-bottom: 10px !important; }
+html[data-design="inbox"] #eventPage #evActions .btn { min-height: 44px; font-size: 14px; }
+html[data-design="inbox"] #eventPage .btn-light.border { border-color: transparent !important; }
+html[data-design="inbox"] #eventPage .btn-success { background: var(--ink); border-color: var(--ink); }
+html[data-design="inbox"] #evAttendees .d-grid > a { border: 0 !important; border-radius: 6px !important; padding: 8px !important; }
+html[data-design="inbox"] #evAttendees .d-grid > a:hover { background: var(--chip); }
+html[data-design="inbox"] #evAttendees img { width: 32px !important; height: 32px !important; }
+html[data-design="inbox"] #evComments > .d-flex { padding: 6px 0; }
+html[data-design="inbox"] #eventPage .alert { border-radius: 8px; }
+
+html[data-design="inbox"] #groupContent > .profile-cover { border-radius: 0; height: 150px; margin: 0 !important; }
+html[data-design="inbox"] #groupContent > .d-flex.flex-wrap { padding: 18px 18px 0; margin: 0 !important; }
+html[data-design="inbox"] #groupContent > .d-flex.flex-wrap h1 { font-size: 24px; font-weight: 700 !important; letter-spacing: -0.02em; }
+html[data-design="inbox"] #groupContent > .d-flex.flex-wrap .btn { min-height: 40px; }
+html[data-design="inbox"] #groupContent > hr { display: none; }
+html[data-design="inbox"] #groupContent > .nav-pills { margin-top: 12px !important; }
+html[data-design="inbox"] #groupContent .btn-light.border { border-color: transparent !important; }
+html[data-design="inbox"] #groupNonMemberNotice { margin: 14px 18px; }
+html[data-design="inbox"] #groupTabEvents > .d-flex { padding: 12px 18px; margin: 0 !important; border-bottom: 1px solid var(--line); }
+html[data-design="inbox"] #groupEventsList > a { border: 0 !important; border-bottom: 1px solid var(--line) !important; border-radius: 0 !important; padding: 14px 18px !important; margin: 0 !important; }
+html[data-design="inbox"] #groupEventsList > a:hover { background: var(--surface-2); }
+html[data-design="inbox"] #groupEventsList img { width: 52px !important; height: 52px !important; }
+html[data-design="inbox"] #groupPostsList { background: var(--surface); }
+
+/* =========================================================
+   Profile: the page is a grid of two columns. The cover, the name, the tabs and the posts / lists are in the white column;
+   "Hakkında" and "Arkadaşlar" of the posts tab move to the thin column beside it (display: contents lets the grid reach them).
+   ========================================================= */
+html[data-design="inbox"] .profile-page { display: grid; grid-template-columns: minmax(0, 880px) 300px; align-items: start; }
+html[data-design="inbox"] .profile-page > * { grid-column: 1; min-width: 0; }
+html[data-design="inbox"] .profile-page > .profile-cover { height: 150px; border-radius: 0; margin: 0; }
+html[data-design="inbox"] .profile-page > .d-flex.flex-wrap { margin-top: -44px !important; padding: 0 18px !important; background: linear-gradient(to bottom, transparent 0 44px, var(--surface) 44px); border-right: 1px solid var(--line); }
+html[data-design="inbox"] .profile-page .avatar-lg { width: 96px; height: 96px; border-width: 4px; }
+html[data-design="inbox"] .profile-page #profileOnlineDot { width: 16px !important; height: 16px !important; bottom: 6px !important; left: 6px !important; }
+html[data-design="inbox"] .profile-page #profileName { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+html[data-design="inbox"] .profile-page .pb-2 { padding-top: 48px; }
+html[data-design="inbox"] .profile-page > .d-flex.flex-wrap > div:last-child { padding-top: 48px; }
+html[data-design="inbox"] .profile-page #profileHandle, html[data-design="inbox"] .profile-page #profileFriendCount { font-family: var(--mono); font-size: 13px; }
+html[data-design="inbox"] .profile-page > .nav-tabs { margin: 0 !important; padding-top: 12px; background: var(--surface); border-right: 1px solid var(--line); border-top: 0; }
+html[data-design="inbox"] .profile-page > .tab-content { display: contents; }
+html[data-design="inbox"] .profile-page > .tab-content > .tab-pane { grid-column: 1; background: var(--surface); border-right: 1px solid var(--line); min-height: 50vh; }
+html[data-design="inbox"] .profile-page > .tab-content > .tab-pane.active { display: block; }
+html[data-design="inbox"] .profile-page > .tab-content > #tab-posts.active { display: contents; }
+html[data-design="inbox"] #tab-posts > .row { display: contents; }
+html[data-design="inbox"] #tab-posts > .row > .col-lg-8 { grid-column: 1; grid-row: auto; width: auto; max-width: none; padding: 0; background: var(--surface); border-right: 1px solid var(--line); min-height: 50vh; }
+html[data-design="inbox"] #tab-posts > .row > .col-lg-4 {
+  grid-column: 2; grid-row: 1 / span 20; width: auto; max-width: none; padding: 24px 20px; display: flex; flex-direction: column; gap: 26px;
+  position: sticky; top: 0; align-self: start;
+}
+html[data-design="inbox"] #tab-posts > .row > .col-lg-4 > .card { margin: 0 !important; padding: 0 !important; border: 0 !important; background: transparent; }
+html[data-design="inbox"] #tab-posts > .row > .col-lg-4 .card > .fw-bold:first-child,
+html[data-design="inbox"] #tab-posts > .row > .col-lg-4 .card > .d-flex:first-child > .fw-bold {
+  font-family: var(--mono); font-size: 12px; font-weight: 400 !important; color: var(--faint); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px !important;
+}
+html[data-design="inbox"] #tab-posts > .row > .col-lg-4 .border-top { border-top: 0 !important; padding-top: 0 !important; min-height: 36px; align-items: center; margin-bottom: 0 !important; }
+html[data-design="inbox"] #tab-posts > .row > .col-lg-4 .bi { display: none; }
+html[data-design="inbox"] #friendsSummary { margin: 0; }
+html[data-design="inbox"] #profilePostsList > .text-muted.small { padding: 24px 18px; display: block; }
+html[data-design="inbox"] #ownComposerWrap { border-bottom: 1px solid var(--line) !important; }
+html[data-design="inbox"] .profile-page .tab-pane > .card { border: 0 !important; padding: 18px !important; }
+html[data-design="inbox"] #profileCoverEditBtn .btn { background: rgba(26, 26, 24, .7); border-color: transparent; color: #fff; }
+@media (max-width: 1199.98px) {
+  html[data-design="inbox"] .profile-page { grid-template-columns: minmax(0, 1fr); }
+  html[data-design="inbox"] #tab-posts > .row > .col-lg-4 { grid-column: 1; grid-row: auto; position: static; background: var(--surface); border-bottom: 1px solid var(--line); }
+}
+
+/* =========================================================
+   Marketplace: the filters go to the thin column on the right, the listings are rows
+   ========================================================= */
+html[data-design="inbox"] .page-row > .page-aside { order: 2; }
+html[data-design="inbox"] .page-row > .page-main { order: 1; }
+html[data-design="inbox"] .page-main > .d-flex.justify-content-between.mb-3 { margin: 0 !important; padding-right: 18px; border-bottom: 1px solid var(--line); gap: 0 !important; flex-wrap: nowrap !important; }
+html[data-design="inbox"] .page-main > .d-flex.justify-content-between.mb-3 .nav-pills { border-bottom: 0; flex: 1; }
+html[data-design="inbox"] #resultCount { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+html[data-design="inbox"] #offersPanel > .nav-pills { border-top: 0; }
+html[data-design="inbox"] #offersList { padding: 0; }
+html[data-design="inbox"] #offersList > .card { padding: 14px 18px !important; }
+html[data-design="inbox"] #offersList .text-success { color: var(--ink) !important; font-family: var(--mono); font-weight: 500; }
+html[data-design="inbox"] .page-aside #browseFilters .fw-bold.small.text-muted { font-family: var(--mono); font-size: 12px !important; font-weight: 400 !important; letter-spacing: 0.08em; }
+html[data-design="inbox"] .page-aside #browseFilters .bg-body-tertiary.rounded-pill { border: 1px solid var(--line-2); border-radius: 8px !important; }
+html[data-design="inbox"] .page-aside #categoryList .btn { text-align: left; border-radius: 6px; min-height: 40px; background: transparent; border: 0; font-weight: 500; color: var(--ink-2); display: flex; justify-content: space-between; align-items: center; padding: 0 12px; }
+html[data-design="inbox"] .page-aside #categoryList .btn:hover { background: var(--chip); color: var(--ink); }
+html[data-design="inbox"] .page-aside #categoryList .btn.active, html[data-design="inbox"] .page-aside #categoryList .btn.btn-primary { background: var(--ink); color: var(--surface); font-weight: 600; }
+html[data-design="inbox"] .page-aside .btn-light.btn-sm { background: var(--chip); }
+
+html[data-design="inbox"] #listingsGrid { display: block; margin: 0; }
+html[data-design="inbox"] #listingsGrid > * { width: 100%; max-width: 100%; padding: 0; margin: 0; }
+html[data-design="inbox"] #listingsGrid > .text-center { padding: 40px 18px; }
+html[data-design="inbox"] #listingsGrid .card {
+  display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; column-gap: 16px; row-gap: 2px; align-items: start;
+  padding: 14px 18px !important; overflow: visible !important; height: auto !important; cursor: pointer;
+}
+html[data-design="inbox"] #listingsGrid .card:hover { background: var(--surface-2); }
+html[data-design="inbox"] #listingsGrid .card > img { grid-column: 1; grid-row: 1 / span 4; width: 96px !important; height: 96px !important; border-radius: 8px; object-fit: cover; }
+html[data-design="inbox"] #listingsGrid .card > .p-2 { display: contents; }
+html[data-design="inbox"] #listingsGrid .card > .p-2 > .fw-bold { grid-column: 3; grid-row: 1; font-family: var(--mono); font-weight: 500 !important; color: var(--ink) !important; text-align: right; white-space: nowrap; }
+html[data-design="inbox"] #listingsGrid .card > .p-2 > .small.text-truncate { grid-column: 2; grid-row: 1; font-size: 16px !important; font-weight: 700; }
+html[data-design="inbox"] #listingsGrid .card > .p-2 > .text-muted.small { grid-column: 2; grid-row: 2; }
+html[data-design="inbox"] #listingsGrid .card > .p-2 > .text-muted.small i { display: none; }
+html[data-design="inbox"] #listingsGrid .card > .p-2 > div:last-child:not(.text-muted) { grid-column: 2; grid-row: 3; font-size: 13px; }
+html[data-design="inbox"] #listingsGrid .card > .btn { position: static !important; grid-column: 3; grid-row: 2; margin: 0 !important; justify-self: end; background: transparent; box-shadow: none !important; }
+html[data-design="inbox"] #listingsGrid .card > .badge { position: static !important; grid-column: 2; grid-row: 4; margin: 4px 0 0 !important; justify-self: start; }
+html[data-design="inbox"] #listingsGrid .badge.text-bg-warning { background: var(--accent-wash) !important; color: var(--accent-ink) !important; }
+
+/* =========================================================
+   Settings: a column of sections, then one long white column of them
+   ========================================================= */
+html[data-design="inbox"] .settings-row { align-items: stretch; }
+html[data-design="inbox"] .page-subnav { flex: 0 0 220px; width: 220px; max-width: 220px; background: var(--surface); border-right: 1px solid var(--line); position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto; padding: 24px 14px !important; }
+html[data-design="inbox"] .page-subnav > .card { background: transparent; border: 0 !important; padding: 0 !important; display: flex; flex-direction: column; gap: 2px; }
+html[data-design="inbox"] .subnav-title { margin: 0 0 14px 12px !important; font-size: 24px; letter-spacing: -0.02em; }
+html[data-design="inbox"] .page-subnav .side-nav-link { box-shadow: none; }
+html[data-design="inbox"] .page-subnav .side-nav-link.active { box-shadow: inset 3px 0 0 var(--accent); }
+html[data-design="inbox"] .page-subnav .side-nav-link.text-danger { color: var(--danger) !important; }
+html[data-design="inbox"] .settings-row > .page-main { max-width: 720px; gap: 0 !important; }
+html[data-design="inbox"] .settings-row > .page-main > .card { padding: 20px 18px !important; }
+html[data-design="inbox"] .settings-row > .page-main > .card > .fw-bold:first-child { font-size: 17px; letter-spacing: -0.01em; margin-bottom: 4px !important; }
+html[data-design="inbox"] .settings-row > .page-main > .card > p.small { font-size: 14px !important; margin-bottom: 14px !important; }
+html[data-design="inbox"] .settings-row > .page-main > #section-danger { background: #fff5f3; }
+html[data-design="inbox"][data-bs-theme="dark"] .settings-row > .page-main > #section-danger { background: #2a1713; }
+html[data-design="inbox"] .settings-row > .page-main > #section-danger > .fw-bold:first-child { color: var(--danger); }
+html[data-design="inbox"] .settings-row > .page-main .form-control, html[data-design="inbox"] .settings-row > .page-main .form-select { min-height: 44px; }
+@media (max-width: 991.98px) {
+  /* on a phone the list of sections is not shown, only the title of the page */
+  html[data-design="inbox"] .settings-row { flex-wrap: wrap; }
+  html[data-design="inbox"] .page-subnav { display: block !important; flex: 1 1 100%; width: 100%; max-width: none; height: auto; position: static; border-right: 0; border-bottom: 1px solid var(--line); padding: 16px 18px 12px !important; }
+  html[data-design="inbox"] .page-subnav .side-nav-link { display: none; }
+  html[data-design="inbox"] .subnav-title { margin: 0 !important; }
+  html[data-design="inbox"] .settings-row > .page-main { flex: 1 1 100%; }
+  html[data-design="inbox"] .settings-row > .page-main { max-width: none; }
+}
+
+/* The old side list (the section list of the settings): plain text rows */
+html[data-design="inbox"] .side-nav-link { font-weight: 500; font-size: 14px; color: var(--ink-2); border-radius: 6px; padding: 9px 12px; min-height: 40px; }
+html[data-design="inbox"] .side-nav-link i { display: none; }
+html[data-design="inbox"] .side-nav-link:hover { background: var(--chip); color: var(--ink); }
+html[data-design="inbox"] .side-nav-link.active { background: var(--canvas); color: var(--ink); font-weight: 600; }
+html[data-design="inbox"][data-bs-theme="dark"] .side-nav-link, html[data-design="inbox"][data-bs-theme="dark"] .side-nav-link:hover, html[data-design="inbox"][data-bs-theme="dark"] .side-nav-link.active { color: var(--ink); }
+html[data-design="inbox"][data-bs-theme="dark"] .side-nav-link:hover { background: var(--chip); }
+html[data-design="inbox"][data-bs-theme="dark"] .side-nav-link.active { background: var(--canvas); }
+
+/* The post the keyboard (j / k) stopped on */
+html[data-design="inbox"] .card[data-post-id].kb-selected { box-shadow: inset 3px 0 0 var(--accent) !important; background: var(--accent-wash); }
+
+/* The sign-in / register / reset cards: a white panel with a thin border */
+html[data-design="inbox"] .auth-gradient .card { border-radius: 12px !important; padding: 28px 26px !important; border: 1px solid var(--line) !important; }
+html[data-design="inbox"] .auth-gradient .btn-primary { min-height: 48px; }
+html[data-design="inbox"] .auth-gradient .form-control { min-height: 48px; }
+@media (max-width: 1199.98px) {
+  html[data-design="inbox"] .page-aside #categoryList { flex-direction: row !important; overflow-x: auto; gap: 6px !important; padding-bottom: 4px; }
+  html[data-design="inbox"] .page-aside #categoryList .btn { flex: none; width: auto; border: 1px solid var(--line-2); background: var(--surface); }
+  html[data-design="inbox"] .page-aside #categoryList .btn.btn-primary, html[data-design="inbox"] .page-aside #categoryList .btn.active { background: var(--ink); border-color: var(--ink); }
+}
+html[data-design="inbox"] #friendsSummary { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+html[data-design="inbox"] #friendsSummary > .col { width: auto; max-width: none; padding: 0; }
+@media (max-width: 1199.98px) { html[data-design="inbox"] #friendsSummary { grid-template-columns: repeat(auto-fill, minmax(72px, 88px)); } }
+html[data-design="inbox"] .profile-page .col-lg-8 > .card, html[data-design="inbox"] .profile-page #profilePostsList > .card {
+  border: 0 !important; border-bottom: 1px solid var(--line) !important; border-radius: 0 !important; background: transparent; box-shadow: none !important;
+  margin: 0 !important; padding: 14px 18px !important;
+}
+html[data-design="inbox"] .profile-page #profilePostsList > .card:hover { background: var(--surface-2); }
+html[data-design="inbox"] #friendsSummary > .text-muted { grid-column: 1 / -1; }
+html[data-design="inbox"] #friendsTabList > .text-muted, html[data-design="inbox"] #photosGrid > .text-muted { width: 100%; }
+html[data-design="inbox"] .nav-pills, html[data-design="inbox"] .nav-tabs { scrollbar-width: none; }
+html[data-design="inbox"] .nav-pills::-webkit-scrollbar, html[data-design="inbox"] .nav-tabs::-webkit-scrollbar { display: none; }
+
+/* The suggestions under the search of the menu stay inside the column (it scrolls, so it would cut anything wider). */
+@media (min-width: 992px) { html[data-design="inbox"] body > .inbox-nav { overflow-x: hidden; } }
+html[data-design="inbox"] .side-search .search-suggestions { min-width: 0; left: 0; right: 0; }
+html[data-design="inbox"] .side-search .search-suggestions button { padding: 8px 10px; min-width: 0; }
+html[data-design="inbox"] .side-search .search-suggestions span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

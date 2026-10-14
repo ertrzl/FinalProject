@@ -69,6 +69,7 @@ public class PasswordResetService : IPasswordResetService
         // Identity's own reset code: tied to the account's security stamp (so it dies when the password changes) and
         // valid for the time set in PasswordReset:LinkLifetimeMinutes.
         var code = await _userManager.GeneratePasswordResetTokenAsync(user);
+        _logger.LogInformation("Password reset link requested for {UserName} ({UserId:l})", user.UserName, user.Id.ToString());
         var link = $"{linkBaseUrl}/reset-password.html?email={Uri.EscapeDataString(user.Email!)}&token={WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code))}";
 
         // Not awaited on purpose: sending takes seconds, and only an address that has an account would wait for
@@ -99,6 +100,7 @@ public class PasswordResetService : IPasswordResetService
         // the old security stamp) refused from the next request on.
         _accessTokens.Revoke(user.Id, oldStamp);
         await _sessions.RevokeAllAsync(user.Id);
+        _logger.LogInformation("Password reset done for {UserName} ({UserId:l}); all sessions ended", user.UserName, user.Id.ToString());
 
         // The person may have been locked out by too many wrong guesses before giving up and asking for this reset.
         user.LockoutEnd = null;

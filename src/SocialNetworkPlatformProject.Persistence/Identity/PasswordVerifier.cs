@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using SocialNetworkPlatformProject.Application.Exceptions;
 
 namespace SocialNetworkPlatformProject.Persistence.Identity;
@@ -9,10 +10,12 @@ namespace SocialNetworkPlatformProject.Persistence.Identity;
 public class PasswordVerifier
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ILogger<PasswordVerifier> _logger;
 
-    public PasswordVerifier(UserManager<ApplicationUser> userManager)
+    public PasswordVerifier(UserManager<ApplicationUser> userManager, ILogger<PasswordVerifier> logger)
     {
         _userManager = userManager;
+        _logger = logger;
     }
 
     // True when the password is right. False when it is wrong. Throws a 429 while the account is locked
@@ -41,6 +44,7 @@ public class PasswordVerifier
 
         var remaining = (user.LockoutEnd ?? DateTimeOffset.UtcNow) - DateTimeOffset.UtcNow;
         var minutes = Math.Max(1, (int)Math.Ceiling(remaining.TotalMinutes));
+        _logger.LogWarning("Account {UserName} ({UserId:l}) is locked out for {Minutes} more minute(s)", user.UserName, user.Id.ToString(), minutes);
         throw new TooManyRequestsException(Loc.T("auth.tooManyAttempts", minutes));
     }
 }

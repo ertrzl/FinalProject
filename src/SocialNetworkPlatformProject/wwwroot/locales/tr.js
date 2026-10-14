@@ -22,6 +22,8 @@ window.LOCALES.tr = {
   "block.undoFailed": "Engel kaldırılamadı.",
 
   "report.menuItem": "Şikâyet et",
+  "notif.contentRemoved": "Yöneticiler içeriğini kaldırdı: {0}",
+  "notif.photoOrPoll": "[foto / anket]",
   "report.sent": "Şikâyetin yöneticilere iletildi.",
   "report.title.Post": "Bu gönderiyi şikâyet et",
   "report.title.Comment": "Bu yorumu şikâyet et",

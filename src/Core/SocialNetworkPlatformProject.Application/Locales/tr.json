@@ -71,6 +71,10 @@
   "report.own": "Kendini ya da kendi içeriğini şikâyet edemezsin.",
   "report.alreadyReported": "Bunu zaten şikâyet ettin. İnceleyeceğiz.",
   "report.alreadyClosed": "Bu şikâyet zaten kapatılmış.",
+  "report.alreadyReviewed": "Bunu daha önce şikâyet ettin; yöneticiler inceledi.",
+  "report.noText": "[foto / anket]",
+  "admin.audit.contentRemoved": "içerik kaldırıldı",
+  "admin.audit.ownerSuspended": "hesap askıya alındı",
 
   "admin.noteTooLong": "Not en fazla 500 karakter olabilir.",
   "admin.typeInvalid": "Bilinmeyen içerik türü.",

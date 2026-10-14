@@ -24,6 +24,7 @@ public class AdminService : IAdminService
     private readonly IEventService _events;
     private readonly IGroupService _groups;
     private readonly IAuditService _audit;
+    private readonly INotificationService _notifications;
 
     public AdminService(
         ApplicationDbContext context,
@@ -37,7 +38,8 @@ public class AdminService : IAdminService
         IMarketplaceService listings,
         IEventService events,
         IGroupService groups,
-        IAuditService audit)
+        IAuditService audit,
+        INotificationService notifications)
     {
         _context = context;
         _userManager = userManager;
@@ -51,6 +53,7 @@ public class AdminService : IAdminService
         _events = events;
         _groups = groups;
         _audit = audit;
+        _notifications = notifications;
     }
 
     public async Task<GetAdminStatsDto> GetStatsAsync()
@@ -246,6 +249,9 @@ public class AdminService : IAdminService
             case "event": await _events.DeleteAsync(adminId, id, asAdmin: true); break;
             default: await _groups.DeleteAsync(adminId, id, asAdmin: true); break;
         }
+
+        // The owner is told that it was removed (not by whom). Nothing is sent when the admin removed their own thing.
+        await _notifications.CreateAsync(ownerId, adminId, NotificationType.ContentRemoved, subject: string.IsNullOrWhiteSpace(title) ? null : Shorten(title, 150));
 
         var ownerName = await _context.Users.Where(u => u.Id == ownerId).Select(u => u.FullName).FirstOrDefaultAsync();
         var details = $"{ownerName}: “{Shorten(title, 120)}”" + (string.IsNullOrWhiteSpace(note) ? "" : $" — {note.Trim()}");

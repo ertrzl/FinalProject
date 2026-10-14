@@ -500,3 +500,6 @@ body > .container, body > .container-fluid, body > main {
 
 /* ---------- 404.html ---------- */
 .not-found-code { font-size: 4.5rem; font-weight: 800; line-height: 1; letter-spacing: -0.04em; color: var(--bs-primary); }
+
+/* The avatar of a notice from the admins (no person behind it). */
+.notif-system-avatar { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bs-secondary-bg); color: var(--bs-secondary-color); font-size: 1.1rem; }

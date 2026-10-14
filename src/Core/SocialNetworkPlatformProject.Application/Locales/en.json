@@ -71,6 +71,10 @@
   "report.own": "You can't report yourself or your own content.",
   "report.alreadyReported": "You already reported this. We will look at it.",
   "report.alreadyClosed": "This report has already been closed.",
+  "report.alreadyReviewed": "You already reported this; the admins have looked at it.",
+  "report.noText": "[photo / poll]",
+  "admin.audit.contentRemoved": "content removed",
+  "admin.audit.ownerSuspended": "account suspended",
 
   "admin.noteTooLong": "The note can be at most 500 characters.",
   "admin.typeInvalid": "Unknown kind of content.",

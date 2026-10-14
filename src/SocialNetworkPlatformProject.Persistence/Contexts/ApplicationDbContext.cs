@@ -62,6 +62,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<EventInvite> EventInvites => Set<EventInvite>();
     public DbSet<EventComment> EventComments => Set<EventComment>();
 
+    // Admin: reports and the log of what admins did
+    public DbSet<Report> Reports => Set<Report>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
     // Auth: refresh tokens
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 

@@ -48,7 +48,7 @@ function openSiteDialog(innerHtml, onOpen) {
     if (event.key === "Escape") { event.stopPropagation(); overlay.dispatchEvent(new CustomEvent("dismiss")); return; }
     if (event.key !== "Tab") return;
 
-    const focusable = [...overlay.querySelectorAll("button, input")];
+    const focusable = [...overlay.querySelectorAll("button, input, textarea")];
     const at = focusable.indexOf(document.activeElement);
     const next = event.shiftKey ? (at <= 0 ? focusable.length - 1 : at - 1) : (at === focusable.length - 1 ? 0 : at + 1);
     event.preventDefault();
@@ -80,6 +80,66 @@ function confirmDialog(message, { confirmText = "Sil", danger = true } = {}) {
 
     // A destructive question starts on "Vazgeç" so a stray Enter cannot delete anything.
     overlay.querySelector(danger ? '[data-answer="no"]' : '[data-answer="yes"]').focus();
+  });
+}
+
+// ---- Reporting ----
+// The "Şikâyet et" item of a post, comment, listing or profile opens this box: a reason and an optional note, sent to the
+// admins (POST /api/reports; the server refuses own content and a second report of the same thing). `what` names the
+// thing in the title ("gönderi", "yorum", "ilan", "profil"). Resolves true when the report was sent.
+//   reportDialog("Post", post.id, "gönderi")
+const REPORT_REASONS = [
+  { value: "Spam", label: "Spam ya da reklam" },
+  { value: "Harassment", label: "Taciz ya da zorbalık" },
+  { value: "Inappropriate", label: "Uygunsuz içerik" },
+  { value: "Fake", label: "Sahte ya da yanıltıcı" },
+  { value: "Other", label: "Diğer" }
+];
+
+function reportDialog(targetType, targetId) {
+  return new Promise(resolve => {
+    openSiteDialog(`
+      <div class="fw-bold mb-1 report-title"></div>
+      <div class="text-muted small mb-3">Şikâyetin yöneticilere ulaşır; kimin şikâyet ettiği içeriğin sahibine söylenmez.</div>
+      <div class="report-reasons mb-3">${REPORT_REASONS.map((r, i) => `
+        <label class="report-reason"><input type="radio" name="reportReason" value="${r.value}" ${i === 0 ? "checked" : ""}><span>${r.label}</span></label>`).join("")}
+      </div>
+      <textarea class="form-control mb-1 report-details" rows="3" maxlength="1000" placeholder="İstersen ayrıntı ekle (en fazla 1000 karakter)"></textarea>
+      <div class="text-danger small mb-3 d-none report-error"></div>
+      <div class="d-flex justify-content-end flex-wrap gap-2 mt-3">
+        <button type="button" class="btn btn-light rounded-pill px-4" data-answer="no">Vazgeç</button>
+        <button type="button" class="btn btn-danger rounded-pill px-4" data-answer="yes">Şikâyet Et</button>
+      </div>`,
+      (box, close) => {
+        box.querySelector(".report-title").textContent = i18n(`report.title.${targetType}`);
+        const yes = box.querySelector('[data-answer="yes"]');
+        const errorLine = box.querySelector(".report-error");
+        const done = value => { close(); resolve(value); };
+
+        yes.addEventListener("click", async () => {
+          yes.disabled = true;
+          errorLine.classList.add("d-none");
+          try {
+            await apiFetch("/api/reports", {
+              method: "POST",
+              body: {
+                targetType,
+                targetId,
+                reason: box.querySelector('input[name="reportReason"]:checked').value,
+                details: box.querySelector(".report-details").value.trim() || null
+              }
+            });
+            toast(i18n("report.sent"));
+            done(true);
+          } catch (err) {
+            yes.disabled = false;
+            errorLine.textContent = err.message;
+            errorLine.classList.remove("d-none");
+          }
+        });
+        box.querySelector('[data-answer="no"]').addEventListener("click", () => done(false));
+        box.addEventListener("dismiss", () => done(false));
+      });
   });
 }
 

@@ -20,17 +20,20 @@ public class SessionIssuer
     private static readonly TimeSpan ReuseGracePeriod = TimeSpan.FromSeconds(30);
 
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<IdentityRole<Guid>> _roleManager;
     private readonly ITokenService _tokenService;
     private readonly IRefreshTokenRepository _refreshTokens;
     private readonly IConfiguration _configuration;
 
     public SessionIssuer(
         UserManager<ApplicationUser> userManager,
+        RoleManager<IdentityRole<Guid>> roleManager,
         ITokenService tokenService,
         IRefreshTokenRepository refreshTokens,
         IConfiguration configuration)
     {
         _userManager = userManager;
+        _roleManager = roleManager;
         _tokenService = tokenService;
         _refreshTokens = refreshTokens;
         _configuration = configuration;
@@ -38,6 +41,12 @@ public class SessionIssuer
 
     public async Task<TokenResponseDto> IssueAsync(ApplicationUser user)
     {
+        // A suspended account gets no session, whatever way it asks (sign-in or a refresh token).
+        if (user.IsSuspended)
+            throw new ForbiddenException(Loc.T("auth.suspended"));
+
+        await EnsureConfiguredAdminAsync(user);
+
         var roles = await _userManager.GetRolesAsync(user);
         var accessToken = _tokenService.GenerateAccessToken(user.Id, user.Email!, user.FullName, user.SecurityStamp!, roles);
 
@@ -61,8 +70,24 @@ public class SessionIssuer
             RefreshToken = refreshToken,
             UserId = user.Id,
             FullName = user.FullName,
-            AvatarUrl = user.AvatarUrl
+            AvatarUrl = user.AvatarUrl,
+            IsAdmin = roles.Contains(AppRoles.Admin)
         };
+    }
+
+    // The people who are admins are listed in appsettings.json ("Admin": { "Emails": [...] }). Whoever signs in (or
+    // renews a session) with one of those e-mail addresses gets the role: the first time it is created and given.
+    private async Task EnsureConfiguredAdminAsync(ApplicationUser user)
+    {
+        var emails = _configuration.GetSection("Admin:Emails").Get<string[]>() ?? Array.Empty<string>();
+        if (!emails.Any(e => string.Equals(e?.Trim(), user.Email, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        if (!await _roleManager.RoleExistsAsync(AppRoles.Admin))
+            await _roleManager.CreateAsync(new IdentityRole<Guid>(AppRoles.Admin));
+
+        if (!await _userManager.IsInRoleAsync(user, AppRoles.Admin))
+            await _userManager.AddToRoleAsync(user, AppRoles.Admin);
     }
 
     // Rotation: a used refresh token is dead even if it hadn't expired yet, so a leaked one has a single use.

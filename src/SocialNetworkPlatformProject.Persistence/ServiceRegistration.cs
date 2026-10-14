@@ -126,6 +126,11 @@ public static class ServiceRegistration
         services.AddScoped<IEventCommentService, EventCommentService>();
         services.AddScoped<ILiveUpdateService, LiveUpdateService>();
 
+        // Admin panel
+        services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IAdminService, AdminService>();
+        services.AddScoped<IReportService, ReportService>();
+
         return services;
     }
 }

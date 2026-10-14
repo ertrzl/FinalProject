@@ -9,4 +9,7 @@ public class TokenResponseDto
     public Guid UserId { get; set; }
     public string FullName { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
+
+    // Shows the admin panel link; the server checks the role on every admin request anyway.
+    public bool IsAdmin { get; set; }
 }

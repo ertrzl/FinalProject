@@ -27,5 +27,6 @@ public interface IMarketplaceService
     // Adds/removes the listing from the user's favourites; returns true when it is now saved.
     Task<bool> ToggleSaveAsync(Guid currentUserId, Guid listingId);
 
-    Task DeleteAsync(Guid currentUserId, Guid listingId);
+    // asAdmin: the site's admin removing it (only the admin panel passes true).
+    Task DeleteAsync(Guid currentUserId, Guid listingId, bool asAdmin = false);
 }

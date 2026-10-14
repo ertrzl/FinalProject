@@ -10,7 +10,8 @@ public interface IPostService
 
     Task<GetPostDto> UpdateAsync(Guid currentUserId, Guid postId, PutPostDto dto);
 
-    Task DeleteAsync(Guid currentUserId, Guid postId);
+    // asAdmin: the site's admin removing it (only the admin panel passes true; the usual rules about whose post it is don't apply).
+    Task DeleteAsync(Guid currentUserId, Guid postId, bool asAdmin = false);
 
     Task<GetPostDto> GetByIdAsync(Guid currentUserId, Guid postId);
 

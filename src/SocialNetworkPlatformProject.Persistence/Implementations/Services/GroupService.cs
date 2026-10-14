@@ -401,13 +401,13 @@ public class GroupService : IGroupService
         await _eventService.RemoveUserFromGroupEventsAsync(currentUserId, groupId, group.CreatedByUserId);
     }
 
-    public async Task DeleteAsync(Guid currentUserId, Guid groupId)
+    public async Task DeleteAsync(Guid currentUserId, Guid groupId, bool asAdmin = false)
     {
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
             ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         var isAdmin = group.Members.Any(m => m.UserId == currentUserId && m.Role == GroupMemberRole.Admin);
-        if (!isAdmin)
+        if (!asAdmin && !isAdmin)
             throw new ForbiddenException(Loc.T("group.deleteAdminOnly"));
 
         await DeleteGroupWithEventsAsync(group);

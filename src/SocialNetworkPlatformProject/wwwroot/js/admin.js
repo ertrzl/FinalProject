@@ -152,7 +152,7 @@ function reportRowHtml(r) {
         ${pile}${gone}${suspended}
         <span class="text-muted ms-auto">${dateHtml(r.createdAt)}</span>
       </div>
-      <div class="admin-quote">${userText(r.targetSummary || "—")}</div>
+      <div class="admin-quote">${r.targetSummary ? userText(r.targetSummary) : r.targetType === "Post" ? `<span class="text-muted">[foto / anket]</span>` : "—"}</div>
       ${factsHtml([
         `<span>Sahibi:</span> <a href="profile.html?id=${r.targetOwnerId}" class="text-decoration-none">${userText(r.targetOwnerName)}</a>`,
         `<span>Şikâyet eden:</span> <a href="profile.html?id=${r.reporterId}" class="text-decoration-none">${userText(r.reporterName)}</a>`

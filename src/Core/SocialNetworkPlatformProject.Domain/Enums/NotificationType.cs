@@ -31,5 +31,6 @@ public enum NotificationType
     EventReminder = 25,             // the event is about to start (to those going and the organizer)
     CommentReplied = 26,            // to the author of a comment: someone answered it
     Mentioned = 27,                 // someone tagged you with @username in a post (PostId) or a comment (CommentId too)
-    PostShared = 28                 // someone shared your post: PostId is THEIR post (the share), so the link opens it
+    PostShared = 28,                // someone shared your post: PostId is THEIR post (the share), so the link opens it
+    ContentRemoved = 29             // an admin removed something of yours (post, comment, listing, event, group); Subject carries its title. The admin is not named
 }

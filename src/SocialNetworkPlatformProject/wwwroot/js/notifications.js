@@ -31,7 +31,8 @@ const NOTIF_ICON = {
   EventJoined: { badge: "bg-success", icon: "bi-person-check-fill" },
   EventCommentAdded: { badge: "bg-info", icon: "bi-chat-left-text-fill" },
   EventWaitlistPromoted: { badge: "bg-success", icon: "bi-arrow-up-circle-fill" },
-  EventReminder: { badge: "bg-warning", icon: "bi-alarm-fill" }
+  EventReminder: { badge: "bg-warning", icon: "bi-alarm-fill" },
+  ContentRemoved: { badge: "bg-danger", icon: "bi-shield-exclamation" }
 };
 
 function offerMoney(n) {
@@ -81,6 +82,8 @@ const NOTIF_TEXT = {
   EventJoined: n => i18n("notif.eventJoined", notifBold(n.actorName), notifEventName(n)),
   EventCommentAdded: n => i18n("notif.eventComment", notifBold(n.actorName), notifEventName(n)),
   EventWaitlistPromoted: n => i18n("notif.eventWaitlist", notifEventName(n)),
+  // The admins are not named; the title of what was removed comes in the event-title field (the server's "subject").
+  ContentRemoved: n => i18n("notif.contentRemoved", notifBold(n.eventTitle || i18n("notif.photoOrPoll"))),
   EventReminder: n => i18n("notif.eventReminder", notifBold(n.eventTitle || i18n("notif.anEvent")), n.eventStartsAt ? `: ${formatEventDate(n.eventStartsAt)}` : "")
 };
 
@@ -118,7 +121,9 @@ function notificationHtml(n) {
   return `
     <div class="d-flex align-items-start gap-3 p-3 rounded-3 ${unreadClass} mb-2" data-notification-id="${n.id}" data-created="${n.createdAt}" onclick="markRead('${n.id}')">
       <div class="position-relative flex-shrink-0">
-        <img src="${n.actorAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt="">
+        ${n.type === "ContentRemoved"
+          ? `<span class="avatar-sm notif-system-avatar"><i class="bi bi-shield-check"></i></span>`
+          : `<img src="${n.actorAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt="">`}
         <span class="notif-icon-badge ${iconInfo.badge}"><i class="bi ${iconInfo.icon}"></i></span>
       </div>
       <div class="flex-grow-1">

@@ -17,6 +17,7 @@ public class NotificationService : INotificationService
     // like -> unlike -> like again, or join -> leave -> join again, shouldn't spam the recipient.
     private static readonly HashSet<NotificationType> RepeatableTypes = new()
     {
+        NotificationType.ContentRemoved,
         NotificationType.MarketplaceOfferReceived,
         NotificationType.MarketplaceOfferCountered,
         NotificationType.MarketplaceOfferAccepted,
@@ -70,8 +71,9 @@ public class NotificationService : INotificationService
         if (recipientId == actorId && type != NotificationType.EventReminder)
             return;
 
-        // Nothing reaches somebody from a person they blocked or who blocked them.
-        if (recipientId != actorId && await _blocks.AreBlockedAsync(recipientId, actorId))
+        // Nothing reaches somebody from a person they blocked or who blocked them. A notice from the admins is not
+        // from a person: it always arrives.
+        if (type != NotificationType.ContentRemoved && recipientId != actorId && await _blocks.AreBlockedAsync(recipientId, actorId))
             return;
 
         // The recipient may have switched this kind off in their settings: then there is nothing to create or push.
@@ -111,6 +113,8 @@ public class NotificationService : INotificationService
         var dto = _mapper.Map<GetNotificationDto>(notification);
         dto.ActorName = actor?.FullName ?? string.Empty;
         dto.ActorAvatarUrl = actor?.AvatarUrl;
+        if (type == NotificationType.ContentRemoved)
+            HideActor(dto);
 
         if (groupId.HasValue)
         {
@@ -139,6 +143,14 @@ public class NotificationService : INotificationService
         }
 
         await _notifier.SendNotificationAsync(recipientId, dto);
+    }
+
+    // The admins speak as one: whoever pressed the button is not shown to the person whose content was removed.
+    private static void HideActor(GetNotificationDto dto)
+    {
+        dto.ActorId = Guid.Empty;
+        dto.ActorName = string.Empty;
+        dto.ActorAvatarUrl = null;
     }
 
     public async Task<PagedResult<GetNotificationDto>> GetMyNotificationsAsync(Guid currentUserId, int page, int pageSize)
@@ -186,6 +198,9 @@ public class NotificationService : INotificationService
                 dtos[i].ActorName = actor.FullName;
                 dtos[i].ActorAvatarUrl = actor.AvatarUrl;
             }
+
+            if (items[i].Type == NotificationType.ContentRemoved)
+                HideActor(dtos[i]);
 
             if (items[i].GroupId.HasValue && groupNames.TryGetValue(items[i].GroupId!.Value, out var groupName))
                 dtos[i].GroupName = groupName;

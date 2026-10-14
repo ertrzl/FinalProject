@@ -33,10 +33,16 @@ public class ReportService : IReportService
         if (ownerId == reporterId)
             throw new BadRequestException(Loc.T("report.own"));
 
-        var alreadyWaiting = await _context.Reports.AnyAsync(r =>
-            r.ReporterId == reporterId && r.TargetType == dto.TargetType && r.TargetId == dto.TargetId && r.Status == ReportStatus.Pending);
-        if (alreadyWaiting)
+        // One report per person and thing, for good: after the admins looked at it, reporting it again would only pile up
+        // reports (the count next to a person is a sign the admins read) without telling them anything new.
+        var earlier = await _context.Reports.AsNoTracking()
+            .Where(r => r.ReporterId == reporterId && r.TargetType == dto.TargetType && r.TargetId == dto.TargetId)
+            .Select(r => (ReportStatus?)r.Status)
+            .FirstOrDefaultAsync();
+        if (earlier == ReportStatus.Pending)
             throw new ConflictException(Loc.T("report.alreadyReported"));
+        if (earlier != null)
+            throw new ConflictException(Loc.T("report.alreadyReviewed"));
 
         _context.Reports.Add(new Report
         {
@@ -63,7 +69,7 @@ public class ReportService : IReportService
                 var post = await _context.Posts.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
                 if (post == null || !await _access.CanViewAsync(post, reporterId))
                     throw new NotFoundException(Loc.T("report.targetNotFound"));
-                return (post.AuthorId, Shorten(post.Text, "[foto / anket]"));
+                return (post.AuthorId, Shorten(post.Text));
             }
             case ReportTargetType.Comment:
             {
@@ -71,7 +77,7 @@ public class ReportService : IReportService
                 var post = comment == null ? null : await _context.Posts.AsNoTracking().FirstOrDefaultAsync(p => p.Id == comment.PostId);
                 if (comment == null || post == null || !await _access.CanViewAsync(post, reporterId))
                     throw new NotFoundException(Loc.T("report.targetNotFound"));
-                return (comment.AuthorId, Shorten(comment.Text, string.Empty));
+                return (comment.AuthorId, Shorten(comment.Text));
             }
             case ReportTargetType.User:
             {
@@ -154,9 +160,10 @@ public class ReportService : IReportService
         }
         await _context.SaveChangesAsync();
 
-        var summary = new List<string> { report.TargetSummary };
-        if (!dto.Dismiss && dto.RemoveContent) summary.Add("içerik kaldırıldı");
-        if (!dto.Dismiss && dto.SuspendOwner) summary.Add("hesap askıya alındı");
+        // What the log says is written in the language of the admin who did it (the texts are in the language files).
+        var summary = new List<string> { string.IsNullOrEmpty(report.TargetSummary) ? Loc.T("report.noText") : report.TargetSummary };
+        if (!dto.Dismiss && dto.RemoveContent) summary.Add(Loc.T("admin.audit.contentRemoved"));
+        if (!dto.Dismiss && dto.SuspendOwner) summary.Add(Loc.T("admin.audit.ownerSuspended"));
         if (note != null) summary.Add(note);
         await _audit.RecordAsync(adminId, dto.Dismiss ? "report.dismiss" : "report.resolve", report.TargetType.ToString(), report.TargetId, string.Join(" — ", summary));
 
@@ -208,11 +215,12 @@ public class ReportService : IReportService
         }).ToList();
     }
 
-    private static string Shorten(string? text, string whenEmpty)
+    // The start of a text as it is now; empty when there is none (a post with only a photo or a poll: the pages say so).
+    private static string Shorten(string? text)
     {
         text = text?.Trim();
         if (string.IsNullOrEmpty(text))
-            return whenEmpty;
+            return string.Empty;
 
         return text.Length <= 200 ? text : text[..199] + "…";
     }

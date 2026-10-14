@@ -21,6 +21,8 @@ window.LOCALES.en = {
   "block.undoFailed": "Couldn't unblock this user.",
 
   "report.menuItem": "Report",
+  "notif.contentRemoved": "The admins removed your content: {0}",
+  "notif.photoOrPoll": "[photo / poll]",
   "report.sent": "Your report was sent to the admins.",
   "report.title.Post": "Report this post",
   "report.title.Comment": "Report this comment",
@@ -860,6 +862,7 @@ window.PHRASES.en = {
   "İçerik kaldırıldı.": "Content removed.",
   "Bulunamadı.": "Not found.",
   "Toplam kullanıcı": "Total users",
+  "[foto / anket]": "[photo / poll]",
   "Sayfa bulunamadı | SocialNet": "Page not found | SocialNet",
   "Sayfa bulunamadı": "Page not found",
   "Aradığın sayfa taşınmış, silinmiş ya da adres yanlış yazılmış olabilir.": "The page may have been moved or deleted, or the address may be mistyped.",

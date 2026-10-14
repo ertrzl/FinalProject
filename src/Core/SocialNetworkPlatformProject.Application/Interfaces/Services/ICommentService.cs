@@ -10,7 +10,8 @@ public interface ICommentService
 
     Task<GetCommentDto> AddAsync(Guid currentUserId, PostCommentDto dto);
 
-    Task DeleteAsync(Guid currentUserId, Guid commentId);
+    // asAdmin: the site's admin removing it (only the admin panel passes true).
+    Task DeleteAsync(Guid currentUserId, Guid commentId, bool asAdmin = false);
 
     Task<GetLikeResultDto> ToggleLikeAsync(Guid currentUserId, Guid commentId);
 }

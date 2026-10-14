@@ -244,9 +244,9 @@ public class MarketplaceService : IMarketplaceService
         return existing == null;
     }
 
-    public async Task DeleteAsync(Guid currentUserId, Guid listingId)
+    public async Task DeleteAsync(Guid currentUserId, Guid listingId, bool asAdmin = false)
     {
-        var listing = await GetOwnedListingAsync(currentUserId, listingId, "You can only delete your own listings.");
+        var listing = await GetOwnedListingAsync(currentUserId, listingId, "You can only delete your own listings.", asAdmin);
         var imageUrls = listing.Images.Select(i => i.Url).ToList();
 
         _listings.Delete(listing);
@@ -256,12 +256,12 @@ public class MarketplaceService : IMarketplaceService
             _files.Delete(url);
     }
 
-    private async Task<MarketplaceListing> GetOwnedListingAsync(Guid currentUserId, Guid listingId, string forbiddenMessage)
+    private async Task<MarketplaceListing> GetOwnedListingAsync(Guid currentUserId, Guid listingId, string forbiddenMessage, bool asAdmin = false)
     {
         var listing = await _listings.GetByIdAsync(listingId, ListingIncludes)
             ?? throw new NotFoundException(Loc.T("listing.notFound"));
 
-        if (listing.SellerId != currentUserId)
+        if (!asAdmin && listing.SellerId != currentUserId)
             throw new ForbiddenException(forbiddenMessage);
 
         return listing;

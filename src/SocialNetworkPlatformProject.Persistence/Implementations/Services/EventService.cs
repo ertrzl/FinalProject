@@ -214,11 +214,14 @@ public class EventService : IEventService
         return await _builder.BuildDetailAsync(found, currentUserId);
     }
 
-    public async Task DeleteAsync(Guid currentUserId, Guid eventId)
+    public async Task DeleteAsync(Guid currentUserId, Guid eventId, bool asAdmin = false)
     {
-        var found = await _access.GetViewableAsync(currentUserId, eventId, AttendeeIncludes);
+        // The admin does not have to be able to see the event (a private or group event) to remove it.
+        var found = asAdmin
+            ? await _events.GetByIdAsync(eventId, AttendeeIncludes) ?? throw new NotFoundException(Loc.T("event.notFound"))
+            : await _access.GetViewableAsync(currentUserId, eventId, AttendeeIncludes);
 
-        if (found.CreatedByUserId != currentUserId)
+        if (!asAdmin && found.CreatedByUserId != currentUserId)
             throw new ForbiddenException(Loc.T("event.deleteCreatorOnly"));
 
         var attendeeIds = found.Attendees.Select(a => a.UserId).ToList(); // read before the rows are deleted

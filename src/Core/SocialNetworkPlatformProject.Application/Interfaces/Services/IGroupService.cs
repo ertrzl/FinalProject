@@ -44,7 +44,8 @@ public interface IGroupService
 
     Task LeaveAsync(Guid currentUserId, Guid groupId);
 
-    Task DeleteAsync(Guid currentUserId, Guid groupId);
+    // asAdmin: the site's admin removing it (only the admin panel passes true).
+    Task DeleteAsync(Guid currentUserId, Guid groupId, bool asAdmin = false);
 
     // Admin/moderator kicks a member out. Admins can't be kicked; moderators can't kick other moderators.
     Task RemoveMemberAsync(Guid currentUserId, Guid groupId, Guid targetUserId);

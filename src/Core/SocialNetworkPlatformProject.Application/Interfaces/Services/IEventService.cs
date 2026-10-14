@@ -12,7 +12,8 @@ public interface IEventService
 
     Task<GetEventDto> SetStatusAsync(Guid currentUserId, Guid eventId, PutEventStatusDto dto);
 
-    Task DeleteAsync(Guid currentUserId, Guid eventId);
+    // asAdmin: the site's admin removing it (only the admin panel passes true).
+    Task DeleteAsync(Guid currentUserId, Guid eventId, bool asAdmin = false);
 
     // Called when someone leaves or is removed from a group. They can no longer see its events, so their places on the
     // ones that haven't finished are given up (a freed spot goes to the next person waiting), their pending invitations

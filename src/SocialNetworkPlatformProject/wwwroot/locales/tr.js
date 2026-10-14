@@ -21,6 +21,13 @@ window.LOCALES.tr = {
   "block.undone": "Engel kaldırıldı.",
   "block.undoFailed": "Engel kaldırılamadı.",
 
+  "report.menuItem": "Şikâyet et",
+  "report.sent": "Şikâyetin yöneticilere iletildi.",
+  "report.title.Post": "Bu gönderiyi şikâyet et",
+  "report.title.Comment": "Bu yorumu şikâyet et",
+  "report.title.Listing": "Bu ilanı şikâyet et",
+  "report.title.User": "Bu kişiyi şikâyet et",
+
   "settings.blocked.title": "Engellenenler",
   "settings.blocked.intro": "Engellediğin kişiler seni ve gönderilerini göremez, sen de onları göremezsin. Birbirinize mesaj ve arkadaşlık isteği gönderemezsiniz.",
   "settings.blocked.empty": "Kimseyi engellemedin.",

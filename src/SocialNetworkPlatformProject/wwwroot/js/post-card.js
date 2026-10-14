@@ -22,7 +22,8 @@ function postCardHtml(post) {
   const menuItems = [
     `<li><button class="dropdown-item" onclick="toggleSavePost('${post.id}', this)"><i class="bi ${post.isSavedByCurrentUser ? "bi-bookmark-fill" : "bi-bookmark"} me-2"></i><span class="save-label">${post.isSavedByCurrentUser ? "Kaydı Kaldır" : "Kaydet"}</span></button></li>`,
     post.canEdit ? `<li><button class="dropdown-item" onclick="editPost('${post.id}')"><i class="bi bi-pencil me-2"></i>Düzenle</button></li>` : "",
-    post.canDelete ? `<li><button class="dropdown-item" onclick="removePost('${post.id}', this)"><i class="bi bi-trash me-2"></i>Gönderiyi Sil</button></li>` : ""
+    post.canDelete ? `<li><button class="dropdown-item" onclick="removePost('${post.id}', this)"><i class="bi bi-trash me-2"></i>Gönderiyi Sil</button></li>` : "",
+    post.authorId !== getSession()?.userId ? `<li><button class="dropdown-item" onclick="reportDialog('Post', '${post.id}')"><i class="bi bi-flag me-2"></i>${i18n("report.menuItem")}</button></li>` : ""
   ].join("");
 
   const menu = `<div class="dropdown">
@@ -82,6 +83,9 @@ function commentHtml(c) {
   const deleteLink = c.canDelete
     ? `<a href="#" class="text-danger" onclick="return removeComment(event, this)">Sil</a>`
     : "";
+  const reportLink = c.authorId !== getSession()?.userId
+    ? `<a href="#" class="text-muted" onclick="event.preventDefault(); reportDialog('Comment', '${c.id}')">${i18n("report.menuItem")}</a>`
+    : "";
 
   // The server sends the comments thread by thread (a comment, then its replies); a reply is just drawn indented.
   // Replying to a reply answers the original comment, so a thread never goes deeper than one level.
@@ -97,7 +101,7 @@ function commentHtml(c) {
           <span>${timeAgo(c.createdAt)}</span>
           <a href="#" class="comment-like-link ${likedClass}" onclick="return toggleCommentLike(event, this)">${likeLabel}<span class="comment-like-count">${likeCountLabel}</span></a>
           <a href="#" class="text-muted" onclick="return startReply(event, this)">Yanıtla</a>
-          ${deleteLink}
+          ${deleteLink}${reportLink}
         </div>
       </div>
     </div>`;

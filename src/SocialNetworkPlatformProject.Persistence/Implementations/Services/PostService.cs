@@ -134,12 +134,12 @@ public class PostService : IPostService
         return (await _dtos.BuildAsync(new[] { post }, currentUserId))[0];
     }
 
-    public async Task DeleteAsync(Guid currentUserId, Guid postId)
+    public async Task DeleteAsync(Guid currentUserId, Guid postId, bool asAdmin = false)
     {
         var post = await _posts.GetByIdAsync(postId, "Media")
             ?? throw new NotFoundException(Loc.T("post.notFound"));
 
-        if (!await _access.CanModerateAsync(post, currentUserId))
+        if (!asAdmin && !await _access.CanModerateAsync(post, currentUserId))
             throw new ForbiddenException(Loc.T("post.deleteOwn"));
 
         // Its shares stay (they say the original is gone), so they stop pointing at it first.

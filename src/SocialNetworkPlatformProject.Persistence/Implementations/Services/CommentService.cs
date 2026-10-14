@@ -138,7 +138,7 @@ public class CommentService : ICommentService
         return result;
     }
 
-    public async Task DeleteAsync(Guid currentUserId, Guid commentId)
+    public async Task DeleteAsync(Guid currentUserId, Guid commentId, bool asAdmin = false)
     {
         var comment = await _comments.GetByIdAsync(commentId)
             ?? throw new NotFoundException(Loc.T("comment.notFound"));
@@ -147,7 +147,7 @@ public class CommentService : ICommentService
             ?? throw new NotFoundException(Loc.T("post.notFound"));
 
         // The comment's author, the post's author, or (on a group post) the group's admins and moderators.
-        if (comment.AuthorId != currentUserId && !await _access.CanModerateAsync(post, currentUserId))
+        if (!asAdmin && comment.AuthorId != currentUserId && !await _access.CanModerateAsync(post, currentUserId))
             throw new ForbiddenException(Loc.T("comment.deleteOwn"));
 
         // The reply self-reference is Restrict (SQL Server forbids a second cascade path), so replies go first.

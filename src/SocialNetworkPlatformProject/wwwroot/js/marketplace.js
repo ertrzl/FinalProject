@@ -300,6 +300,8 @@ function openListing(id) {
   messageLink.classList.toggle("d-none", mine || isSold(item));
   messageLink.href = `messages.html?userId=${item.sellerId}`;
 
+  document.getElementById("listingModalReportBtn").classList.toggle("d-none", mine);
+
   const ownerActions = document.getElementById("listingOwnerActions");
   ownerActions.classList.toggle("d-none", !mine);
   ownerActions.classList.toggle("d-flex", mine);
@@ -310,6 +312,11 @@ function openListing(id) {
   renderModalOfferButtons(item, mine);
   loadSellerOtherListings(item);
   bootstrap.Modal.getOrCreateInstance(document.getElementById("listingModal")).show();
+}
+
+// The report box is not a Bootstrap modal, so it opens right over the listing.
+function reportListing() {
+  if (selectedListing) reportDialog("Listing", selectedListing.id);
 }
 
 function renderModalOfferButtons(item, mine) {

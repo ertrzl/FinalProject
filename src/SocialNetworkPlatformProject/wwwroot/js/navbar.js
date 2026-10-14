@@ -28,6 +28,17 @@ const ACCOUNT_LINKS = [
   { key: "settings", href: "settings.html", icon: "bi-gear", label: "Ayarlar" }
 ];
 
+// Only for an admin (the sign-in answer carries isAdmin; the server checks the role on every admin request anyway).
+const ADMIN_LINK = { key: "admin", href: "admin.html", icon: "bi-shield-check", label: "Yönetim" };
+
+function isAdmin() {
+  return !!getSession()?.isAdmin;
+}
+
+function accountLinks() {
+  return isAdmin() ? [...ACCOUNT_LINKS, ADMIN_LINK] : ACCOUNT_LINKS;
+}
+
 // Which main links also get a place on the phone's bottom bar (the panel has all of them).
 const PHONE_BAR_KEYS = ["home", "friends", "notifications", "messages"];
 
@@ -42,7 +53,7 @@ const SIDE_LINKS = [
 const MENU_BREAKPOINT = getDesign() === "inbox" ? "lg" : "md";
 
 function findLink(key) {
-  return MAIN_LINKS.find(link => link.key === key) || ACCOUNT_LINKS.find(link => link.key === key);
+  return MAIN_LINKS.find(link => link.key === key) || accountLinks().find(link => link.key === key);
 }
 
 // The red counter on a link; navbar-badge.js fills every element with the badge's class.
@@ -83,7 +94,7 @@ function topMenuHtml(active) {
             <span class="position-absolute bg-success border border-2 border-white rounded-circle" style="width:11px;height:11px;bottom:0;right:0;" title="Çevrimiçi"></span>
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
-            ${ACCOUNT_LINKS.map(link => accountMenuItemHtml(link, active)).join("")}
+            ${accountLinks().map(link => accountMenuItemHtml(link, active)).join("")}
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item text-danger" href="#" onclick="logout(); return false;"><i class="bi bi-box-arrow-right me-2"></i>Çıkış Yap</a></li>
           </ul>
@@ -110,7 +121,7 @@ function sideMenuHtml(active) {
     <div class="side-menu d-none d-lg-flex">
       <a class="side-brand" href="home.html"><span class="side-brand-mark"></span>SocialNet</a>
       ${searchFormHtml("side-search")}
-      <div class="side-links">${SIDE_LINKS.map(item => sideLinkHtml(item, active)).join("")}</div>
+      <div class="side-links">${SIDE_LINKS.map(item => sideLinkHtml(item, active)).join("")}${isAdmin() ? sideLinkHtml({ key: "admin", shortcut: "y" }, active) : ""}</div>
       <div class="side-groups d-none" id="sideGroups">
         <div class="side-caption">Gruplarım</div>
         <div id="sideGroupsList"></div>
@@ -185,7 +196,7 @@ function menuPanelHtml(active) {
         <div class="list-group list-group-flush">
           ${MAIN_LINKS.map(row).join("")}
           <div class="border-top my-2"></div>
-          ${ACCOUNT_LINKS.map(row).join("")}
+          ${accountLinks().map(row).join("")}
           <button type="button" class="list-group-item list-group-item-action d-flex align-items-center gap-3" onclick="toggleTheme()"><i class="bi bi-moon-stars-fill theme-icon"></i>Temayı Değiştir</button>          <a href="#" class="list-group-item list-group-item-action d-flex align-items-center gap-3 text-danger" onclick="logout(); return false;"><i class="bi bi-box-arrow-right"></i>Çıkış Yap</a>
         </div>
       </div>

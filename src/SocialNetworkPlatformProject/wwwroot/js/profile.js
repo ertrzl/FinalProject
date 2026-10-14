@@ -105,6 +105,7 @@ async function renderOtherProfileActions(p) {
     <div class="dropdown d-inline-block mb-2 ms-1">
       <button class="btn btn-light btn-sm rounded-circle shadow-sm border" data-bs-toggle="dropdown" title="${i18n("block.more")}"><i class="bi bi-three-dots"></i></button>
       <ul class="dropdown-menu dropdown-menu-end">
+        <li><button class="dropdown-item" onclick="reportDialog('User', '${p.id}')"><i class="bi bi-flag me-2"></i>${i18n("report.menuItem")}</button></li>
         <li><button class="dropdown-item text-danger" onclick="blockProfile('${p.id}')"><i class="bi bi-slash-circle me-2"></i>${i18n("block.menuItem")}</button></li>
       </ul>
     </div>`;

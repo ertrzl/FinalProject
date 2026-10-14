@@ -37,4 +37,9 @@ public class ApplicationUser : IdentityUser<Guid>
 
     // profile.html "Katılma tarihi"
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    // Admin panel: a suspended account cannot sign in and its sessions are ended (see AdminService.SuspendAsync).
+    public bool IsSuspended { get; set; } = false;
+    public DateTime? SuspendedAt { get; set; }
+    public string? SuspendReason { get; set; }
 }

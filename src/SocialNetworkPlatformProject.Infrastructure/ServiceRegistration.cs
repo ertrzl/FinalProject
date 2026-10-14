@@ -45,7 +45,7 @@ public static class ServiceRegistration
         // Timer-driven housekeeping: event reminders, waiting lists and expired stories.
         services.AddHostedService<MaintenanceBackgroundService>();
 
-        services.AddSignalR();
+        services.AddSignalR(options => options.AddFilter<SecurityStampHubFilter>());
         services.AddSingleton<IUserIdProvider, SubClaimUserIdProvider>();
         services.AddScoped<IRealTimeNotifier, SignalRNotifier>();
 

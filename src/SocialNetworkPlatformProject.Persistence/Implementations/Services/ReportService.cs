@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SocialNetworkPlatformProject.Application.DTOs.Admin;
 using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
@@ -14,9 +15,11 @@ public class ReportService : IReportService
     private readonly IPostAccessService _access;
     private readonly IAdminService _admin;
     private readonly IAuditService _audit;
+    private readonly ILogger<ReportService> _logger;
 
-    public ReportService(ApplicationDbContext context, IPostAccessService access, IAdminService admin, IAuditService audit)
+    public ReportService(ApplicationDbContext context, IPostAccessService access, IAdminService admin, IAuditService audit, ILogger<ReportService> logger)
     {
+        _logger = logger;
         _context = context;
         _access = access;
         _admin = admin;
@@ -46,6 +49,7 @@ public class ReportService : IReportService
             Details = string.IsNullOrWhiteSpace(dto.Details) ? null : dto.Details.Trim()
         });
         await _context.SaveChangesAsync();
+        _logger.LogInformation("Report: {TargetType:l} {TargetId:l} reported for {Reason:l}", dto.TargetType.ToString(), dto.TargetId.ToString(), dto.Reason.ToString());
     }
 
     // The person behind the reported thing and the start of it, as it is now. A thing the reporter could not see is

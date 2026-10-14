@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 
@@ -22,9 +23,11 @@ public class LocalFileStorageService : IFileStorageService
     };
 
     private readonly string _webRootPath;
+    private readonly ILogger<LocalFileStorageService> _logger;
 
-    public LocalFileStorageService(IWebHostEnvironment environment)
+    public LocalFileStorageService(IWebHostEnvironment environment, ILogger<LocalFileStorageService> logger)
     {
+        _logger = logger;
         _webRootPath = environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot");
     }
 
@@ -48,11 +51,17 @@ public class LocalFileStorageService : IFileStorageService
             throw new BadRequestException(Loc.T("file.empty"));
 
         if (file.Length > maxSizeBytes)
+        {
+            _logger.LogInformation("Upload refused: {Folder} file of {Bytes} bytes is over the limit of {Limit}", folder, file.Length, maxSizeBytes);
             throw new BadRequestException(sizeErrorMessage);
+        }
 
         var extension = Path.GetExtension(file.FileName);
         if (!allowedExtensions.Contains(extension) || !file.ContentType.StartsWith(requiredContentTypePrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Upload refused: {Folder} file with type {ContentType} and extension {Extension}", folder, file.ContentType, extension);
             throw new BadRequestException(typeErrorMessage);
+        }
 
         var directory = Path.Combine(_webRootPath, UploadsFolder, folder);
         Directory.CreateDirectory(directory);
@@ -63,6 +72,7 @@ public class LocalFileStorageService : IFileStorageService
             await file.CopyToAsync(stream);
         }
 
+        _logger.LogDebug("Saved upload {Folder}/{FileName} ({Bytes} bytes)", folder, fileName, file.Length);
         return $"/{UploadsFolder}/{folder}/{fileName}";
     }
 
@@ -77,9 +87,15 @@ public class LocalFileStorageService : IFileStorageService
         // Guard against a crafted URL escaping the uploads folder.
         var uploadsRoot = Path.GetFullPath(Path.Combine(_webRootPath, UploadsFolder)) + Path.DirectorySeparatorChar;
         if (!fullPath.StartsWith(uploadsRoot, StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Delete refused: {Url} points outside the uploads folder", url);
             return;
+        }
 
         if (File.Exists(fullPath))
+        {
             File.Delete(fullPath);
+            _logger.LogDebug("Deleted upload {Url}", url);
+        }
     }
 }

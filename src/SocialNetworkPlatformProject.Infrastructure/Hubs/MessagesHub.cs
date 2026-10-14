@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using SocialNetworkPlatformProject.Application.DTOs.Messages;
 using SocialNetworkPlatformProject.Application.Exceptions.Base;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
@@ -21,19 +22,22 @@ public class MessagesHub : Hub
     private readonly ILiveUpdateService _live;
     private readonly PresenceTracker _presence;
     private readonly IValidator<PostMessageDto> _validator;
+    private readonly ILogger<MessagesHub> _logger;
 
     public MessagesHub(
         IMessageService messages,
         IUserService users,
         ILiveUpdateService live,
         PresenceTracker presence,
-        IValidator<PostMessageDto> validator)
+        IValidator<PostMessageDto> validator,
+        ILogger<MessagesHub> logger)
     {
         _messages = messages;
         _users = users;
         _live = live;
         _presence = presence;
         _validator = validator;
+        _logger = logger;
     }
 
     public async Task<GetMessageDto> SendMessage(PostMessageDto dto)
@@ -78,6 +82,7 @@ public class MessagesHub : Hub
 
     public override async Task OnConnectedAsync()
     {
+        _logger.LogDebug("Messages hub: user {UserId} connected ({ConnectionId})", CurrentUserId, Context.ConnectionId);
         await _users.UpdateLastSeenAsync(CurrentUserId);
 
         if (_presence.Connected(CurrentUserId, Context.ConnectionId))
@@ -89,6 +94,10 @@ public class MessagesHub : Hub
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         var userId = CurrentUserId;
+        if (exception != null)
+            _logger.LogInformation(exception, "Messages hub: connection of user {UserId} dropped ({ConnectionId})", userId, Context.ConnectionId);
+        else
+            _logger.LogDebug("Messages hub: user {UserId} disconnected ({ConnectionId})", userId, Context.ConnectionId);
         await _users.UpdateLastSeenAsync(userId);
 
         if (_presence.Disconnected(userId, Context.ConnectionId))

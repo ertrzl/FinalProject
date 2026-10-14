@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SocialNetworkPlatformProject.Application.DTOs.Admin;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Domain.Entities;
@@ -9,10 +10,12 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 public class AuditService : IAuditService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<AuditService> _logger;
 
-    public AuditService(ApplicationDbContext context)
+    public AuditService(ApplicationDbContext context, ILogger<AuditService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     public async Task RecordAsync(Guid actorId, string action, string? targetType = null, Guid? targetId = null, string? details = null)
@@ -29,6 +32,9 @@ public class AuditService : IAuditService
             Details = Shorten(details, 500)
         });
         await _context.SaveChangesAsync();
+
+        // The same line goes to the log file, so what the admins did can be read there as well as in the panel.
+        _logger.LogInformation("Admin action {Action} by {ActorName} ({ActorId:l}) on {TargetType} {TargetId:l}", action, actorName, actorId.ToString(), targetType, targetId?.ToString());
     }
 
     public async Task<PagedResult<GetAuditLogDto>> GetPageAsync(string? action, string? term, int page, int pageSize)

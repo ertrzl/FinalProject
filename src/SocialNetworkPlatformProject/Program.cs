@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using SocialNetworkPlatformProject.Application;
 using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Extensions;
@@ -12,6 +13,13 @@ using SocialNetworkPlatformProject.Middlewares;
 using SocialNetworkPlatformProject.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Logging: what is written, where and how long it is kept comes from the "Serilog" section of appsettings.json
+// (the console and a file per day under logs/). Services and middleware just ask for an ILogger<T>.
+builder.Host.UseSerilog((context, services, logger) => logger
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext());
 
 // The key that signs login tokens: used as configured, or created once and kept in App_Data (see JwtSecret).
 JwtSecret.EnsureConfigured(builder.Configuration, Path.Combine(builder.Environment.ContentRootPath, "App_Data"));
@@ -44,6 +52,22 @@ builder.Services
     .AddApiRateLimiting(builder.Configuration);
 
 var app = builder.Build();
+
+// One line per request (method, address, status, time). Pages, scripts and pictures are not worth a line each, so they
+// (and the health check) are only written at Debug level.
+app.UseSerilogRequestLogging(options =>
+{
+    options.GetLevel = (context, elapsed, exception) =>
+    {
+        var path = context.Request.Path;
+        var isFile = Path.HasExtension(path) || path.StartsWithSegments("/health") || path.StartsWithSegments(HubRoutes.Prefix);
+        if (exception != null || context.Response.StatusCode >= 500)
+            return Serilog.Events.LogEventLevel.Error;
+        if (isFile)
+            return Serilog.Events.LogEventLevel.Debug;
+        return context.Response.StatusCode >= 400 ? Serilog.Events.LogEventLevel.Warning : Serilog.Events.LogEventLevel.Information;
+    };
+});
 
 // The language of the request (Accept-Language, sent by the pages) decides the language of the messages. The languages
 // are the ones there is a Locales/<code>.json file for (see Loc), so adding a file adds a language.

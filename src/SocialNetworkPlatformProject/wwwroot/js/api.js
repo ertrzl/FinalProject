@@ -243,7 +243,8 @@ function extractErrorMessage(data) {
 function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text == null ? "" : text;
-  return div.innerHTML;
+  // Quotes too: the result is also put inside attributes (title="...", data-x="..."), where a lone " would end the value.
+  return div.innerHTML.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 // Turns "#tag" into a link to its search results. Text must already be escaped (hashtags contain

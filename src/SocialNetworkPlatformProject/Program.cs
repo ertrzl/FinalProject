@@ -55,6 +55,25 @@ app.UseRequestLocalization(new RequestLocalizationOptions()
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
+// A mistyped address answers 404 with the site's own page instead of an empty one. Only a page-like address gets it:
+// the API, the hubs and files with an extension other than .html (a missing image or script) keep the plain empty 404,
+// and so does any 404 that already has a body of its own (this only fills an empty one).
+app.UseStatusCodePages(async context =>
+{
+    var request = context.HttpContext.Request;
+    var response = context.HttpContext.Response;
+    var path = request.Path;
+
+    var isPage = !path.StartsWithSegments("/api") && !path.StartsWithSegments(HubRoutes.Prefix)
+        && (!Path.HasExtension(path) || path.Value!.EndsWith(".html", StringComparison.OrdinalIgnoreCase));
+    var page = app.Environment.WebRootFileProvider.GetFileInfo("404.html");
+    if (response.StatusCode != StatusCodes.Status404NotFound || !isPage || !page.Exists || !HttpMethods.IsGet(request.Method)) return;
+
+    response.ContentType = "text/html; charset=utf-8";
+    response.Headers.CacheControl = "no-cache";
+    await response.SendFileAsync(page);
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

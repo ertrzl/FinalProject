@@ -31,6 +31,9 @@ public static class RateLimitingExtensions
             // Same body shape as every other error the API returns.
             options.OnRejected = async (context, cancellationToken) =>
             {
+                context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("RateLimiting")
+                    .LogWarning("Too many requests: {Method} {Path}", context.HttpContext.Request.Method, context.HttpContext.Request.Path);
+
                 if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
                     context.HttpContext.Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
 

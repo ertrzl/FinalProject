@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Logging;
 using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Users;
 using SocialNetworkPlatformProject.Application.Exceptions;
@@ -21,6 +22,7 @@ public class UserService : IUserService
     private readonly IFileStorageService _files;
     private readonly IPresenceTracker _presence;
     private readonly ILiveUpdateService _live;
+    private readonly ILogger<UserService> _logger;
 
     public UserService(
         UserManager<ApplicationUser> userManager,
@@ -33,7 +35,8 @@ public class UserService : IUserService
         IMessageService messages,
         IFileStorageService files,
         IPresenceTracker presence,
-        ILiveUpdateService live)
+        ILiveUpdateService live,
+        ILogger<UserService> logger)
     {
         _userManager = userManager;
         _passwords = passwords;
@@ -46,6 +49,7 @@ public class UserService : IUserService
         _files = files;
         _presence = presence;
         _live = live;
+        _logger = logger;
     }
 
     public async Task<GetUserProfileDto> GetProfileAsync(Guid userId, Guid currentUserId)
@@ -192,6 +196,7 @@ public class UserService : IUserService
         // fresh pair so the person changing the password stays signed in.
         _accessTokens.Revoke(currentUserId, oldStamp);
         await _sessions.RevokeAllAsync(currentUserId);
+        _logger.LogInformation("Password changed by {UserName} ({UserId:l}); every other session was ended", user.UserName, currentUserId.ToString());
         return await _sessions.IssueAsync(user);
     }
 
@@ -207,6 +212,8 @@ public class UserService : IUserService
 
         foreach (var file in orphanedFiles)
             _files.Delete(file);
+
+        _logger.LogInformation("Account deleted by its owner: {UserName} ({UserId:l}), {FileCount} file(s) removed", user.UserName, currentUserId.ToString(), orphanedFiles.Count());
     }
 
     public async Task<PagedResult<GetUserSearchResultDto>> SearchAsync(string term, Guid currentUserId, int page, int pageSize)

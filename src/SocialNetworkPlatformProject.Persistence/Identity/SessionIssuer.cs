@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using SocialNetworkPlatformProject.Application.DTOs.Users;
 using SocialNetworkPlatformProject.Application.Exceptions;
@@ -24,26 +25,32 @@ public class SessionIssuer
     private readonly ITokenService _tokenService;
     private readonly IRefreshTokenRepository _refreshTokens;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<SessionIssuer> _logger;
 
     public SessionIssuer(
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole<Guid>> roleManager,
         ITokenService tokenService,
         IRefreshTokenRepository refreshTokens,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        ILogger<SessionIssuer> logger)
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _tokenService = tokenService;
         _refreshTokens = refreshTokens;
         _configuration = configuration;
+        _logger = logger;
     }
 
     public async Task<TokenResponseDto> IssueAsync(ApplicationUser user)
     {
         // A suspended account gets no session, whatever way it asks (sign-in or a refresh token).
         if (user.IsSuspended)
+        {
+            _logger.LogWarning("Sign-in refused: {UserName} ({UserId:l}) is suspended", user.UserName, user.Id.ToString());
             throw new ForbiddenException(Loc.T("auth.suspended"));
+        }
 
         await EnsureConfiguredAdminAsync(user);
 
@@ -102,7 +109,10 @@ public class SessionIssuer
         if (stored.RevokedAt != null)
         {
             if (now - stored.RevokedAt.Value > ReuseGracePeriod)
+            {
+                _logger.LogWarning("A used refresh token came back for user {UserId:l}: every session of the user was ended", stored.UserId.ToString());
                 await _refreshTokens.RevokeAllAsync(stored.UserId, now);
+            }
 
             throw new UnauthorizedException(Loc.T("auth.sessionInvalid"));
         }

@@ -434,3 +434,6 @@ src/SocialNetworkPlatformProject/wwwroot/uploads/
 
 # The login-token key the app creates for itself on its first run (see JwtSecret.cs). A secret: never commit it.
 **/App_Data/
+
+# Application logs (Serilog)
+logs/

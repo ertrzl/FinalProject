@@ -2,6 +2,8 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.OpenApi.Models;
+using Serilog;
+using SocialNetworkPlatformProject.Filters;
 using SocialNetworkPlatformProject.Application;
 using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Extensions;
@@ -11,13 +13,46 @@ using SocialNetworkPlatformProject.Infrastructure.Services;
 using SocialNetworkPlatformProject.Middlewares;
 using SocialNetworkPlatformProject.Persistence;
 
+// The first lines of the log: written before the configuration is read, so a start that fails (a bad setting, a busy
+// port) still leaves a trace. UseSerilog below replaces it with the configured logger.
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/app-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14, shared: true)
+    .CreateBootstrapLogger();
+
+// What nothing else catches: a crash of the whole process, and a background task that failed with nobody waiting for it.
+AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+{
+    Log.Fatal(e.ExceptionObject as Exception, "Unhandled exception: the application is stopping");
+    Log.CloseAndFlush();
+};
+TaskScheduler.UnobservedTaskException += (_, e) =>
+{
+    Log.Error(e.Exception, "A background task failed and nobody was waiting for it");
+    e.SetObserved();
+};
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Logging: what is written, where and how long it is kept comes from the "Serilog" section of appsettings.json
+// (the console and a file per day under logs/). Services and middleware just ask for an ILogger<T>.
+builder.Host.UseSerilog((context, services, logger) => logger
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    // The defaults for a line written outside a request (startup, background work): LogContextMiddleware sets the real ones.
+    .Enrich.WithProperty("UserId", "-")
+    .Enrich.WithProperty("ClientIp", "-"));
 
 // The key that signs login tokens: used as configured, or created once and kept in App_Data (see JwtSecret).
 JwtSecret.EnsureConfigured(builder.Configuration, Path.Combine(builder.Environment.ContentRootPath, "App_Data"));
 
 // Add services to the container.
-builder.Services.AddControllers().AddMvcOptions(options => LocalizedModelBindingMessages.Apply(options));
+builder.Services.AddControllers().AddMvcOptions(options =>
+{
+    LocalizedModelBindingMessages.Apply(options);
+    options.Filters.Add<ActionLogFilter>();
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -44,6 +79,38 @@ builder.Services
     .AddApiRateLimiting(builder.Configuration);
 
 var app = builder.Build();
+
+// A few facts about this run, so a log starts with what it is about.
+Log.Information("Starting in {Environment}. Admin e-mails configured: {AdminCount}. Public address set: {HasPublicAddress}. SMTP configured: {HasSmtp}",
+    app.Environment.EnvironmentName,
+    builder.Configuration.GetSection("Admin:Emails").Get<string[]>()?.Length ?? 0,
+    !string.IsNullOrWhiteSpace(builder.Configuration["App:PublicBaseUrl"]),
+    !string.IsNullOrWhiteSpace(builder.Configuration["Email:Smtp:Host"]));
+
+// One line per request (method, address, status, time). Pages, scripts and pictures are not worth a line each, so they
+// (and the health check) are only written at Debug level.
+app.UseSerilogRequestLogging(options =>
+{
+    options.GetLevel = (context, elapsed, exception) =>
+    {
+        var path = context.Request.Path;
+        var isFile = Path.HasExtension(path) || path.StartsWithSegments("/health") || path.StartsWithSegments(HubRoutes.Prefix);
+        if (exception != null || context.Response.StatusCode >= 500)
+            return Serilog.Events.LogEventLevel.Error;
+        if (isFile)
+            return Serilog.Events.LogEventLevel.Debug;
+        // A request that took over two seconds is worth a look even when it worked.
+        return context.Response.StatusCode >= 400 || elapsed > 2000 ? Serilog.Events.LogEventLevel.Warning : Serilog.Events.LogEventLevel.Information;
+    };
+
+    // Who, from where and with what: the line is written after the request, when the user is known.
+    options.EnrichDiagnosticContext = (diagnostic, context) =>
+    {
+        diagnostic.Set("UserId", RequestLogProperties.UserId(context));
+        diagnostic.Set("ClientIp", RequestLogProperties.ClientIp(context));
+        diagnostic.Set("UserAgent", context.Request.Headers.UserAgent.ToString());
+    };
+});
 
 // The language of the request (Accept-Language, sent by the pages) decides the language of the messages. The languages
 // are the ones there is a Locales/<code>.json file for (see Loc), so adding a file adds a language.
@@ -104,6 +171,9 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// After authentication, so the user is known: from here on every log line carries the user and the address.
+app.UseMiddleware<LogContextMiddleware>();
 
 // After authentication, so the general limit can count per signed-in user.
 app.UseRateLimiter();

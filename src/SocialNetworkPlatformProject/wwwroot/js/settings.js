@@ -140,6 +140,70 @@ async function unblockUser(userId, btn) {
   }
 }
 
+// "Açık Oturumlar": every device the account is signed in on, each with a button that closes it.
+// A page that stays open renews its token every few minutes, so "last active" within this time reads as "active now".
+const ACTIVE_NOW_MS = 20 * 60 * 1000;
+
+async function loadSessions() {
+  const list = document.getElementById("sessionList");
+  try {
+    const sessions = await apiFetch("/api/auth/sessions");
+    list.innerHTML = sessions.length
+      ? sessions.map(sessionRowHtml).join("")
+      : `<div class="text-muted small">${i18n("settings.sessions.noOthers")}</div>`;
+    document.getElementById("endOthersBtn").classList.toggle("d-none", !sessions.some(s => !s.isCurrent));
+  } catch (err) {
+    list.innerHTML = `<div class="alert alert-danger small mb-0">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function sessionRowHtml(s) {
+  const mobile = /iPhone|iPad|Android/.test(s.deviceName);
+  const lastActive = parseServerDate(s.lastActiveAt);
+  const activeNow = s.isCurrent || Date.now() - lastActive.getTime() < ACTIVE_NOW_MS;
+  const started = parseServerDate(s.startedAt).toLocaleString(localeTag(), { dateStyle: "medium", timeStyle: "short" });
+
+  return `
+    <div class="d-flex align-items-center gap-3 py-2 border-top" data-session="${s.id}">
+      <i class="bi ${mobile ? "bi-phone" : "bi-laptop"} fs-3 text-muted flex-shrink-0"></i>
+      <div class="flex-grow-1 min-w-0">
+        <div class="fw-semibold text-truncate">${escapeHtml(s.deviceName)}${s.isCurrent ? ` <span class="badge text-bg-primary ms-1">${i18n("settings.sessions.current")}</span>` : ""}</div>
+        <div class="small text-muted text-truncate">${s.ipAddress ? escapeHtml(s.ipAddress) + " · " : ""}${escapeHtml(i18n("settings.sessions.started", started))}</div>
+        <div class="small text-muted">${activeNow
+          ? `<span class="text-success">${i18n("settings.sessions.active")}</span>`
+          : `${i18n("settings.sessions.lastActive")} <span>${timeAgo(s.lastActiveAt)}</span>`}</div>
+      </div>
+      ${s.isCurrent ? "" : `<button type="button" class="btn btn-outline-danger btn-sm rounded-pill" onclick="endSession('${s.id}', this)">${i18n("settings.sessions.end")}</button>`}
+    </div>`;
+}
+
+async function endSession(sessionId, btn) {
+  if (!(await confirmDialog(i18n("settings.sessions.confirmEnd"), { confirmText: i18n("settings.sessions.confirmButton") }))) return;
+  btn.disabled = true;
+  try {
+    await apiFetch(`/api/auth/sessions/${sessionId}`, { method: "DELETE" });
+    toast(i18n("settings.sessions.ended"));
+    await loadSessions();
+  } catch (err) {
+    btn.disabled = false;
+    toast(err.message || i18n("settings.sessions.endFailed"));
+  }
+}
+
+async function endOtherSessions(btn) {
+  if (!(await confirmDialog(i18n("settings.sessions.confirmEndOthers"), { confirmText: i18n("settings.sessions.confirmButton") }))) return;
+  btn.disabled = true;
+  try {
+    const count = await apiFetch("/api/auth/sessions/end-others", { method: "POST" });
+    toast(i18n("settings.sessions.endedOthers", count));
+    await loadSessions();
+  } catch (err) {
+    toast(err.message || i18n("settings.sessions.endFailed"));
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 async function submitPasswordForm(event) {
   event.preventDefault();
   const newPassword = document.getElementById("newPassword").value;
@@ -201,3 +265,4 @@ document.getElementById("designSelect").innerHTML = DESIGNS
 loadSettings();
 loadNotificationSettings();
 loadBlockedUsers();
+loadSessions();

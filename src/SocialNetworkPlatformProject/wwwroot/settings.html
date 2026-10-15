@@ -32,6 +32,7 @@
         <a href="#section-privacy" class="side-nav-link"><i class="bi bi-shield-lock"></i>Gizlilik</a>
         <a href="#section-blocked" class="side-nav-link"><i class="bi bi-slash-circle"></i>Engellenenler</a>
         <a href="#section-password" class="side-nav-link"><i class="bi bi-key"></i>Şifre</a>
+        <a href="#section-sessions" class="side-nav-link"><i class="bi bi-laptop"></i><span data-i18n="settings.sessions.nav">Oturumlar</span></a>
         <a href="#section-notifications" class="side-nav-link"><i class="bi bi-bell"></i>Bildirimler</a>
         <a href="#section-danger" class="side-nav-link text-danger"><i class="bi bi-exclamation-triangle"></i>Tehlikeli Bölge</a>
       </div>
@@ -133,6 +134,14 @@
           <div class="text-danger small mt-2 d-none" id="passwordError"></div>
           <button type="submit" class="btn btn-primary rounded-pill mt-3">Şifreyi Güncelle</button>
         </form>
+      </div>
+
+      <!-- Open sessions -->
+      <div class="card border-0 shadow-sm rounded-4 p-3" id="section-sessions">
+        <div class="fw-bold mb-1" data-i18n="settings.sessions.title">Açık Oturumlar</div>
+        <p class="text-muted small mb-3" data-i18n="settings.sessions.intro">Hesabına şu an hangi cihazlardan girildiğini burada görürsün. Tanımadığın ya da artık kullanmadığın bir cihazı buradan kapatabilirsin.</p>
+        <div id="sessionList"><div class="text-muted small" data-i18n="common.loading">Yükleniyor...</div></div>
+        <button type="button" class="btn btn-outline-danger rounded-pill btn-sm mt-3 align-self-start d-none" id="endOthersBtn" onclick="endOtherSessions(this)" data-i18n="settings.sessions.endOthers">Diğer tüm cihazlardan çıkış yap</button>
       </div>
 
       <!-- Notifications -->

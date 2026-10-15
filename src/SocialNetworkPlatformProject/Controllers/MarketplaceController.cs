@@ -51,6 +51,7 @@ public class MarketplaceController : ControllerBase
     }
 
     [HttpPost]
+    [RequestSizeLimit(UploadLimits.MaxRequestBytes)]
     public async Task<ActionResult<GetMarketplaceListingDto>> Create([FromForm] PostMarketplaceListingDto dto)
     {
         var listing = await _marketplace.CreateAsync(User.GetUserId(), dto);
@@ -58,6 +59,7 @@ public class MarketplaceController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [RequestSizeLimit(UploadLimits.MaxRequestBytes)]
     public async Task<ActionResult<GetMarketplaceListingDto>> Update(Guid id, [FromForm] PutMarketplaceListingDto dto)
     {
         return await _marketplace.UpdateAsync(User.GetUserId(), id, dto);

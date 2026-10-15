@@ -15,25 +15,32 @@ public class EventAccessService : IEventAccessService
     private readonly IGroupMemberRepository _members;
     private readonly IEventAttendeeRepository _attendees;
     private readonly IEventInviteRepository _invites;
+    private readonly IBlockService _blocks;
 
     public EventAccessService(
         IEventRepository events,
         IGroupRepository groups,
         IGroupMemberRepository members,
         IEventAttendeeRepository attendees,
-        IEventInviteRepository invites)
+        IEventInviteRepository invites,
+        IBlockService blocks)
     {
         _events = events;
         _groups = groups;
         _members = members;
         _attendees = attendees;
         _invites = invites;
+        _blocks = blocks;
     }
 
     public async Task<Event> GetViewableAsync(Guid viewerId, Guid eventId, params string[] includes)
     {
         var found = await _events.GetByIdAsync(eventId, includes)
             ?? throw new NotFoundException(Loc.T("event.notFound"));
+
+        // The event of someone who is blocked with the viewer is hidden from them, like that person's posts are.
+        if (found.CreatedByUserId != viewerId && await _blocks.AreBlockedAsync(viewerId, found.CreatedByUserId))
+            throw new NotFoundException(Loc.T("event.notFound"));
 
         // Same answer as "doesn't exist": a group event shouldn't reveal itself to people outside the group.
         if (found.GroupId.HasValue && !await IsGroupMemberAsync(found.GroupId.Value, viewerId))
@@ -48,8 +55,10 @@ public class EventAccessService : IEventAccessService
     public async Task<Expression<Func<Event, bool>>> GetVisibilityFilterAsync(Guid viewerId)
     {
         var myGroupIds = await GetMyGroupIdsAsync(viewerId);
+        var hiddenCreators = await _blocks.GetBlockedIdsAsync(viewerId);
 
         return e => (e.GroupId == null || myGroupIds.Contains(e.GroupId.Value))
+            && !hiddenCreators.Contains(e.CreatedByUserId)
             && (!e.IsPrivate
                 || e.CreatedByUserId == viewerId
                 || e.Attendees.Any(a => a.UserId == viewerId)

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Domain.Entities;
 using SocialNetworkPlatformProject.Persistence.Contexts;
@@ -9,5 +10,10 @@ public class NotificationRepository : Repository<Notification>, INotificationRep
 {
     public NotificationRepository(ApplicationDbContext context) : base(context)
     {
+    }
+
+    public async Task<int> DeleteOlderThanAsync(DateTime limitUtc)
+    {
+        return await _dbSet.Where(n => n.CreatedAt < limitUtc).ExecuteDeleteAsync();
     }
 }

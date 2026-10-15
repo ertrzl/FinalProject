@@ -7,7 +7,7 @@ using SocialNetworkPlatformProject.Application.Interfaces.Services;
 namespace SocialNetworkPlatformProject.Infrastructure.Services;
 
 // Wakes up on a timer and does the housekeeping nobody triggers with a request: event reminders, waiting lists and
-// the clean-up of expired stories. The interval comes from "Maintenance:IntervalSeconds" (default 60).
+// the clean-up of expired stories and of rows that only pile up. The interval comes from "Maintenance:IntervalSeconds" (default 60).
 public class MaintenanceBackgroundService : BackgroundService
 {
     private const int DefaultIntervalSeconds = 60;
@@ -15,6 +15,8 @@ public class MaintenanceBackgroundService : BackgroundService
     private readonly IServiceScopeFactory _scopes;
     private readonly ILogger<MaintenanceBackgroundService> _logger;
     private readonly TimeSpan _interval;
+    private static readonly TimeSpan CleanupEvery = TimeSpan.FromHours(1);
+    private DateTime _lastCleanup = DateTime.MinValue; // so the first round after a start cleans up right away
 
     public MaintenanceBackgroundService(
         IServiceScopeFactory scopes,
@@ -49,6 +51,13 @@ public class MaintenanceBackgroundService : BackgroundService
         var reminders = await RunStepAsync<IEventMaintenanceService>("event reminders", m => m.SendDueRemindersAsync(now), stoppingToken);
         var promoted = await RunStepAsync<IEventMaintenanceService>("waiting lists", m => m.PromoteWaitingListsAsync(now), stoppingToken);
         var stories = await RunStepAsync<IStoryMaintenanceService>("expired stories", m => m.DeleteExpiredStoriesAsync(now), stoppingToken);
+
+        // Rows that only pile up. They need no attention every minute, so they are looked at about once an hour.
+        if (now - _lastCleanup >= CleanupEvery)
+        {
+            _lastCleanup = now;
+            await RunStepAsync<IDataCleanupService>("data clean-up", m => m.CleanUpAsync(now), stoppingToken);
+        }
 
         if (reminders > 0 || promoted > 0)
         {

@@ -15,8 +15,9 @@ public class ReportConfiguration : IEntityTypeConfiguration<Report>
         // The admin's queue: pending first, newest first.
         builder.HasIndex(r => new { r.Status, r.CreatedAt });
 
-        // One open report per person and thing: reporting the same post twice while it waits adds nothing.
-        builder.HasIndex(r => new { r.ReporterId, r.TargetType, r.TargetId });
+        // One report per person and thing, for good (ReportService.CreateAsync checks first; this index is what makes it
+        // hold when two requests arrive at the same moment).
+        builder.HasIndex(r => new { r.ReporterId, r.TargetType, r.TargetId }).IsUnique();
         builder.HasIndex(r => new { r.TargetType, r.TargetId });
     }
 }

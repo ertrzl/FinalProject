@@ -526,7 +526,9 @@ public class PostService : IPostService
         };
     }
 
-    // Post text -> distinct, lowercased hashtag names ("Merhaba #Kod #kod!" -> ["kod"]).
+    // Post text -> distinct, lowercased hashtag names ("Merhaba #Kod #kod!" -> ["kod"]). A tag longer than the Hashtags
+    // table can hold is left out, and so is everything after the first MaxHashtagsPerPost tags, so no text can make
+    // the save fail or fill the table with tags.
     private static List<string> ExtractHashtagNames(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -534,7 +536,9 @@ public class PostService : IPostService
 
         return HashtagPattern.Matches(text)
             .Select(m => m.Groups[1].Value.ToLowerInvariant())
+            .Where(name => name.Length <= PostLimits.MaxHashtagLength)
             .Distinct()
+            .Take(PostLimits.MaxHashtagsPerPost)
             .ToList();
     }
 

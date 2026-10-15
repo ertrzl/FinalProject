@@ -63,6 +63,13 @@ public class LocalFileStorageService : IFileStorageService
             throw new BadRequestException(typeErrorMessage);
         }
 
+        // The first bytes have to be those of the kind of file the name claims to be.
+        if (!await FileSignatures.MatchesAsync(file, extension))
+        {
+            _logger.LogWarning("Upload refused: {Folder} file {Extension} does not start like one", folder, extension);
+            throw new BadRequestException(typeErrorMessage);
+        }
+
         var directory = Path.Combine(_webRootPath, UploadsFolder, folder);
         Directory.CreateDirectory(directory);
 

@@ -12,6 +12,24 @@ public class RefreshTokenRepository : Repository<RefreshToken>, IRefreshTokenRep
     {
     }
 
+    public async Task<List<RefreshToken>> GetActiveAsync(Guid userId, DateTime now)
+    {
+        return await _dbSet.AsNoTracking()
+            .Where(t => t.UserId == userId && t.RevokedAt == null && t.ExpiresAt > now)
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<int> DeleteSessionAsync(Guid userId, Guid sessionId)
+    {
+        return await _dbSet.Where(t => t.UserId == userId && t.SessionId == sessionId).ExecuteDeleteAsync();
+    }
+
+    public async Task<int> DeleteAllExpiredAsync(DateTime now)
+    {
+        return await _dbSet.Where(t => t.ExpiresAt < now).ExecuteDeleteAsync();
+    }
+
     public async Task<bool> TryRevokeAsync(Guid id, DateTime now)
     {
         var changed = await _context.Set<RefreshToken>()

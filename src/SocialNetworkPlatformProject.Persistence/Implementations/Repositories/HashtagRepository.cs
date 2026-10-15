@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Domain.Entities;
 using SocialNetworkPlatformProject.Persistence.Contexts;
@@ -15,5 +16,10 @@ public class HashtagRepository : Repository<Hashtag>, IHashtagRepository
     {
         // AddAsync marks the row as new whatever its Id looks like; the navigations put it into post.Hashtags as well.
         await _context.Set<PostHashtag>().AddAsync(new PostHashtag { Post = post, Hashtag = hashtag });
+    }
+
+    public async Task<int> DeleteUnusedCreatedBeforeAsync(DateTime limitUtc)
+    {
+        return await _dbSet.Where(h => h.CreatedAt < limitUtc && !h.Posts.Any()).ExecuteDeleteAsync();
     }
 }

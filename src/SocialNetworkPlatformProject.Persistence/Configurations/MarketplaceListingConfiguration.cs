@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Domain.Entities;
 
 namespace SocialNetworkPlatformProject.Persistence.Configurations;
@@ -12,6 +13,11 @@ public class MarketplaceListingConfiguration : IEntityTypeConfiguration<Marketpl
             .HasColumnType("decimal(18,2)");
 
         builder.Property(m => m.RowVersion).IsRowVersion();
+
+        builder.Property(m => m.Title).HasMaxLength(TextLimits.ListingTitle);
+        builder.Property(m => m.Category).HasMaxLength(TextLimits.ListingCategory);
+        builder.Property(m => m.Location).HasMaxLength(TextLimits.ListingLocation);
+        builder.Property(m => m.Description).HasMaxLength(TextLimits.ListingDescription);
 
         // The public grid always filters on Status and sorts newest-first; "İlanlarım" filters on SellerId.
         builder.HasIndex(m => new { m.Status, m.CreatedAt });

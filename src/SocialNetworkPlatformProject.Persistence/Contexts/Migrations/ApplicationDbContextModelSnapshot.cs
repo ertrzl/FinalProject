@@ -215,7 +215,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.Property<string>("Text")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.HasKey("Id");
 
@@ -309,7 +310,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("CoverImageUrl")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -321,7 +323,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<DateTime>("EndsAt")
                         .HasColumnType("datetime2");
@@ -339,7 +342,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("Location")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("OnlineLink")
                         .HasMaxLength(500)
@@ -356,9 +360,13 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CoverImageUrl")
+                        .HasFilter("[CoverImageUrl] IS NOT NULL");
 
                     b.HasIndex("EndsAt");
 
@@ -527,11 +535,13 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("Privacy")
                         .HasColumnType("int");
@@ -747,16 +757,19 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.Property<string>("Category")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<string>("Location")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
@@ -775,7 +788,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.HasKey("Id");
 
@@ -805,19 +819,24 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("MediaUrl")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<Guid>("SenderId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Text")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MediaUrl")
+                        .HasFilter("[MediaUrl] IS NOT NULL");
 
                     b.HasIndex("ConversationId", "CreatedAt");
 
@@ -980,6 +999,7 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Text")
+                        .HasMaxLength(5000)
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -990,7 +1010,10 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.HasIndex("GroupId", "CreatedAt");
 
-                    b.ToTable("Posts");
+                    b.ToTable("Posts", t =>
+                        {
+                            t.HasCheckConstraint("CK_Posts_Text_Length", "LEN([Text]) <= 5000");
+                        });
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.PostHashtag", b =>
@@ -1069,6 +1092,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Url");
+
                     b.HasIndex("PostId", "SortOrder");
 
                     b.ToTable("PostMedia");
@@ -1083,10 +1108,24 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("DeviceName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SessionStartedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("TokenHash")
@@ -1098,6 +1137,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SessionId");
 
                     b.HasIndex("TokenHash")
                         .IsUnique();
@@ -1159,7 +1200,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.HasIndex("TargetType", "TargetId");
 
-                    b.HasIndex("ReporterId", "TargetType", "TargetId");
+                    b.HasIndex("ReporterId", "TargetType", "TargetId")
+                        .IsUnique();
 
                     b.ToTable("Reports");
                 });
@@ -1277,12 +1319,15 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.Property<string>("MediaUrl")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MediaUrl");
 
                     b.HasIndex("UserId", "ExpiresAt");
 

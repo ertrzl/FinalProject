@@ -57,6 +57,7 @@ public class EventsController : ControllerBase
     }
 
     [HttpPost]
+    [RequestSizeLimit(UploadLimits.MaxRequestBytes)]
     public async Task<ActionResult<GetEventDto>> Create([FromForm] PostEventDto dto)
     {
         var newEvent = await _events.CreateAsync(User.GetUserId(), dto);
@@ -64,6 +65,7 @@ public class EventsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [RequestSizeLimit(UploadLimits.MaxRequestBytes)]
     public async Task<ActionResult<GetEventDto>> Update(Guid id, [FromForm] PutEventDto dto)
     {
         return await _events.UpdateAsync(User.GetUserId(), id, dto);

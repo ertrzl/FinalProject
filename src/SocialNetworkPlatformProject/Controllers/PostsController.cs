@@ -60,6 +60,7 @@ public class PostsController : ControllerBase
     }
 
     [HttpPost]
+    [RequestSizeLimit(UploadLimits.MaxRequestBytes)]
     public async Task<ActionResult<GetPostDto>> Create([FromForm] PostPostDto dto)
     {
         var post = await _posts.CreateAsync(User.GetUserId(), dto);

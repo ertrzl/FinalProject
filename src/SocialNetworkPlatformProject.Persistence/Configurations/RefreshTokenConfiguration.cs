@@ -12,5 +12,9 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.Property(t => t.TokenHash).HasMaxLength(64).IsRequired();
         builder.HasIndex(t => t.TokenHash).IsUnique();
         builder.HasIndex(t => t.UserId);
+        builder.HasIndex(t => t.SessionId);
+
+        builder.Property(t => t.DeviceName).HasMaxLength(100);
+        builder.Property(t => t.IpAddress).HasMaxLength(64);
     }
 }

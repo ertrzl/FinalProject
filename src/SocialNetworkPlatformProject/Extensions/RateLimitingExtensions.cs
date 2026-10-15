@@ -25,8 +25,11 @@ public static class RateLimitingExtensions
             options.AddPolicy(AuthPolicy, context =>
                 RateLimitPartition.GetFixedWindowLimiter(ClientAddress(context), _ => Window(authPerMinute)));
 
+            // The pictures of a page (/uploads) are not counted: a feed loads dozens at once, and they used to be plain static files.
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-                RateLimitPartition.GetFixedWindowLimiter(ClientKey(context), _ => Window(generalPerMinute)));
+                context.Request.Path.StartsWithSegments("/uploads")
+                    ? RateLimitPartition.GetNoLimiter("uploads")
+                    : RateLimitPartition.GetFixedWindowLimiter(ClientKey(context), _ => Window(generalPerMinute)));
 
             // Same body shape as every other error the API returns.
             options.OnRejected = async (context, cancellationToken) =>

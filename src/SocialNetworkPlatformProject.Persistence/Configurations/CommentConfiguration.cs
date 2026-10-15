@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Domain.Entities;
 
 namespace SocialNetworkPlatformProject.Persistence.Configurations;
@@ -8,6 +9,8 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
 {
     public void Configure(EntityTypeBuilder<Comment> builder)
     {
+        builder.Property(c => c.Text).HasMaxLength(TextLimits.Comment);
+
         // Self-referencing "reply" relationship — Restrict avoids SQL Server's
         // "multiple cascade paths" error (Post -> Comment -> Comment would both cascade otherwise).
         builder.HasOne(c => c.ParentComment)

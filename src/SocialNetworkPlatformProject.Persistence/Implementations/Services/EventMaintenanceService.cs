@@ -73,6 +73,7 @@ public class EventMaintenanceService : IEventMaintenanceService
     {
         var waiting = await _events.GetAll(
                 filter: e => e.EndsAt > now && e.Attendees.Any(a => a.Status == EventAttendeeStatus.Waitlisted),
+                orderBy: e => e.StartsAt,
                 includes: AttendeeIncludes)
             .Take(MaxEventsPerRound)
             .ToListAsync();

@@ -13,9 +13,6 @@ public interface IRealTimeNotifier
     // Named event to several users (feed updates), over the notifications connection.
     Task PublishAsync(IEnumerable<Guid> recipientIds, string eventName, object payload);
 
-    // Named event to every connected client (presence), over the notifications connection.
-    Task BroadcastAsync(string eventName, object payload);
-
     // Named event to one user over the messages connection (read receipts, typing).
     Task PublishToMessagesAsync(Guid recipientId, string eventName, object payload);
 }

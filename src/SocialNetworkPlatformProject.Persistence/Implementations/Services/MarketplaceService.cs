@@ -72,7 +72,7 @@ public class MarketplaceService : IMarketplaceService
 
     public async Task<GetMarketplaceListingDto> UpdateAsync(Guid currentUserId, Guid listingId, PutMarketplaceListingDto dto)
     {
-        var listing = await GetOwnedListingAsync(currentUserId, listingId, "You can only edit your own listings.");
+        var listing = await GetOwnedListingAsync(currentUserId, listingId, Loc.T("listing.editOwn"));
 
         // Open negotiations were agreed against the current asking price, so it can't move underneath them.
         if (dto.Price != listing.Price && await _offerService.HasOpenOffersAsync(listing.Id))
@@ -84,7 +84,7 @@ public class MarketplaceService : IMarketplaceService
             throw new BadRequestException(Loc.T("listing.photosMismatch"));
 
         if (listing.Images.Count - removed.Count + dto.Images.Count > MarketplaceLimits.MaxImagesPerListing)
-            throw new BadRequestException($"A listing can have at most {MarketplaceLimits.MaxImagesPerListing} photos.");
+            throw new BadRequestException(Loc.T("listing.tooManyPhotos", MarketplaceLimits.MaxImagesPerListing));
 
         // New files are saved first so a rejected upload leaves the listing's current photos untouched.
         var added = await SaveImagesAsync(dto.Images);
@@ -124,7 +124,7 @@ public class MarketplaceService : IMarketplaceService
         if (!Enum.TryParse<ListingStatus>(dto.Status, out var status))
             throw new BadRequestException(Loc.T("listing.status"));
 
-        var listing = await GetOwnedListingAsync(currentUserId, listingId, "You can only change the status of your own listings.");
+        var listing = await GetOwnedListingAsync(currentUserId, listingId, Loc.T("listing.statusOwn"));
 
         var becomesSold = status == ListingStatus.Sold && listing.Status != ListingStatus.Sold;
 
@@ -246,7 +246,7 @@ public class MarketplaceService : IMarketplaceService
 
     public async Task DeleteAsync(Guid currentUserId, Guid listingId, bool asAdmin = false)
     {
-        var listing = await GetOwnedListingAsync(currentUserId, listingId, "You can only delete your own listings.", asAdmin);
+        var listing = await GetOwnedListingAsync(currentUserId, listingId, Loc.T("listing.deleteOwn"), asAdmin);
         var imageUrls = listing.Images.Select(i => i.Url).ToList();
 
         _listings.Delete(listing);

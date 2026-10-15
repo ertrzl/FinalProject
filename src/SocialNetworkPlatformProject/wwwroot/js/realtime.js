@@ -45,6 +45,11 @@
         }
       } catch (err) {
         needsResync = true;
+        // The server turned the token down (suspended account, password changed elsewhere, signed out): ask for a fresh one
+        // once. If that is refused too, getValidAccessToken sends the person to the login page, so the retries stop.
+        if (/401|unauthori[sz]ed/i.test(String(err?.message))) {
+          try { await getValidAccessToken(true); } catch { return; }
+        }
         setTimeout(start, 5000);
       }
     }
@@ -66,7 +71,7 @@
     document.dispatchEvent(new CustomEvent("realtime:notification", { detail: n }));
     window.refreshNotificationBadge?.();
     const text = NOTIFICATION_TOAST[n.type];
-    if (text) toast(`<b>${escapeHtml(n.actorName)}</b> ${text}`);
+    if (text) toast(`<b>${escapeHtml(n.actorName)}</b> ${text}`, { html: true });
   });
 
   messages.connection.on("ReceiveMessage", async m => {
@@ -78,7 +83,7 @@
     const conversations = window.refreshChatConversations ? await window.refreshChatConversations() : [];
     const conversation = conversations.find(c => c.id === m.conversationId);
     const preview = window.chatMessagePreviewText ? window.chatMessagePreviewText(m) : m.text;
-    toast(`<b>${escapeHtml(conversation ? conversation.otherUserName : "Yeni mesaj")}</b>: ${escapeHtml(preview)}`);
+    toast(`<b>${escapeHtml(conversation ? conversation.otherUserName : "Yeni mesaj")}</b>: ${escapeHtml(preview)}`, { html: true });
   });
 
   // Feed changes pushed by the server, re-dispatched as "realtime:<name>" (see live-posts.js and feed.js).

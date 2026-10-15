@@ -31,13 +31,19 @@ public class GlobalExceptionMiddleware
             _logger.LogInformation("{Method} {Path} refused ({Status}): {Message}", context.Request.Method, context.Request.Path, ex.StatusCode, ex.Message);
             await WriteErrorAsync(context, ex.StatusCode, ex.Message);
         }
+        catch (BadHttpRequestException ex) when (ex.StatusCode == StatusCodes.Status413PayloadTooLarge)
+        {
+            // More files in one request than UploadLimits allows (each file is also checked on its own, later).
+            using var who = Who(context);
+            _logger.LogInformation("{Method} {Path} refused (413): the upload is larger than {Limit} MB", context.Request.Method, context.Request.Path, UploadLimits.MaxRequestMegabytes);
+            await WriteErrorAsync(context, StatusCodes.Status413PayloadTooLarge, Loc.T("upload.tooLarge", UploadLimits.MaxRequestMegabytes));
+        }
         catch (DbUpdateConcurrencyException)
         {
             // Someone else changed (or deleted) the same row between our read and our save.
             using var who = Who(context);
             _logger.LogWarning("{Method} {Path}: the data was changed by someone else at the same time", context.Request.Method, context.Request.Path);
-            await WriteErrorAsync(context, StatusCodes.Status409Conflict,
-                "This was just changed by someone else. Please refresh and try again.");
+            await WriteErrorAsync(context, StatusCodes.Status409Conflict, Loc.T("server.changedMeanwhile"));
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {

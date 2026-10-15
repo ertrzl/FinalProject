@@ -15,17 +15,20 @@ public class SellerRatingService : ISellerRatingService
     private readonly IListingOfferRepository _offers;
     private readonly IUserRepository _users;
     private readonly INotificationService _notifications;
+    private readonly IBlockService _blocks;
 
     public SellerRatingService(
         ISellerRatingRepository ratings,
         IListingOfferRepository offers,
         IUserRepository users,
-        INotificationService notifications)
+        INotificationService notifications,
+        IBlockService blocks)
     {
         _ratings = ratings;
         _offers = offers;
         _users = users;
         _notifications = notifications;
+        _blocks = blocks;
     }
 
     public async Task<GetSellerRatingDto> RateAsync(Guid currentUserId, Guid offerId, PostSellerRatingDto dto)
@@ -38,6 +41,10 @@ public class SellerRatingService : ISellerRatingService
 
         if (offer.Status != OfferStatus.Accepted)
             throw new BadRequestException(Loc.T("rating.afterAccepted"));
+
+        // A seller who blocked the buyer (or the other way round) doesn't get a review written about them.
+        if (await _blocks.AreBlockedAsync(currentUserId, offer.SellerId))
+            throw new ForbiddenException(Loc.T("block.cannotRate"));
 
         var comment = string.IsNullOrWhiteSpace(dto.Comment) ? null : dto.Comment.Trim();
         var rating = await _ratings.GetAll(r => r.OfferId == offerId).FirstOrDefaultAsync();

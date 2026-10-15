@@ -20,6 +20,7 @@ public class OfferService : IOfferService
     private readonly ISellerRatingRepository _ratings;
     private readonly IUserRepository _users;
     private readonly INotificationService _notifications;
+    private readonly IBlockService _blocks;
 
     public OfferService(
         IListingOfferRepository offers,
@@ -27,7 +28,8 @@ public class OfferService : IOfferService
         IMarketplaceListingRepository listings,
         ISellerRatingRepository ratings,
         IUserRepository users,
-        INotificationService notifications)
+        INotificationService notifications,
+        IBlockService blocks)
     {
         _offers = offers;
         _rounds = rounds;
@@ -35,6 +37,7 @@ public class OfferService : IOfferService
         _ratings = ratings;
         _users = users;
         _notifications = notifications;
+        _blocks = blocks;
     }
 
     public async Task<GetListingOfferDto> CreateAsync(Guid currentUserId, Guid listingId, PostOfferPriceDto dto)
@@ -45,11 +48,15 @@ public class OfferService : IOfferService
         if (listing.SellerId == currentUserId)
             throw new BadRequestException(Loc.T("offer.ownListing"));
 
+        // Blocked people can't bargain with each other, whichever of them blocked the other.
+        if (await _blocks.AreBlockedAsync(currentUserId, listing.SellerId))
+            throw new ForbiddenException(Loc.T("block.cannotOffer"));
+
         if (listing.Status != ListingStatus.Active)
             throw new BadRequestException(Loc.T("offer.notForSale"));
 
         if (dto.Price > listing.Price)
-            throw new BadRequestException($"An offer can't be higher than the asking price ({Format(listing.Price)}).");
+            throw new BadRequestException(Loc.T("offer.tooHigh", Format(listing.Price)));
 
         if (await _offers.AnyAsync(o => o.ListingId == listingId && o.BuyerId == currentUserId && o.Status == OfferStatus.Open))
             throw new ConflictException(Loc.T("offer.running"));
@@ -75,8 +82,10 @@ public class OfferService : IOfferService
 
     public async Task<List<GetListingOfferDto>> GetReceivedAsync(Guid currentUserId)
     {
+        var hidden = await _blocks.GetBlockedIdsAsync(currentUserId);
+
         var offers = await _offers.GetAll(
-                filter: o => o.SellerId == currentUserId,
+                filter: o => o.SellerId == currentUserId && !hidden.Contains(o.BuyerId),
                 orderBy: o => o.UpdatedAt,
                 isDescending: true,
                 asNoTracking: true,
@@ -89,8 +98,10 @@ public class OfferService : IOfferService
 
     public async Task<List<GetListingOfferDto>> GetSentAsync(Guid currentUserId)
     {
+        var hidden = await _blocks.GetBlockedIdsAsync(currentUserId);
+
         var offers = await _offers.GetAll(
-                filter: o => o.BuyerId == currentUserId,
+                filter: o => o.BuyerId == currentUserId && !hidden.Contains(o.SellerId),
                 orderBy: o => o.UpdatedAt,
                 isDescending: true,
                 asNoTracking: true,
@@ -116,7 +127,7 @@ public class OfferService : IOfferService
         var low = Math.Min(offer.CurrentPrice, ownPrevious);
         var high = Math.Max(offer.CurrentPrice, ownPrevious);
         if (dto.Price <= low || dto.Price >= high)
-            throw new BadRequestException($"A counter-offer must be between {Format(low)} and {Format(high)}.");
+            throw new BadRequestException(Loc.T("offer.counterRange", Format(low), Format(high)));
 
         await _rounds.AddAsync(new ListingOfferRound { OfferId = offer.Id, ProposerId = currentUserId, Price = dto.Price });
         offer.CurrentPrice = dto.Price;
@@ -233,6 +244,10 @@ public class OfferService : IOfferService
     {
         var offer = await LoadParticipantOfferAsync(currentUserId, offerId);
         EnsureOpen(offer);
+
+        // A negotiation that was running when one of them blocked the other can't go on.
+        if (await _blocks.AreBlockedAsync(offer.BuyerId, offer.SellerId))
+            throw new ForbiddenException(Loc.T("block.cannotOffer"));
 
         if (offer.LastProposerId == currentUserId)
             throw new BadRequestException(Loc.T("offer.otherTurn"));

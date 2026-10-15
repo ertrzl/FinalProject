@@ -5,5 +5,6 @@ namespace SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 
 public interface INotificationRepository : IRepository<Notification>
 {
-    // Entity-specific query methods will be added here as the Notification service needs them.
+    // Removes the notifications older than the given time, read or not; returns how many went.
+    Task<int> DeleteOlderThanAsync(DateTime limitUtc);
 }

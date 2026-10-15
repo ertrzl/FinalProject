@@ -29,6 +29,12 @@ public interface IUserRepository
 
     Task TouchLastSeenAsync(Guid id);
 
+    // Accounts in all, or only the suspended ones / the ones made since the given time (the admin panel's numbers).
+    Task<int> CountAsync(bool? suspended = null, DateTime? createdSince = null);
+
+    // The admin panel's user list, newest first; `term` looks in name, user name and e-mail.
+    Task<(List<AdminUserRow> Items, int TotalCount)> SearchForAdminAsync(string? term, bool? suspended, int page, int pageSize);
+
     // Removes the account together with everything it owns or took part in (posts, comments, likes, friendships,
     // messages, login sessions, ...) in one transaction: it either all goes or nothing does.
     // Returns the uploaded-image URLs of the deleted rows (profile photos included) so the caller can remove the files too.

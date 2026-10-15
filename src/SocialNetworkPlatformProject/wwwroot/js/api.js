@@ -40,18 +40,44 @@ function requireAuth() {
     window.location.href = "index.html";
     return null;
   }
+
+  ensureMediaSession(session);
   return session;
+}
+
+// Pictures and videos are only given to a signed-in browser: every sign-in and token renewal answer also sets a cookie for
+// them (the server's MediaCookie), and <img> tags send it by themselves. A session that began before that existed, or lost
+// its cookie, asks for one here. Until it arrives the pictures of that first page may stay empty.
+function ensureMediaSession(session) {
+  const until = session.mediaExpiresAt ? parseServerDate(session.mediaExpiresAt).getTime() : 0;
+  if (until - Date.now() > 10 * 60 * 1000) return;
+
+  apiFetch("/api/auth/media-session", { method: "POST" })
+    .then(result => {
+      const current = getSession();
+      if (current && result) {
+        current.mediaExpiresAt = result.expiresAt;
+        saveSession(current);
+      }
+    })
+    .catch(() => {}); // the pictures simply wait for the next token renewal
 }
 
 async function logout() {
   const session = getSession();
   clearSession();
   if (session?.refreshToken) {
-    // Best-effort — invalidates the refresh token server-side so it can't be replayed later.
-    // Never blocks the redirect: a network hiccup shouldn't trap the user on the page.
+    // Best-effort — ends the session server-side: the refresh token, and the access token and photo cookie of this
+    // browser (they would otherwise work until they expire), so none of them can be replayed later.
+    // Never blocks the redirect: a network hiccup shouldn't trap the user on the page. keepalive lets the request
+    // finish even though the page is already leaving.
     fetch("/api/auth/logout", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      keepalive: true,
+      headers: {
+        "Content-Type": "application/json",
+        ...(session.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {})
+      },
       body: JSON.stringify({ refreshToken: session.refreshToken })
     }).catch(() => {});
   }

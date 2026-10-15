@@ -125,13 +125,28 @@ async function toggleCommentLike(event, link) {
 
 // Fills a post's comment box from the server. The first call (opening the box) loads once; force = true loads again,
 // which is how a live "new comment" or a deletion shows up with the right buttons for this viewer.
+// The comments come a page at a time (the server pages the top-level comments and sends each one's replies with it).
+const COMMENT_PAGE_SIZE = 20;
+
 async function loadComments(postId, force = false) {
   const container = document.getElementById(`comments-${postId}`);
   if (!container || (container.dataset.loaded && !force)) return;
   container.dataset.loaded = "1";
   const list = container.querySelector(".comments-list");
   try {
-    const comments = await apiFetch(`/api/comments/by-post/${postId}`);
+    // A reload (after a deletion, a reply or a live push) brings back as many pages as were showing, not only the first.
+    const wanted = force ? Math.max(Number(container.dataset.pages) || 1, 1) : 1;
+    let comments = [];
+    let page = null;
+    let shown = 0;
+    while (shown < wanted) {
+      page = await apiFetch(`/api/comments/by-post/${postId}?page=${shown + 1}&pageSize=${COMMENT_PAGE_SIZE}`);
+      comments = comments.concat(page.items);
+      shown++;
+      if (!page.hasMore) break;
+    }
+    container.dataset.pages = String(shown);
+
     if (comments.length) {
       list.innerHTML = comments.map(commentHtml).join("");
       delete list.dataset.empty;
@@ -139,9 +154,44 @@ async function loadComments(postId, force = false) {
       list.innerHTML = `<div class="text-muted small mb-2">Henüz yorum yok.</div>`;
       list.dataset.empty = "1";
     }
+    showMoreCommentsButton(container, postId, page.hasMore);
+    setCommentCount(container, page.commentCount);
   } catch (err) {
     list.innerHTML = `<div class="text-danger small">${escapeHtml(err.message)}</div>`;
   }
+}
+
+// "Daha fazla yorum göster": draws the next page under the ones already showing.
+async function loadMoreComments(postId) {
+  const container = document.getElementById(`comments-${postId}`);
+  const list = container.querySelector(".comments-list");
+  const button = container.querySelector(".comments-more");
+  const next = (Number(container.dataset.pages) || 1) + 1;
+  button.disabled = true;
+  try {
+    const page = await apiFetch(`/api/comments/by-post/${postId}?page=${next}&pageSize=${COMMENT_PAGE_SIZE}`);
+    // A comment that a live push or the viewer's own post already put on the screen is not drawn twice.
+    list.insertAdjacentHTML("beforeend", page.items.filter(c => !list.querySelector(`[data-comment-id="${c.id}"]`)).map(commentHtml).join(""));
+    container.dataset.pages = String(next);
+    showMoreCommentsButton(container, postId, page.hasMore);
+    setCommentCount(container, page.commentCount);
+  } catch (err) {
+    toast(err.message || "Yorumlar yüklenemedi.");
+    button.disabled = false;
+  }
+}
+
+function showMoreCommentsButton(container, postId, hasMore) {
+  container.querySelector(".comments-more")?.remove();
+  if (!hasMore) return;
+  container.querySelector(".comments-list").insertAdjacentHTML("afterend",
+    `<button type="button" class="comments-more btn btn-link btn-sm p-0 mb-3" onclick="loadMoreComments('${postId}')">Daha fazla yorum göster</button>`);
+}
+
+// The number next to "yorum" is the post's whole count, not what happens to be drawn.
+function setCommentCount(container, count) {
+  const label = container.closest(".card[data-post-id]")?.querySelector(".comment-count-label");
+  if (label) label.textContent = count;
 }
 
 async function submitComment(event, postId) {
@@ -156,15 +206,15 @@ async function submitComment(event, postId) {
     const list = form.closest(".comments-collapse").querySelector(".comments-list");
     input.value = "";
 
-    // The live "comment-added" event may have shown this comment before this response arrived (posting on your
-    // own post always echoes back to you). Counting the actual rendered comments — instead of adding 1 to
-    // whatever the label currently says — makes this safe no matter which one lands first.
+    // The live "comment-added" event may have shown this comment (and the new count) before this response arrived
+    // (posting on your own post always echoes back to you). Only a comment that is not on the screen yet is added to the
+    // count, so it is right no matter which one lands first. (Not every comment is drawn: they come a page at a time.)
     if (!list.querySelector(`[data-comment-id="${comment.id}"]`)) {
       if (list.dataset.empty) { list.innerHTML = ""; delete list.dataset.empty; }
       list.insertAdjacentHTML("beforeend", commentHtml(comment));
+      const label = form.closest(".card[data-post-id]").querySelector(".comment-count-label");
+      label.textContent = (Number(label.textContent) || 0) + 1;
     }
-    form.closest(".card[data-post-id]").querySelector(".comment-count-label").textContent =
-      list.querySelectorAll("[data-comment-id]").length;
   } catch (err) {
     toast(err.message || "Yorum eklenemedi.");
   }
@@ -181,7 +231,6 @@ async function removeComment(event, link) {
     await apiFetch(`/api/comments/${commentId}`, { method: "DELETE" });
     // Replies go with their comment on the server, so reload the list instead of guessing what disappeared.
     await loadComments(card.dataset.postId, true);
-    card.querySelector(".comment-count-label").textContent = card.querySelectorAll("[data-comment-id]").length;
     toast("Yorum silindi.");
   } catch (err) {
     toast(err.message || "Yorum silinemedi.");
@@ -218,12 +267,10 @@ async function submitReply(event, postId, parentCommentId) {
   const text = input.value.trim();
   if (!text) return false;
 
-  const card = event.target.closest(".card[data-post-id]");
   try {
     await apiFetch("/api/comments", { method: "POST", body: { postId, text, parentCommentId } });
     // The server arranges the thread (a reply goes right under its comment), so the list is simply loaded again.
     await loadComments(postId, true);
-    card.querySelector(".comment-count-label").textContent = card.querySelectorAll("[data-comment-id]").length;
   } catch (err) {
     toast(err.message || "Yanıt eklenemedi.");
   }

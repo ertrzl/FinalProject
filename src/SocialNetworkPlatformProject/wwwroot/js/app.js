@@ -2,7 +2,7 @@
 // Tabs, collapses, dropdowns, and modals are handled by Bootstrap's own JS bundle; posts and comments are in post-card.js.
 
 // ---- Tiny toast helper ----
-function toast(message) {
+function toast(message, { html = false } = {}) {
   let container = document.getElementById("toastContainer");
   if (!container) {
     container = document.createElement("div");
@@ -15,9 +15,15 @@ function toast(message) {
   el.className = "toast align-items-center text-bg-dark border-0";
   el.setAttribute("role", "alert");
   el.innerHTML = `<div class="d-flex">
-      <div class="toast-body">${message}</div>
+      <div class="toast-body"></div>
       <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
     </div>`;
+
+  // The message is shown as plain text, so whatever the server echoes back in an error ("'<img…>' değeri geçersiz") can never
+  // become markup. Only a caller that builds its own markup (and escapes the parts it takes from users) passes { html: true }.
+  const body = el.querySelector(".toast-body");
+  if (html) body.innerHTML = message;
+  else body.textContent = message;
   container.appendChild(el);
   const t = new bootstrap.Toast(el, { delay: 2200 });
   t.show();

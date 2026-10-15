@@ -17,17 +17,20 @@ public class EventCommentService : IEventCommentService
     private readonly IEventAccessService _access;
     private readonly IUserRepository _users;
     private readonly IEventNotifier _notifier;
+    private readonly IBlockService _blocks;
 
     public EventCommentService(
         IEventCommentRepository comments,
         IEventAccessService access,
         IUserRepository users,
-        IEventNotifier notifier)
+        IEventNotifier notifier,
+        IBlockService blocks)
     {
         _comments = comments;
         _access = access;
         _users = users;
         _notifier = notifier;
+        _blocks = blocks;
     }
 
     public async Task<PagedResult<GetEventCommentDto>> GetAsync(Guid currentUserId, Guid eventId, int page, int pageSize)
@@ -37,7 +40,11 @@ public class EventCommentService : IEventCommentService
 
         var found = await _access.GetViewableAsync(currentUserId, eventId);
 
-        var query = _comments.GetAll(c => c.EventId == eventId, asNoTracking: true);
+        // What people blocked with the reader wrote is hidden from them (the organizer's own words never are: an event of
+        // someone blocked with the reader is not reachable in the first place).
+        var hiddenAuthors = await _blocks.GetBlockedIdsAsync(currentUserId);
+
+        var query = _comments.GetAll(c => c.EventId == eventId && !hiddenAuthors.Contains(c.AuthorId), asNoTracking: true);
         var total = await query.CountAsync();
 
         // Announcements stay pinned on top; everything else is newest first.

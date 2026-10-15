@@ -26,6 +26,7 @@ public class StoriesController : ControllerBase
     }
 
     [HttpPost]
+    [RequestSizeLimit(UploadLimits.MaxRequestBytes)]
     public async Task<ActionResult<GetStoryDto>> Create([FromForm] PostStoryDto dto)
     {
         return await _stories.CreateAsync(User.GetUserId(), dto);

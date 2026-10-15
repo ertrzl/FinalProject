@@ -18,6 +18,7 @@ public class EventInviteService : IEventInviteService
     private readonly IEventService _events;
     private readonly IUserRepository _users;
     private readonly IEventNotifier _notifier;
+    private readonly IBlockService _blocks;
 
     public EventInviteService(
         IEventInviteRepository invites,
@@ -25,7 +26,8 @@ public class EventInviteService : IEventInviteService
         IEventAccessService access,
         IEventService events,
         IUserRepository users,
-        IEventNotifier notifier)
+        IEventNotifier notifier,
+        IBlockService blocks)
     {
         _invites = invites;
         _groups = groups;
@@ -33,6 +35,7 @@ public class EventInviteService : IEventInviteService
         _events = events;
         _users = users;
         _notifier = notifier;
+        _blocks = blocks;
     }
 
     public async Task InviteAsync(Guid currentUserId, Guid eventId, PostEventInviteDto dto)
@@ -50,6 +53,10 @@ public class EventInviteService : IEventInviteService
 
         if (!await _users.ExistsAsync(targetId))
             throw new NotFoundException(Loc.T("user.notFound"));
+
+        // Blocked people can't send each other invitations, whichever of them blocked the other.
+        if (await _blocks.AreBlockedAsync(currentUserId, targetId))
+            throw new ForbiddenException(Loc.T("block.cannotInvite"));
 
         if (targetId == found.CreatedByUserId || found.Attendees.Any(a => a.UserId == targetId))
             throw new BadRequestException(Loc.T("eventInvite.alreadyIn"));
@@ -113,6 +120,10 @@ public class EventInviteService : IEventInviteService
         // An invite to a group event is only useful while I'm still in that group.
         var myGroupIds = await _access.GetMyGroupIdsAsync(currentUserId);
         invites = invites.Where(i => !i.Event!.GroupId.HasValue || myGroupIds.Contains(i.Event.GroupId.Value)).ToList();
+
+        // Invitations that came from (or to an event of) someone blocked with me, also the ones sent before the block, are not shown.
+        var hidden = await _blocks.GetBlockedIdsAsync(currentUserId);
+        invites = invites.Where(i => !hidden.Contains(i.InvitedByUserId) && !hidden.Contains(i.Event!.CreatedByUserId)).ToList();
 
         var inviters = await _users.GetSummariesAsync(invites.Select(i => i.InvitedByUserId));
 

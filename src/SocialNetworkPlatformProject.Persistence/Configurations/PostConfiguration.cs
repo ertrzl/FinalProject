@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Domain.Entities;
 
 namespace SocialNetworkPlatformProject.Persistence.Configurations;
@@ -8,6 +9,10 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
 {
     public void Configure(EntityTypeBuilder<Post> builder)
     {
+        // SQL Server's nvarchar(n) stops at 4000, so a limit of 5000 is a check on the column rather than its type.
+        builder.Property(p => p.Text).HasMaxLength(TextLimits.Post);
+        builder.ToTable(t => t.HasCheckConstraint("CK_Posts_Text_Length", $"LEN([Text]) <= {TextLimits.Post}"));
+
         builder.HasMany(p => p.Comments)
             .WithOne(c => c.Post)
             .HasForeignKey(c => c.PostId)

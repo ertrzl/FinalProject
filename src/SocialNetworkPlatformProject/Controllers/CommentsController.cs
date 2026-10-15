@@ -21,9 +21,9 @@ public class CommentsController : ControllerBase
     }
 
     [HttpGet("by-post/{postId:guid}")]
-    public async Task<ActionResult<List<GetCommentDto>>> GetByPost(Guid postId)
+    public async Task<ActionResult<GetCommentPageDto>> GetByPost(Guid postId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
-        return await _comments.GetByPostAsync(User.GetUserId(), postId);
+        return await _comments.GetByPostAsync(User.GetUserId(), postId, page, pageSize);
     }
 
     [HttpPost]

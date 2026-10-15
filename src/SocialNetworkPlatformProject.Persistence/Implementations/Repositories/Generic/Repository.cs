@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories.Generic;
 using SocialNetworkPlatformProject.Domain.Common;
 using SocialNetworkPlatformProject.Persistence.Contexts;
@@ -89,5 +90,24 @@ public class Repository<T> : IRepository<T> where T : BaseEntity, new()
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<IRepositoryTransaction> BeginTransactionAsync()
+    {
+        return new Transaction(await _context.Database.BeginTransactionAsync());
+    }
+
+    private sealed class Transaction : IRepositoryTransaction
+    {
+        private readonly IDbContextTransaction _transaction;
+
+        public Transaction(IDbContextTransaction transaction)
+        {
+            _transaction = transaction;
+        }
+
+        public Task CommitAsync() => _transaction.CommitAsync();
+
+        public ValueTask DisposeAsync() => _transaction.DisposeAsync();
     }
 }

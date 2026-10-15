@@ -25,6 +25,10 @@
 
   "server.exists": "This already exists.",
   "server.unexpected": "An unexpected error occurred. Please try again later.",
+  "server.changedMeanwhile": "This was just changed by someone else. Please refresh and try again.",
+  "hub.tooManyCalls": "You are doing that too fast. Wait a moment and try again.",
+  "session.unknownDevice": "Unknown device",
+  "session.notFound": "This session is not open any more.",
   "rateLimit.tooMany": "Too many requests. Please slow down and try again in a moment.",
 
   "auth.sessionInvalid": "Your session is invalid or has expired. Please sign in again.",
@@ -61,6 +65,9 @@
   "block.self": "You can't block yourself.",
   "block.already": "You already blocked this user.",
   "block.notBlocked": "You have not blocked this user.",
+  "block.cannotInvite": "You can't invite this person.",
+  "block.cannotOffer": "You can't make or answer offers with this person.",
+  "block.cannotRate": "You can't rate this seller.",
 
   "report.targetRequired": "Say what you are reporting.",
   "report.targetTypeInvalid": "This can't be reported.",
@@ -70,6 +77,8 @@
   "report.targetNotFound": "What you are reporting no longer exists.",
   "report.own": "You can't report yourself or your own content.",
   "report.alreadyReported": "You already reported this. We will look at it.",
+  "val.password.long": "The password can be at most 1024 characters.",
+  "upload.tooLarge": "The files you uploaded are too large. You can upload at most {0} MB at a time.",
   "report.alreadyClosed": "This report has already been closed.",
   "report.alreadyReviewed": "You already reported this; the admins have looked at it.",
   "report.noText": "[photo / poll]",
@@ -114,6 +123,11 @@
   "event.endPast": "The end time can't be in the past.",
   "event.linkInvalid": "The link must be a valid address.",
   "event.linkTooLong": "The link is too long.",
+  "event.capacityBelowGoing": "The capacity can't be lower than the {0} people who said they're going.",
+  "event.calendar.online": "Online",
+  "event.calendar.link": "Link: {0}",
+  "event.calendar.page": "Event page: {0}",
+  "event.calendar.fileName": "event",
 
   "invite.self": "You can't invite yourself.",
 
@@ -133,6 +147,8 @@
   "message.target": "Either ConversationId or ReceiverId must be provided.",
   "message.cannot": "You can't message this person.",
   "message.deleteOwn": "You can only delete your own messages.",
+  "message.preview.deleted": "🚫 Message deleted",
+  "message.preview.photo": "📷 Photo",
 
   "notification.notYours": "This notification doesn't belong to you.",
 
@@ -161,6 +177,10 @@
   "listing.photosMismatch": "One or more photos don't belong to this listing.",
   "listing.status": "Status must be either 'Active' or 'Sold'.",
   "listing.saveOwn": "You can't save your own listing.",
+  "listing.editOwn": "You can only edit your own listings.",
+  "listing.statusOwn": "You can only change the status of your own listings.",
+  "listing.deleteOwn": "You can only delete your own listings.",
+  "listing.tooManyPhotos": "A listing can have at most {0} photos.",
 
   "offer.ownListing": "You can't make an offer on your own listing.",
   "offer.notForSale": "This listing is no longer for sale.",
@@ -169,6 +189,8 @@
   "offer.notYours": "This offer isn't yours.",
   "offer.otherTurn": "It's the other side's turn to answer your proposal.",
   "offer.ended": "This negotiation has already ended.",
+  "offer.tooHigh": "An offer can't be higher than the asking price ({0}).",
+  "offer.counterRange": "A counter-offer must be between {0} and {1}.",
 
   "rating.buyerOnly": "Only the buyer of an accepted deal can rate the seller.",
   "rating.afterAccepted": "You can only rate a seller once the deal has been accepted.",

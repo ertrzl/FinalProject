@@ -343,9 +343,9 @@ public class MessageService : IMessageService
     private static string PreviewText(Message message)
     {
         if (message.IsDeleted)
-            return "🚫 Mesaj silindi";
+            return Loc.T("message.preview.deleted");
 
-        return message.Type == MessageType.Image ? "📷 Fotoğraf" : message.Text;
+        return message.Type == MessageType.Image ? Loc.T("message.preview.photo") : message.Text;
     }
 
     private List<GetMessageDto> MapMessages(List<Message> messages, Guid currentUserId)

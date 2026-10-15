@@ -59,6 +59,7 @@ public class MessagesController : ControllerBase
     }
 
     [HttpPost("image")]
+    [RequestSizeLimit(UploadLimits.MaxRequestBytes)]
     public async Task<ActionResult<GetMessageDto>> SendImage([FromForm] PostMessageImageDto dto)
     {
         return await _messages.SendImageAsync(User.GetUserId(), dto);

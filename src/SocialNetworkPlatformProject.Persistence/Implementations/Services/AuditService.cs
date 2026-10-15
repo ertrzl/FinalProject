@@ -1,28 +1,29 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SocialNetworkPlatformProject.Application.DTOs.Admin;
+using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Domain.Entities;
-using SocialNetworkPlatformProject.Persistence.Contexts;
 
 namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class AuditService : IAuditService
 {
-    private readonly ApplicationDbContext _context;
+    private readonly IAuditLogRepository _auditLogs;
+    private readonly IUserRepository _users;
     private readonly ILogger<AuditService> _logger;
 
-    public AuditService(ApplicationDbContext context, ILogger<AuditService> logger)
+    public AuditService(IAuditLogRepository auditLogs, IUserRepository users, ILogger<AuditService> logger)
     {
-        _context = context;
+        _auditLogs = auditLogs;
+        _users = users;
         _logger = logger;
     }
 
     public async Task RecordAsync(Guid actorId, string action, string? targetType = null, Guid? targetId = null, string? details = null)
     {
-        var actorName = await _context.Users.Where(u => u.Id == actorId).Select(u => u.FullName).FirstOrDefaultAsync();
+        var actorName = (await _users.GetSummaryAsync(actorId))?.FullName;
 
-        _context.AuditLogs.Add(new AuditLog
+        await _auditLogs.AddAsync(new AuditLog
         {
             ActorId = actorId,
             ActorName = actorName ?? string.Empty,
@@ -31,7 +32,7 @@ public class AuditService : IAuditService
             TargetId = targetId,
             Details = Shorten(details, 500)
         });
-        await _context.SaveChangesAsync();
+        await _auditLogs.SaveChangesAsync();
 
         // The same line goes to the log file, so what the admins did can be read there as well as in the panel.
         _logger.LogInformation("Admin action {Action} by {ActorName} ({ActorId:l}) on {TargetType} {TargetId:l}", action, actorName, actorId.ToString(), targetType, targetId?.ToString());
@@ -42,38 +43,19 @@ public class AuditService : IAuditService
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
-        var query = _context.AuditLogs.AsNoTracking().AsQueryable();
+        var (lines, total) = await _auditLogs.SearchAsync(action, term, page, pageSize);
 
-        // "user" shows every "user.*" line (the panel's filter by kind), "user.suspend" only that one.
-        if (!string.IsNullOrWhiteSpace(action))
+        var items = lines.Select(a => new GetAuditLogDto
         {
-            var kind = action.Trim();
-            query = kind.Contains('.') ? query.Where(a => a.Action == kind) : query.Where(a => a.Action.StartsWith(kind + "."));
-        }
-
-        if (!string.IsNullOrWhiteSpace(term))
-        {
-            var text = term.Trim();
-            query = query.Where(a => a.ActorName.Contains(text) || (a.Details != null && a.Details.Contains(text)));
-        }
-
-        var total = await query.CountAsync();
-        var items = await query
-            .OrderByDescending(a => a.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(a => new GetAuditLogDto
-            {
-                Id = a.Id,
-                CreatedAt = a.CreatedAt,
-                ActorId = a.ActorId,
-                ActorName = a.ActorName,
-                Action = a.Action,
-                TargetType = a.TargetType,
-                TargetId = a.TargetId,
-                Details = a.Details
-            })
-            .ToListAsync();
+            Id = a.Id,
+            CreatedAt = a.CreatedAt,
+            ActorId = a.ActorId,
+            ActorName = a.ActorName,
+            Action = a.Action,
+            TargetType = a.TargetType,
+            TargetId = a.TargetId,
+            Details = a.Details
+        }).ToList();
 
         return new PagedResult<GetAuditLogDto> { Items = items, Page = page, PageSize = pageSize, TotalCount = total };
     }

@@ -103,7 +103,7 @@ public class EventService : IEventService
         // The limit can't drop below the people who already said they're coming.
         var goingNow = found.GoingCount;
         if (dto.Capacity.HasValue && dto.Capacity.Value < goingNow)
-            throw new BadRequestException($"Kontenjan, katılacağını söyleyen {goingNow} kişiden az olamaz.");
+            throw new BadRequestException(Loc.T("event.capacityBelowGoing", goingNow));
 
         var title = dto.Title.Trim();
         var location = string.IsNullOrWhiteSpace(dto.Location) ? null : dto.Location.Trim();
@@ -114,10 +114,16 @@ public class EventService : IEventService
             || found.Location != location || found.IsOnline != dto.IsOnline || found.OnlineLink != onlineLink;
 
         var oldCoverUrl = found.CoverImageUrl;
+        string? newCoverUrl = null;
         if (dto.CoverImage != null)
-            found.CoverImageUrl = await _files.SaveImageAsync(dto.CoverImage, "events");
+        {
+            newCoverUrl = await _files.SaveImageAsync(dto.CoverImage, "events");
+            found.CoverImageUrl = newCoverUrl;
+        }
         else if (dto.RemoveCoverImage)
+        {
             found.CoverImageUrl = null;
+        }
 
         var startMoved = found.StartsAt != startsAt;
 
@@ -135,7 +141,17 @@ public class EventService : IEventService
 
         // A bigger (or removed) limit opens spots for the people waiting. Same save as the edit itself.
         var promoted = found.PromoteWaitlist();
-        await _events.SaveChangesAsync();
+
+        try
+        {
+            await _events.SaveChangesAsync();
+        }
+        catch
+        {
+            // Nothing was saved (a competing change, say): the cover that was just uploaded belongs to nothing.
+            _files.Delete(newCoverUrl);
+            throw;
+        }
 
         if (found.CoverImageUrl != oldCoverUrl)
             _files.Delete(oldCoverUrl);

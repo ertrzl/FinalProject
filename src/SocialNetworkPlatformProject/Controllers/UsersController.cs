@@ -55,6 +55,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("me/profile")]
+    [RequestSizeLimit(UploadLimits.MaxRequestBytes)]
     public async Task<ActionResult<GetUserProfileDto>> UpdateProfile([FromForm] PutUserProfileDto dto)
     {
         return await _users.UpdateProfileAsync(User.GetUserId(), dto);

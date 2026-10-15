@@ -31,6 +31,7 @@ public class RegisterDtoValidator : AbstractValidator<RegisterDto>
 
         RuleFor(x => x.Password)
             .NotEmpty().WithMessage(_ => Loc.T("val.password.required"))
-            .MinimumLength(8).WithMessage(_ => Loc.T("val.password.short"));
+            .MinimumLength(8).WithMessage(_ => Loc.T("val.password.short"))
+            .MaximumLength(1024).WithMessage(_ => Loc.T("val.password.long"));
     }
 }

@@ -19,7 +19,7 @@ public static class IcsBuilder
         {
             "BEGIN:VCALENDAR",
             "VERSION:2.0",
-            "PRODID:-//SocialNet//Etkinlikler//TR",
+            "PRODID:-//SocialNet//Events//",
             "CALSCALE:GREGORIAN",
             "METHOD:PUBLISH",
             "BEGIN:VEVENT",
@@ -30,14 +30,14 @@ public static class IcsBuilder
             $"SUMMARY:{Escape(ev.Title)}"
         };
 
-        var place = ev.IsOnline ? "Çevrimiçi" : ev.Location;
+        var place = ev.IsOnline ? Loc.T("event.calendar.online") : ev.Location;
         if (!string.IsNullOrWhiteSpace(place))
             lines.Add($"LOCATION:{Escape(place)}");
 
         var description = new List<string>();
         if (!string.IsNullOrWhiteSpace(ev.Description)) description.Add(ev.Description);
-        if (ev.IsOnline && !string.IsNullOrEmpty(ev.OnlineLink)) description.Add($"Bağlantı: {ev.OnlineLink}");
-        if (!string.IsNullOrEmpty(pageUrl)) description.Add($"Etkinlik sayfası: {pageUrl}");
+        if (ev.IsOnline && !string.IsNullOrEmpty(ev.OnlineLink)) description.Add(Loc.T("event.calendar.link", ev.OnlineLink));
+        if (!string.IsNullOrEmpty(pageUrl)) description.Add(Loc.T("event.calendar.page", pageUrl));
         if (description.Count > 0)
             lines.Add($"DESCRIPTION:{Escape(string.Join("\n", description))}");
 
@@ -71,7 +71,7 @@ public static class IcsBuilder
 
         var slug = string.Join("-", ascii.ToString().Split('-', StringSplitOptions.RemoveEmptyEntries));
         if (slug.Length > 60) slug = slug[..60].TrimEnd('-');
-        return (slug.Length == 0 ? "etkinlik" : slug) + ".ics";
+        return (slug.Length == 0 ? Loc.T("event.calendar.fileName") : slug) + ".ics";
     }
 
     private static string FormatUtc(DateTime value) =>

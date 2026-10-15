@@ -5,16 +5,20 @@ using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Domain.Enums;
-using SocialNetworkPlatformProject.Persistence.Contexts;
 using SocialNetworkPlatformProject.Persistence.Identity;
 
 namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class AdminService : IAdminService
 {
-    private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IUserRepository _users;
+    private readonly IPostRepository _postRows;
+    private readonly ICommentRepository _commentRows;
+    private readonly IMarketplaceListingRepository _listingRows;
+    private readonly IEventRepository _eventRows;
+    private readonly IGroupRepository _groupRows;
+    private readonly IReportRepository _reports;
     private readonly IAccessTokenRevoker _accessTokens;
     private readonly IFileStorageService _files;
     private readonly SessionIssuer _sessions;
@@ -27,9 +31,14 @@ public class AdminService : IAdminService
     private readonly INotificationService _notifications;
 
     public AdminService(
-        ApplicationDbContext context,
         UserManager<ApplicationUser> userManager,
         IUserRepository users,
+        IPostRepository postRows,
+        ICommentRepository commentRows,
+        IMarketplaceListingRepository listingRows,
+        IEventRepository eventRows,
+        IGroupRepository groupRows,
+        IReportRepository reports,
         IAccessTokenRevoker accessTokens,
         IFileStorageService files,
         SessionIssuer sessions,
@@ -41,9 +50,14 @@ public class AdminService : IAdminService
         IAuditService audit,
         INotificationService notifications)
     {
-        _context = context;
         _userManager = userManager;
         _users = users;
+        _postRows = postRows;
+        _commentRows = commentRows;
+        _listingRows = listingRows;
+        _eventRows = eventRows;
+        _groupRows = groupRows;
+        _reports = reports;
         _accessTokens = accessTokens;
         _files = files;
         _sessions = sessions;
@@ -63,16 +77,16 @@ public class AdminService : IAdminService
 
         return new GetAdminStatsDto
         {
-            Users = await _context.Users.CountAsync(),
-            SuspendedUsers = await _context.Users.CountAsync(u => u.IsSuspended),
-            NewUsersThisWeek = await _context.Users.CountAsync(u => u.CreatedAt >= weekAgo),
-            Posts = await _context.Posts.CountAsync(),
-            PostsToday = await _context.Posts.CountAsync(p => p.CreatedAt >= now.Date),
-            Listings = await _context.MarketplaceListings.CountAsync(),
-            Events = await _context.Events.CountAsync(),
-            Groups = await _context.Groups.CountAsync(),
-            PendingReports = await _context.Reports.CountAsync(r => r.Status == ReportStatus.Pending),
-            ResolvedReports = await _context.Reports.CountAsync(r => r.Status != ReportStatus.Pending)
+            Users = await _users.CountAsync(),
+            SuspendedUsers = await _users.CountAsync(suspended: true),
+            NewUsersThisWeek = await _users.CountAsync(createdSince: weekAgo),
+            Posts = await _postRows.GetAll().CountAsync(),
+            PostsToday = await _postRows.GetAll(p => p.CreatedAt >= now.Date).CountAsync(),
+            Listings = await _listingRows.GetAll().CountAsync(),
+            Events = await _eventRows.GetAll().CountAsync(),
+            Groups = await _groupRows.GetAll().CountAsync(),
+            PendingReports = await _reports.GetAll(r => r.Status == ReportStatus.Pending).CountAsync(),
+            ResolvedReports = await _reports.GetAll(r => r.Status != ReportStatus.Pending).CountAsync()
         };
     }
 
@@ -81,48 +95,25 @@ public class AdminService : IAdminService
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 50);
 
-        var query = _context.Users.AsNoTracking().AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(term))
-        {
-            var text = term.Trim();
-            query = query.Where(u => u.FullName.Contains(text) || u.UserName!.Contains(text) || u.Email!.Contains(text));
-        }
-
-        if (suspended.HasValue)
-            query = query.Where(u => u.IsSuspended == suspended.Value);
-
-        var total = await query.CountAsync();
-        var found = await query
-            .OrderByDescending(u => u.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        var (found, total) = await _users.SearchForAdminAsync(term, suspended, page, pageSize);
 
         var ids = found.Select(u => u.Id).ToList();
 
-        var adminRoleId = await _context.Roles.Where(r => r.Name == AppRoles.Admin).Select(r => (Guid?)r.Id).FirstOrDefaultAsync();
-        var adminIds = adminRoleId == null
-            ? new HashSet<Guid>()
-            : (await _context.UserRoles.Where(ur => ur.RoleId == adminRoleId && ids.Contains(ur.UserId)).Select(ur => ur.UserId).ToListAsync()).ToHashSet();
-
-        var postCounts = await _context.Posts.Where(p => ids.Contains(p.AuthorId))
+        var postCounts = await _postRows.GetAll(p => ids.Contains(p.AuthorId), asNoTracking: true)
             .GroupBy(p => p.AuthorId).Select(g => new { Id = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Id, x => x.Count);
-        var reportCounts = await _context.Reports.Where(r => ids.Contains(r.TargetOwnerId))
-            .GroupBy(r => r.TargetOwnerId).Select(g => new { Id = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.Id, x => x.Count);
+        var reportCounts = await _reports.CountByOwnersAsync(ids);
 
         var items = found.Select(u => new GetAdminUserDto
         {
             Id = u.Id,
             FullName = u.FullName,
-            UserName = u.UserName ?? string.Empty,
-            Email = u.Email ?? string.Empty,
+            UserName = u.UserName,
+            Email = u.Email,
             AvatarUrl = u.AvatarUrl,
             CreatedAt = u.CreatedAt,
             LastSeenAt = u.LastSeenAt,
-            IsAdmin = adminIds.Contains(u.Id),
+            IsAdmin = u.IsAdmin,
             IsSuspended = u.IsSuspended,
             SuspendedAt = u.SuspendedAt,
             SuspendReason = u.SuspendReason,
@@ -205,15 +196,15 @@ public class AdminService : IAdminService
 
         IQueryable<ContentRow> rows = kind switch
         {
-            "post" => _context.Posts.AsNoTracking().Where(p => text == "" || (p.Text != null && p.Text.Contains(text)))
+            "post" => _postRows.GetAll(p => text == "" || (p.Text != null && p.Text.Contains(text)), asNoTracking: true)
                 .Select(p => new ContentRow { Id = p.Id, Title = p.Text ?? "", OwnerId = p.AuthorId, CreatedAt = p.CreatedAt }),
-            "comment" => _context.Comments.AsNoTracking().Where(c => text == "" || c.Text.Contains(text))
+            "comment" => _commentRows.GetAll(c => text == "" || c.Text.Contains(text), asNoTracking: true)
                 .Select(c => new ContentRow { Id = c.Id, Title = c.Text, OwnerId = c.AuthorId, CreatedAt = c.CreatedAt }),
-            "listing" => _context.MarketplaceListings.AsNoTracking().Where(l => text == "" || l.Title.Contains(text))
+            "listing" => _listingRows.GetAll(l => text == "" || l.Title.Contains(text), asNoTracking: true)
                 .Select(l => new ContentRow { Id = l.Id, Title = l.Title, OwnerId = l.SellerId, CreatedAt = l.CreatedAt }),
-            "event" => _context.Events.AsNoTracking().Where(e => text == "" || e.Title.Contains(text))
+            "event" => _eventRows.GetAll(e => text == "" || e.Title.Contains(text), asNoTracking: true)
                 .Select(e => new ContentRow { Id = e.Id, Title = e.Title, OwnerId = e.CreatedByUserId, CreatedAt = e.CreatedAt }),
-            _ => _context.Groups.AsNoTracking().Where(g => text == "" || g.Name.Contains(text))
+            _ => _groupRows.GetAll(g => text == "" || g.Name.Contains(text), asNoTracking: true)
                 .Select(g => new ContentRow { Id = g.Id, Title = g.Name, OwnerId = g.CreatedByUserId, CreatedAt = g.CreatedAt })
         };
 
@@ -221,7 +212,7 @@ public class AdminService : IAdminService
         var page_ = await rows.OrderByDescending(r => r.CreatedAt).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
         var ownerIds = page_.Select(r => r.OwnerId).Distinct().ToList();
-        var names = await _context.Users.Where(u => ownerIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+        var owners = await _users.GetSummariesAsync(ownerIds);
 
         var items = page_.Select(r => new GetAdminContentDto
         {
@@ -229,7 +220,7 @@ public class AdminService : IAdminService
             Id = r.Id,
             Title = Shorten(r.Title, 140),
             OwnerId = r.OwnerId,
-            OwnerName = names.GetValueOrDefault(r.OwnerId, string.Empty),
+            OwnerName = owners.TryGetValue(r.OwnerId, out var owner) ? owner.FullName : string.Empty,
             CreatedAt = r.CreatedAt
         }).ToList();
 
@@ -253,7 +244,7 @@ public class AdminService : IAdminService
         // The owner is told that it was removed (not by whom). Nothing is sent when the admin removed their own thing.
         await _notifications.CreateAsync(ownerId, adminId, NotificationType.ContentRemoved, subject: string.IsNullOrWhiteSpace(title) ? null : Shorten(title, 150));
 
-        var ownerName = await _context.Users.Where(u => u.Id == ownerId).Select(u => u.FullName).FirstOrDefaultAsync();
+        var ownerName = (await _users.GetSummaryAsync(ownerId))?.FullName;
         var details = $"{ownerName}: “{Shorten(title, 120)}”" + (string.IsNullOrWhiteSpace(note) ? "" : $" — {note.Trim()}");
         await _audit.RecordAsync(adminId, $"{kind}.remove", char.ToUpperInvariant(kind[0]) + kind[1..], id, details);
     }
@@ -264,23 +255,23 @@ public class AdminService : IAdminService
         switch (kind)
         {
             case "post":
-                var post = await _context.Posts.AsNoTracking().Where(p => p.Id == id).Select(p => new { p.Text, p.AuthorId }).FirstOrDefaultAsync()
+                var post = await _postRows.GetAll(p => p.Id == id, asNoTracking: true).Select(p => new { p.Text, p.AuthorId }).FirstOrDefaultAsync()
                     ?? throw new NotFoundException(Loc.T("post.notFound"));
                 return (post.Text ?? string.Empty, post.AuthorId);
             case "comment":
-                var comment = await _context.Comments.AsNoTracking().Where(c => c.Id == id).Select(c => new { c.Text, c.AuthorId }).FirstOrDefaultAsync()
+                var comment = await _commentRows.GetAll(c => c.Id == id, asNoTracking: true).Select(c => new { c.Text, c.AuthorId }).FirstOrDefaultAsync()
                     ?? throw new NotFoundException(Loc.T("comment.notFound"));
                 return (comment.Text, comment.AuthorId);
             case "listing":
-                var listing = await _context.MarketplaceListings.AsNoTracking().Where(l => l.Id == id).Select(l => new { l.Title, l.SellerId }).FirstOrDefaultAsync()
+                var listing = await _listingRows.GetAll(l => l.Id == id, asNoTracking: true).Select(l => new { l.Title, l.SellerId }).FirstOrDefaultAsync()
                     ?? throw new NotFoundException(Loc.T("listing.notFound"));
                 return (listing.Title, listing.SellerId);
             case "event":
-                var ev = await _context.Events.AsNoTracking().Where(e => e.Id == id).Select(e => new { e.Title, e.CreatedByUserId }).FirstOrDefaultAsync()
+                var ev = await _eventRows.GetAll(e => e.Id == id, asNoTracking: true).Select(e => new { e.Title, e.CreatedByUserId }).FirstOrDefaultAsync()
                     ?? throw new NotFoundException(Loc.T("event.notFound"));
                 return (ev.Title, ev.CreatedByUserId);
             default:
-                var group = await _context.Groups.AsNoTracking().Where(g => g.Id == id).Select(g => new { g.Name, g.CreatedByUserId }).FirstOrDefaultAsync()
+                var group = await _groupRows.GetAll(g => g.Id == id, asNoTracking: true).Select(g => new { g.Name, g.CreatedByUserId }).FirstOrDefaultAsync()
                     ?? throw new NotFoundException(Loc.T("group.notFound"));
                 return (group.Name, group.CreatedByUserId);
         }

@@ -38,6 +38,7 @@ public class GroupsController : ControllerBase
     }
 
     [HttpPost]
+    [RequestSizeLimit(UploadLimits.MaxRequestBytes)]
     public async Task<ActionResult<GetGroupDto>> Create([FromForm] PostGroupDto dto)
     {
         var group = await _groups.CreateAsync(User.GetUserId(), dto);
@@ -45,6 +46,7 @@ public class GroupsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [RequestSizeLimit(UploadLimits.MaxRequestBytes)]
     public async Task<ActionResult<GetGroupDto>> Update(Guid id, [FromForm] PutGroupDto dto)
     {
         return await _groups.UpdateAsync(User.GetUserId(), id, dto);

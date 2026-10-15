@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Domain.Entities;
+using SocialNetworkPlatformProject.Domain.Enums;
 using SocialNetworkPlatformProject.Persistence.Contexts;
 using SocialNetworkPlatformProject.Persistence.Implementations.Repositories.Generic;
 
@@ -42,6 +43,34 @@ public class PostRepository : Repository<Post>, IPostRepository
             .GroupBy(p => p.SharedPostId!.Value)
             .Select(g => new { PostId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.PostId, x => x.Count);
+    }
+
+    public IQueryable<Post> VisibleTo(IQueryable<Post> posts, Guid viewerId)
+    {
+        var friendships = _context.Set<Friendship>();
+        var users = _context.Users;
+        var memberships = _context.Set<GroupMember>();
+        var blocks = _context.Set<UserBlock>();
+
+        return posts
+            // Posts of somebody the viewer blocked, or who blocked the viewer, are never shown.
+            .Where(p => !blocks.Any(b => (b.BlockerId == viewerId && b.BlockedId == p.AuthorId) || (b.BlockerId == p.AuthorId && b.BlockedId == viewerId)))
+            .Where(p => p.GroupId == null
+            // A personal post: its author, the author's friends, or anyone if it is public and the account is open.
+            ? p.AuthorId == viewerId
+                || friendships.Any(f => (f.UserOneId == viewerId && f.UserTwoId == p.AuthorId) || (f.UserTwoId == viewerId && f.UserOneId == p.AuthorId))
+                || (p.Privacy == PostPrivacy.Public && users.Any(u => u.Id == p.AuthorId && !u.IsPrivateAccount))
+            // A group post: anyone for a public group, otherwise only its members.
+            : p.Group!.Privacy == GroupPrivacy.Public
+                || memberships.Any(m => m.GroupId == p.GroupId && m.UserId == viewerId));
+    }
+
+    public async Task<Post?> FindByMediaUrlAsync(string url)
+    {
+        return await _context.Set<PostMedia>().AsNoTracking()
+            .Where(m => m.Url == url)
+            .Select(m => m.Post)
+            .FirstOrDefaultAsync();
     }
 
     public async Task DetachSharesAsync(IReadOnlyCollection<Guid> postIds)

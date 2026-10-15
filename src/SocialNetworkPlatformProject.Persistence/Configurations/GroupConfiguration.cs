@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Domain.Entities;
 
 namespace SocialNetworkPlatformProject.Persistence.Configurations;
@@ -8,6 +9,9 @@ public class GroupConfiguration : IEntityTypeConfiguration<Group>
 {
     public void Configure(EntityTypeBuilder<Group> builder)
     {
+        builder.Property(g => g.Name).HasMaxLength(TextLimits.GroupName);
+        builder.Property(g => g.Description).HasMaxLength(TextLimits.GroupDescription);
+
         builder.HasMany(g => g.Members)
             .WithOne(m => m.Group)
             .HasForeignKey(m => m.GroupId)

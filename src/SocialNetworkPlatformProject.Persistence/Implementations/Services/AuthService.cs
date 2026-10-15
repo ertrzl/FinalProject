@@ -13,6 +13,7 @@ public class AuthService : IAuthService
     private readonly PasswordVerifier _passwords;
     private readonly SessionIssuer _sessions;
     private readonly IFileStorageService _files;
+    private readonly LoginThrottle _unknownLogins;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
@@ -20,8 +21,10 @@ public class AuthService : IAuthService
         PasswordVerifier passwords,
         SessionIssuer sessions,
         IFileStorageService files,
+        LoginThrottle unknownLogins,
         ILogger<AuthService> logger)
     {
+        _unknownLogins = unknownLogins;
         _userManager = userManager;
         _passwords = passwords;
         _sessions = sessions;
@@ -61,6 +64,10 @@ public class AuthService : IAuthService
             throw new BadRequestException(string.Join(" ", result.Errors.Select(e => e.Description)));
         }
 
+        // The name and the address of the new account may have been tried before it existed: they start clean.
+        _unknownLogins.Forget(userName);
+        _unknownLogins.Forget(email);
+
         var session = await _sessions.IssueAsync(user);
         _logger.LogInformation("New account: {UserName} ({UserId:l})", user.UserName, user.Id.ToString());
         return session;
@@ -77,7 +84,13 @@ public class AuthService : IAuthService
         // The name that was typed is not written: people sometimes type their password into that box.
         if (user == null)
         {
+            // Answered like a real account is: locked after five wrong tries, and as slow as a password check (see LoginThrottle),
+            // so neither the message nor the time tells whether the account exists.
+            _unknownLogins.EnsureNotLocked(identifier);
+            _passwords.SpendTimeLikeAWrongGuess(dto.Password);
+
             _logger.LogWarning("Failed sign-in: no such account");
+            _unknownLogins.RecordFailure(identifier);
             throw new UnauthorizedException(Loc.T("auth.badCredentials"));
         }
 

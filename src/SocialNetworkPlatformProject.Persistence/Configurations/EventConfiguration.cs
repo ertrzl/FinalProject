@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Domain.Entities;
 using SocialNetworkPlatformProject.Persistence.Converters;
 
@@ -16,7 +17,14 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.HasIndex(e => e.EndsAt);
 
         builder.Property(e => e.RowVersion).IsRowVersion();
+        builder.Property(e => e.Title).HasMaxLength(TextLimits.EventTitle);
+        builder.Property(e => e.Location).HasMaxLength(TextLimits.EventLocation);
+        builder.Property(e => e.Description).HasMaxLength(TextLimits.EventDescription);
         builder.Property(e => e.OnlineLink).HasMaxLength(500);
+
+        // Who may open an event's cover is decided from the event that holds its address (UploadsController).
+        builder.Property(e => e.CoverImageUrl).HasMaxLength(500);
+        builder.HasIndex(e => e.CoverImageUrl).HasFilter("[CoverImageUrl] IS NOT NULL");
 
         // Deleting a group takes its events (and their attendees, invites and comments) with it.
         builder.HasOne(e => e.Group)

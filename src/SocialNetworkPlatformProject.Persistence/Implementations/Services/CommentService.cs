@@ -50,25 +50,49 @@ public class CommentService : ICommentService
         _mapper = mapper;
     }
 
-    public async Task<List<GetCommentDto>> GetByPostAsync(Guid currentUserId, Guid postId)
+    public async Task<GetCommentPageDto> GetByPostAsync(Guid currentUserId, Guid postId, int page, int pageSize)
     {
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
         var post = await _posts.GetByIdAsync(postId)
             ?? throw new NotFoundException(Loc.T("post.notFound"));
 
         await _access.EnsureCanViewAsync(post, currentUserId);
 
-        var comments = await _comments.GetAll(
-                filter: c => c.PostId == postId,
-                orderBy: c => c.CreatedAt,
-                asNoTracking: true,
-                includes: LikeIncludes)
+        // Only the shape of the thread (three columns) is read for all of the post's comments; the texts and the likes are
+        // read for the comments of the page asked for.
+        var shape = await _comments.GetAll(c => c.PostId == postId, orderBy: c => c.CreatedAt, asNoTracking: true)
+            .Select(c => new { c.Id, c.ParentCommentId, c.AuthorId })
             .ToListAsync();
 
         // What blocked people wrote is hidden both ways (their replies' threads go with their comments).
         var blockedIds = await _blocks.GetBlockedIdsAsync(currentUserId);
-        comments = comments.Where(c => !blockedIds.Contains(c.AuthorId)).ToList();
+        var topLevel = shape.Where(c => c.ParentCommentId == null && !blockedIds.Contains(c.AuthorId)).ToList();
 
-        return await BuildDtosAsync(InThreadOrder(comments), post, currentUserId);
+        var pageTopIds = topLevel.Skip((page - 1) * pageSize).Take(pageSize).Select(c => c.Id).ToHashSet();
+        var wantedIds = shape
+            .Where(c => pageTopIds.Contains(c.Id) || (c.ParentCommentId != null && pageTopIds.Contains(c.ParentCommentId.Value) && !blockedIds.Contains(c.AuthorId)))
+            .Select(c => c.Id)
+            .ToList();
+
+        var comments = wantedIds.Count == 0
+            ? new List<Comment>()
+            : await _comments.GetAll(
+                    filter: c => wantedIds.Contains(c.Id),
+                    orderBy: c => c.CreatedAt,
+                    asNoTracking: true,
+                    includes: LikeIncludes)
+                .ToListAsync();
+
+        return new GetCommentPageDto
+        {
+            Items = await BuildDtosAsync(InThreadOrder(comments), post, currentUserId),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = topLevel.Count,
+            CommentCount = shape.Count
+        };
     }
 
     // Every top-level comment followed by its replies (oldest first), so the page can simply draw the list as it comes.

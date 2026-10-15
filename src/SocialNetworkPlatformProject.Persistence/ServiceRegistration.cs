@@ -42,6 +42,8 @@ public static class ServiceRegistration
             options.TokenLifespan = TimeSpan.FromMinutes(configuration.GetValue("PasswordReset:LinkLifetimeMinutes", 60.0)));
 
         // F3–F5
+        services.AddScoped<IReportRepository, ReportRepository>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<ICommentRepository, CommentRepository>();
         services.AddScoped<IPostLikeRepository, PostLikeRepository>();
@@ -89,7 +91,9 @@ public static class ServiceRegistration
 
         // Login sessions and password checks (Identity-backed)
         services.AddScoped<PasswordVerifier>();
+        services.AddSingleton<LoginThrottle>();
         services.AddScoped<SessionIssuer>();
+        services.AddScoped<ISessionService, SessionService>();
 
         // Users (Identity-backed, so not a generic IRepository<T>)
         services.AddScoped<IUserRepository, UserRepository>();
@@ -110,6 +114,7 @@ public static class ServiceRegistration
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IStoryService, StoryService>();
         services.AddScoped<IStoryMaintenanceService, StoryMaintenanceService>();
+        services.AddScoped<IDataCleanupService, DataCleanupService>();
         services.AddScoped<IMessageService, MessageService>();
         services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<IMarketplaceService, MarketplaceService>();
@@ -130,6 +135,9 @@ public static class ServiceRegistration
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IReportService, ReportService>();
+
+        // Who may open an uploaded file
+        services.AddScoped<IUploadAccessService, UploadAccessService>();
 
         return services;
     }

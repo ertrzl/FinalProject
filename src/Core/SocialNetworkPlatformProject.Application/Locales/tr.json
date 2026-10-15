@@ -25,6 +25,10 @@
 
   "server.exists": "Bu kayıt zaten var.",
   "server.unexpected": "Beklenmeyen bir hata oluştu. Lütfen daha sonra tekrar dene.",
+  "server.changedMeanwhile": "Bu az önce başka biri tarafından değiştirildi. Lütfen sayfayı yenileyip tekrar dene.",
+  "hub.tooManyCalls": "Çok hızlı işlem yapıyorsun. Biraz bekleyip tekrar dene.",
+  "session.unknownDevice": "Bilinmeyen cihaz",
+  "session.notFound": "Bu oturum artık açık değil.",
   "rateLimit.tooMany": "Çok fazla istek gönderdin. Biraz yavaşla ve birazdan tekrar dene.",
 
   "auth.sessionInvalid": "Oturum geçersiz ya da süresi dolmuş. Lütfen yeniden giriş yap.",
@@ -61,6 +65,9 @@
   "block.self": "Kendini engelleyemezsin.",
   "block.already": "Bu kişiyi zaten engelledin.",
   "block.notBlocked": "Bu kişiyi engellemedin.",
+  "block.cannotInvite": "Bu kişiyi davet edemezsin.",
+  "block.cannotOffer": "Bu kişiyle teklif veremez ya da teklifine cevap veremezsin.",
+  "block.cannotRate": "Bu satıcıyı puanlayamazsın.",
 
   "report.targetRequired": "Neyi şikâyet ettiğini belirt.",
   "report.targetTypeInvalid": "Bu şikâyet edilemez.",
@@ -70,6 +77,8 @@
   "report.targetNotFound": "Şikâyet ettiğin şey artık yok.",
   "report.own": "Kendini ya da kendi içeriğini şikâyet edemezsin.",
   "report.alreadyReported": "Bunu zaten şikâyet ettin. İnceleyeceğiz.",
+  "val.password.long": "Şifre en fazla 1024 karakter olabilir.",
+  "upload.tooLarge": "Yüklediğin dosyalar çok büyük. Bir seferde en fazla {0} MB yükleyebilirsin.",
   "report.alreadyClosed": "Bu şikâyet zaten kapatılmış.",
   "report.alreadyReviewed": "Bunu daha önce şikâyet ettin; yöneticiler inceledi.",
   "report.noText": "[foto / anket]",
@@ -114,6 +123,11 @@
   "event.endPast": "Bitiş zamanı geçmişte olamaz.",
   "event.linkInvalid": "Bağlantı geçerli bir adres olmalı.",
   "event.linkTooLong": "Bağlantı çok uzun.",
+  "event.capacityBelowGoing": "Kontenjan, katılacağını söyleyen {0} kişiden az olamaz.",
+  "event.calendar.online": "Çevrimiçi",
+  "event.calendar.link": "Bağlantı: {0}",
+  "event.calendar.page": "Etkinlik sayfası: {0}",
+  "event.calendar.fileName": "etkinlik",
 
   "invite.self": "Kendini davet edemezsin.",
 
@@ -133,6 +147,8 @@
   "message.target": "Sohbet ya da alıcı belirtilmeli.",
   "message.cannot": "Bu kişiye mesaj gönderemezsin.",
   "message.deleteOwn": "Sadece kendi mesajlarını silebilirsin.",
+  "message.preview.deleted": "🚫 Mesaj silindi",
+  "message.preview.photo": "📷 Fotoğraf",
 
   "notification.notYours": "Bu bildirim sana ait değil.",
 
@@ -161,6 +177,10 @@
   "listing.photosMismatch": "Seçilen fotoğraflardan biri ya da birkaçı bu ilana ait değil.",
   "listing.status": "Durum 'Active' ya da 'Sold' olmalı.",
   "listing.saveOwn": "Kendi ilanını kaydedemezsin.",
+  "listing.editOwn": "Sadece kendi ilanlarını düzenleyebilirsin.",
+  "listing.statusOwn": "Sadece kendi ilanlarının durumunu değiştirebilirsin.",
+  "listing.deleteOwn": "Sadece kendi ilanlarını silebilirsin.",
+  "listing.tooManyPhotos": "Bir ilanda en fazla {0} fotoğraf olabilir.",
 
   "offer.ownListing": "Kendi ilanına teklif veremezsin.",
   "offer.notForSale": "Bu ilan artık satışta değil.",
@@ -169,6 +189,8 @@
   "offer.notYours": "Bu teklif sana ait değil.",
   "offer.otherTurn": "Sıra karşı tarafta: teklifine yanıt vermesini bekle.",
   "offer.ended": "Bu pazarlık zaten sona erdi.",
+  "offer.tooHigh": "Teklif, istenen fiyattan ({0}) yüksek olamaz.",
+  "offer.counterRange": "Karşı teklif {0} ile {1} arasında olmalı.",
 
   "rating.buyerOnly": "Satıcıyı sadece kabul edilmiş bir anlaşmanın alıcısı puanlayabilir.",
   "rating.afterAccepted": "Satıcıyı ancak anlaşma kabul edildikten sonra puanlayabilirsin.",

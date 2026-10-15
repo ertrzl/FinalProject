@@ -6,6 +6,7 @@ using Serilog;
 using SocialNetworkPlatformProject.Filters;
 using SocialNetworkPlatformProject.Application;
 using SocialNetworkPlatformProject.Application.Common;
+using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Extensions;
 using SocialNetworkPlatformProject.Infrastructure;
 using SocialNetworkPlatformProject.Infrastructure.Hubs;
@@ -52,6 +53,7 @@ builder.Services.AddControllers().AddMvcOptions(options =>
 {
     LocalizedModelBindingMessages.Apply(options);
     options.Filters.Add<ActionLogFilter>();
+    options.Filters.Add<MediaCookieFilter>();
 });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -71,6 +73,10 @@ builder.Services.AddSwaggerGen(options =>
     options.AddSecurityDefinition("Bearer", jwtScheme);
     options.AddSecurityRequirement(new OpenApiSecurityRequirement { [jwtScheme] = Array.Empty<string>() });
 });
+
+// Who is calling (browser, address) for the services that must not touch HttpContext: the list of open sessions.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IClientInfo, HttpClientInfo>();
 
 builder.Services
     .AddApplicationServices()
@@ -153,19 +159,22 @@ else
 }
 
 app.UseDefaultFiles();
-app.UseStaticFiles(new StaticFileOptions
+
+// /uploads is not a static folder: any file in it would be handed to anybody. UploadsController answers it instead, and
+// asks who is looking (see MediaCookie).
+app.UseWhen(context => !context.Request.Path.StartsWithSegments("/uploads"), files => files.UseStaticFiles(new StaticFileOptions
 {
     // The pages and scripts share helpers (api.js, app.js...) and change often. Without an explicit header the
     // browser decides on its own how long to keep them, so a user could run a new page against an old helper
     // file and hit "x is not defined". "no-cache" means: always ask the server, which answers 304 (no body)
-    // while the file is unchanged. Uploaded media keeps the default (its file names never change).
+    // while the file is unchanged.
     OnPrepareResponse = context =>
     {
         var extension = Path.GetExtension(context.File.Name);
         if (extension is ".js" or ".css" or ".html")
             context.Context.Response.Headers.CacheControl = "no-cache";
     }
-});
+}));
 
 app.UseHttpsRedirection();
 

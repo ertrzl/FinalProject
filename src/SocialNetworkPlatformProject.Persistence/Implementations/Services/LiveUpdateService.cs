@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SocialNetworkPlatformProject.Application.DTOs.Comments;
 using SocialNetworkPlatformProject.Application.DTOs.Posts;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
@@ -15,6 +16,8 @@ public class LiveUpdateService : ILiveUpdateService
     private readonly IGroupMemberRepository _groupMembers;
     private readonly IUserRepository _users;
     private readonly IPresenceTracker _presence;
+    private readonly IConversationParticipantRepository _participants;
+    private readonly ILogger<LiveUpdateService> _logger;
 
     public LiveUpdateService(
         IRealTimeNotifier notifier,
@@ -22,7 +25,9 @@ public class LiveUpdateService : ILiveUpdateService
         IBlockService blocks,
         IGroupMemberRepository groupMembers,
         IUserRepository users,
-        IPresenceTracker presence)
+        IPresenceTracker presence,
+        IConversationParticipantRepository participants,
+        ILogger<LiveUpdateService> logger)
     {
         _notifier = notifier;
         _friends = friends;
@@ -30,6 +35,8 @@ public class LiveUpdateService : ILiveUpdateService
         _groupMembers = groupMembers;
         _users = users;
         _presence = presence;
+        _participants = participants;
+        _logger = logger;
     }
 
     public Task PostCreatedAsync(Post post)
@@ -89,11 +96,28 @@ public class LiveUpdateService : ILiveUpdateService
                 return;
 
             var isOnline = user.ShowOnlineStatus && _presence.IsOnline(userId);
-            await _notifier.BroadcastAsync("PresenceChanged", new { userId, isOnline });
+
+            // Only the people who can see this person's status on the pages hear about it: their friends and the people they
+            // chat with, except anyone blocked with them. (It used to go to every connected client, strangers included.)
+            var audience = new HashSet<Guid>(await _friends.GetFriendIdsAsync(userId));
+
+            var myConversationIds = _participants.GetAll(p => p.UserId == userId, asNoTracking: true).Select(p => p.ConversationId);
+            audience.UnionWith(await _participants
+                .GetAll(p => myConversationIds.Contains(p.ConversationId) && p.UserId != userId, asNoTracking: true)
+                .Select(p => p.UserId)
+                .ToListAsync());
+
+            audience.ExceptWith(await _blocks.GetBlockedIdsAsync(userId));
+            audience.Remove(userId);
+            if (audience.Count == 0)
+                return;
+
+            await _notifier.PublishAsync(audience, "PresenceChanged", new { userId, isOnline });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Live pushes are best effort: the page still shows the right state after its next load.
+            // Live pushes are best effort: the page still shows the right state after its next load. It is logged, though.
+            _logger.LogWarning(ex, "The online status of user {UserId:l} could not be pushed", userId.ToString());
         }
     }
 
@@ -116,9 +140,10 @@ public class LiveUpdateService : ILiveUpdateService
 
             await _notifier.PublishAsync(audience, eventName, payload);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Live pushes are best effort: the request that caused this must not fail because of them.
+            // Live pushes are best effort: the request that caused this must not fail because of them. It is logged, though.
+            _logger.LogWarning(ex, "The live update {EventName} of post {PostId:l} could not be pushed", eventName, post.Id.ToString());
         }
     }
 }

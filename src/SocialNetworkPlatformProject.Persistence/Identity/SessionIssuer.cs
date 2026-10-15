@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Users;
 using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
@@ -25,6 +26,7 @@ public class SessionIssuer
     private readonly ITokenService _tokenService;
     private readonly IRefreshTokenRepository _refreshTokens;
     private readonly IConfiguration _configuration;
+    private readonly IClientInfo _client;
     private readonly ILogger<SessionIssuer> _logger;
 
     public SessionIssuer(
@@ -33,6 +35,7 @@ public class SessionIssuer
         ITokenService tokenService,
         IRefreshTokenRepository refreshTokens,
         IConfiguration configuration,
+        IClientInfo client,
         ILogger<SessionIssuer> logger)
     {
         _userManager = userManager;
@@ -40,10 +43,13 @@ public class SessionIssuer
         _tokenService = tokenService;
         _refreshTokens = refreshTokens;
         _configuration = configuration;
+        _client = client;
         _logger = logger;
     }
 
-    public async Task<TokenResponseDto> IssueAsync(ApplicationUser user)
+    // A sign-in starts a new session; a renewal (RotateAsync) passes the session it continues, so the device keeps its place
+    // in the list of open sessions.
+    public async Task<TokenResponseDto> IssueAsync(ApplicationUser user, Guid? sessionId = null, DateTime? sessionStartedAt = null)
     {
         // A suspended account gets no session, whatever way it asks (sign-in or a refresh token).
         if (user.IsSuspended)
@@ -55,7 +61,9 @@ public class SessionIssuer
         await EnsureConfiguredAdminAsync(user);
 
         var roles = await _userManager.GetRolesAsync(user);
-        var accessToken = _tokenService.GenerateAccessToken(user.Id, user.Email!, user.FullName, user.SecurityStamp!, roles);
+        var session = sessionId ?? Guid.NewGuid();
+        var accessToken = _tokenService.GenerateAccessToken(user.Id, user.Email!, user.FullName, user.SecurityStamp!, session, roles);
+        var mediaToken = _tokenService.GenerateMediaToken(user.Id, user.SecurityStamp!, session);
 
         var now = DateTime.UtcNow;
         var refreshTokenDays = int.Parse(_configuration["Jwt:RefreshTokenExpiryDays"] ?? "30");
@@ -66,7 +74,11 @@ public class SessionIssuer
         {
             UserId = user.Id,
             TokenHash = Hash(refreshToken),
-            ExpiresAt = now.AddDays(refreshTokenDays)
+            ExpiresAt = now.AddDays(refreshTokenDays),
+            SessionId = session,
+            SessionStartedAt = sessionStartedAt ?? now,
+            DeviceName = DeviceNames.FromUserAgent(_client.UserAgent),
+            IpAddress = _client.IpAddress
         });
         await _refreshTokens.SaveChangesAsync();
 
@@ -78,7 +90,9 @@ public class SessionIssuer
             UserId = user.Id,
             FullName = user.FullName,
             AvatarUrl = user.AvatarUrl,
-            IsAdmin = roles.Contains(AppRoles.Admin)
+            IsAdmin = roles.Contains(AppRoles.Admin),
+            MediaToken = mediaToken.AccessToken,
+            MediaExpiresAt = mediaToken.ExpiresAt
         };
     }
 
@@ -124,7 +138,7 @@ public class SessionIssuer
         if (!await _refreshTokens.TryRevokeAsync(stored.Id, now))
             throw new UnauthorizedException(Loc.T("auth.sessionInvalid"));
 
-        return await IssueAsync(user);
+        return await IssueAsync(user, stored.SessionId, stored.SessionStartedAt);
     }
 
     public async Task RevokeAsync(string refreshToken)

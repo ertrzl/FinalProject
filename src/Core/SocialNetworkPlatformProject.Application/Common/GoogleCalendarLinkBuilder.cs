@@ -13,10 +13,10 @@ public static class GoogleCalendarLinkBuilder
     {
         var details = new List<string>();
         if (!string.IsNullOrWhiteSpace(ev.Description)) details.Add(ev.Description);
-        if (ev.IsOnline && !string.IsNullOrEmpty(ev.OnlineLink)) details.Add($"Bağlantı: {ev.OnlineLink}");
-        if (!string.IsNullOrEmpty(pageUrl)) details.Add($"Etkinlik sayfası: {pageUrl}");
+        if (ev.IsOnline && !string.IsNullOrEmpty(ev.OnlineLink)) details.Add(Loc.T("event.calendar.link", ev.OnlineLink));
+        if (!string.IsNullOrEmpty(pageUrl)) details.Add(Loc.T("event.calendar.page", pageUrl));
 
-        var place = ev.IsOnline ? ev.OnlineLink ?? "Çevrimiçi" : ev.Location ?? string.Empty;
+        var place = ev.IsOnline ? ev.OnlineLink ?? Loc.T("event.calendar.online") : ev.Location ?? string.Empty;
 
         var parameters = new (string Name, string Value)[]
         {

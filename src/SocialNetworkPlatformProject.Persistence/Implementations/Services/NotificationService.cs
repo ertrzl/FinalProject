@@ -267,6 +267,33 @@ public class NotificationService : INotificationService
         await _notifications.SaveChangesAsync();
     }
 
+    public async Task DeleteByPostsAsync(IReadOnlyCollection<Guid> postIds)
+    {
+        if (postIds.Count == 0)
+            return;
+
+        var related = await _notifications.GetAll(n => n.PostId != null && postIds.Contains(n.PostId.Value)).ToListAsync();
+        if (related.Count == 0)
+            return;
+
+        foreach (var notification in related)
+            _notifications.Delete(notification);
+
+        await _notifications.SaveChangesAsync();
+    }
+
+    public async Task DeleteByGroupAsync(Guid groupId)
+    {
+        var related = await _notifications.GetAll(n => n.GroupId == groupId).ToListAsync();
+        if (related.Count == 0)
+            return;
+
+        foreach (var notification in related)
+            _notifications.Delete(notification);
+
+        await _notifications.SaveChangesAsync();
+    }
+
     public async Task DeleteByEventAsync(Guid eventId)
     {
         var related = await _notifications.GetAll(n => n.EventId == eventId).ToListAsync();

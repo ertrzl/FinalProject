@@ -25,7 +25,9 @@ public class GroupService : IGroupService
     private readonly IEventRepository _events;
     private readonly IEventService _eventService;
     private readonly IFileStorageService _files;
+    private readonly IPostRepository _posts;
     private readonly IMapper _mapper;
+    private readonly IBlockService _blocks;
 
     public GroupService(
         IGroupRepository groups,
@@ -37,8 +39,12 @@ public class GroupService : IGroupService
         IEventRepository events,
         IEventService eventService,
         IFileStorageService files,
-        IMapper mapper)
+        IPostRepository posts,
+        IMapper mapper,
+        IBlockService blocks)
     {
+        _blocks = blocks;
+        _posts = posts;
         _events = events;
         _eventService = eventService;
         _groups = groups;
@@ -86,14 +92,17 @@ public class GroupService : IGroupService
         if (!Enum.TryParse<GroupPrivacy>(dto.Privacy, out var privacy))
             throw new BadRequestException(Loc.T("group.privacy"));
 
+        // The old cover file is deleted only once the new state is saved: if the save fails, the group must not be left pointing
+        // at a deleted file. A new cover that could not be saved is deleted again.
+        var oldCoverUrl = group.CoverImageUrl;
+        string? newCoverUrl = null;
         if (dto.CoverImage != null)
         {
-            _files.Delete(group.CoverImageUrl);
-            group.CoverImageUrl = await _files.SaveImageAsync(dto.CoverImage, "groups");
+            newCoverUrl = await _files.SaveImageAsync(dto.CoverImage, "groups");
+            group.CoverImageUrl = newCoverUrl;
         }
         else if (dto.RemoveCoverImage)
         {
-            _files.Delete(group.CoverImageUrl);
             group.CoverImageUrl = null;
         }
 
@@ -102,7 +111,19 @@ public class GroupService : IGroupService
 
         var wasPrivate = group.Privacy == GroupPrivacy.Private;
         group.Privacy = privacy;
-        await _groups.SaveChangesAsync();
+
+        try
+        {
+            await _groups.SaveChangesAsync();
+        }
+        catch
+        {
+            _files.Delete(newCoverUrl);
+            throw;
+        }
+
+        if (group.CoverImageUrl != oldCoverUrl)
+            _files.Delete(oldCoverUrl);
 
         // Going public makes any pending requests moot — those users can just join directly now.
         if (wasPrivate && privacy == GroupPrivacy.Public)
@@ -229,7 +250,9 @@ public class GroupService : IGroupService
             return new List<GetJoinRequestDto>();
 
         var summaries = await _users.GetSummariesAsync(requests.Select(r => r.UserId));
-        return requests.Select(r =>
+
+        // A request whose account is gone (deleted before requests were cleaned up with it) is not listed.
+        return requests.Where(r => summaries.ContainsKey(r.UserId)).Select(r =>
         {
             summaries.TryGetValue(r.UserId, out var summary);
             return new GetJoinRequestDto
@@ -252,6 +275,14 @@ public class GroupService : IGroupService
 
         var request = await _joinRequests.GetAll(r => r.GroupId == groupId && r.UserId == requesterUserId).FirstOrDefaultAsync()
             ?? throw new NotFoundException(Loc.T("joinRequest.notFound"));
+
+        // The person's account may be gone: nobody to let in, the request is simply removed.
+        if (!await _users.ExistsAsync(requesterUserId))
+        {
+            _joinRequests.Delete(request);
+            await _joinRequests.SaveChangesAsync();
+            throw new NotFoundException(Loc.T("user.notFound"));
+        }
 
         _joinRequests.Delete(request);
         await _members.AddAsync(new GroupMember { GroupId = groupId, UserId = requesterUserId, Role = GroupMemberRole.Member });
@@ -289,6 +320,10 @@ public class GroupService : IGroupService
         if (!await _users.ExistsAsync(targetUserId))
             throw new NotFoundException(Loc.T("user.notFound"));
 
+        // Blocked people can't send each other invitations, whichever of them blocked the other.
+        if (await _blocks.AreBlockedAsync(currentUserId, targetUserId))
+            throw new ForbiddenException(Loc.T("block.cannotInvite"));
+
         if (group.Members.Any(m => m.UserId == targetUserId))
             throw new ConflictException(Loc.T("group.memberAlready"));
 
@@ -313,8 +348,11 @@ public class GroupService : IGroupService
 
     public async Task<List<GetGroupInviteDto>> GetMyInvitesAsync(Guid currentUserId)
     {
+        // Invitations from someone blocked with me, also the ones sent before the block, are not shown.
+        var hidden = await _blocks.GetBlockedIdsAsync(currentUserId);
+
         var invites = await _invites.GetAll(
-                filter: i => i.UserId == currentUserId,
+                filter: i => i.UserId == currentUserId && !hidden.Contains(i.InvitedByUserId),
                 orderBy: i => i.CreatedAt,
                 isDescending: true,
                 asNoTracking: true,
@@ -413,18 +451,28 @@ public class GroupService : IGroupService
         await DeleteGroupWithEventsAsync(group);
     }
 
-    // Deletes the group. Its events go with it (the database cascades), but their cover files and notifications are
-    // not the database's to clean up, so collect them first and remove them afterwards.
+    // Deletes the group. Its events and its wall's posts go with it (the database cascades), but their files and
+    // notifications are not the database's to clean up, so collect them first and remove them afterwards.
     private async Task DeleteGroupWithEventsAsync(Group group)
     {
         var groupEvents = await _events.GetAll(e => e.GroupId == group.Id, asNoTracking: true)
             .Select(e => new { e.Id, e.CoverImageUrl })
             .ToListAsync();
 
+        var wallPosts = _posts.GetAll(p => p.GroupId == group.Id, asNoTracking: true);
+        var wallPostIds = await wallPosts.Select(p => p.Id).ToListAsync();
+        var wallFiles = await wallPosts.SelectMany(p => p.Media).Select(m => m.Url).ToListAsync();
+
         _groups.Delete(group);
         await _groups.SaveChangesAsync();
 
         _files.Delete(group.CoverImageUrl);
+
+        foreach (var file in wallFiles)
+            _files.Delete(file);
+
+        await _notifications.DeleteByPostsAsync(wallPostIds);
+        await _notifications.DeleteByGroupAsync(group.Id);
 
         foreach (var groupEvent in groupEvents)
         {
@@ -540,7 +588,8 @@ public class GroupService : IGroupService
         {
             var summaries = await _users.GetSummariesAsync(group.Members.Select(m => m.UserId));
             dto.Members = group.Members
-                .OrderByDescending(m => m.Role) // Admin, then Moderator, then Member
+                // Admin, then Moderator, then Member. (Not by the enum's number: Moderator was added after Admin, so it is the larger one.)
+                .OrderBy(m => m.Role == GroupMemberRole.Admin ? 0 : m.Role == GroupMemberRole.Moderator ? 1 : 2)
                 .ThenBy(m => summaries.TryGetValue(m.UserId, out var s) ? s.FullName : "")
                 .Select(m =>
                 {

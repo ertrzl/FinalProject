@@ -29,6 +29,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
+    [AllowAnonymous]
     [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
     [RequestSizeLimit(UploadLimits.MaxRequestBytes)]
     public async Task<ActionResult<TokenResponseDto>> Register([FromForm] RegisterDto dto)
@@ -37,6 +38,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [AllowAnonymous]
     [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
     public async Task<ActionResult<TokenResponseDto>> Login(LoginDto dto)
     {
@@ -44,6 +46,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("refresh")]
+    [AllowAnonymous]
     [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
     public async Task<ActionResult<TokenResponseDto>> Refresh(RefreshTokenDto dto)
     {
@@ -53,6 +56,7 @@ public class AuthController : ControllerBase
     // Signing out ends the session for good: the refresh token, and also the access token that came with this request and
     // the photo cookie, which would otherwise keep working until they expire. (A token that is not valid anyway is ignored.)
     [HttpPost("logout")]
+    [AllowAnonymous]
     public async Task<IActionResult> Logout(RefreshTokenDto dto)
     {
         await _auth.RevokeRefreshTokenAsync(dto);

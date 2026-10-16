@@ -28,11 +28,6 @@ function updateSessionAvatar(avatarUrl) {
   saveSession(session);
 }
 
-function getToken() {
-  const session = getSession();
-  return session ? session.accessToken : null;
-}
-
 // Any page that requires login calls this first; sends the visitor back to index.html otherwise.
 function requireAuth() {
   const session = getSession();
@@ -452,8 +447,8 @@ function postMediaHtml(post) {
     <div id="${id}" class="carousel slide rounded-3 overflow-hidden mb-2 post-carousel" data-bs-interval="false">
       <div class="carousel-indicators">${dots}</div>
       <div class="carousel-inner">${slides}</div>
-      <button class="carousel-control-prev" type="button" data-bs-target="#${id}" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
-      <button class="carousel-control-next" type="button" data-bs-target="#${id}" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+      <button class="carousel-control-prev" type="button" data-bs-target="#${id}" data-bs-slide="prev" aria-label="Önceki"><span class="carousel-control-prev-icon"></span></button>
+      <button class="carousel-control-next" type="button" data-bs-target="#${id}" data-bs-slide="next" aria-label="Sonraki"><span class="carousel-control-next-icon"></span></button>
       <span class="badge text-bg-dark position-absolute top-0 end-0 m-2 opacity-75"><i class="bi bi-images me-1"></i>${media.length}</span>
     </div>`;
 }

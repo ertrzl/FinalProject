@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.OpenApi.Models;
@@ -47,6 +48,17 @@ builder.Host.UseSerilog((context, services, logger) => logger
 
 // The key that signs login tokens: used as configured, or created once and kept in App_Data (see JwtSecret).
 JwtSecret.EnsureConfigured(builder.Configuration, Path.Combine(builder.Environment.ContentRootPath, "App_Data"));
+
+// No "Server: Kestrel" header: it only tells a stranger which software to look for holes in.
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
+// The keys that protect the password-reset links (and anything else ASP.NET Core protects) are kept in a folder, not in
+// memory or in a per-user default place: a new start, a new deploy or a move to another machine keeps the links that are
+// still waiting valid. "DataProtection:KeysPath" overrides the folder (e.g. a mounted disk on a server).
+builder.Services.AddDataProtection()
+    .SetApplicationName("SocialNetworkPlatformProject")
+    .PersistKeysToFileSystem(new DirectoryInfo(
+        builder.Configuration["DataProtection:KeysPath"] ?? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "keys")));
 
 // Add services to the container.
 builder.Services.AddControllers().AddMvcOptions(options =>
@@ -158,6 +170,10 @@ else
     app.UseHsts();
 }
 
+// Before the files: a page, a script or a picture asked for over plain http is sent to https as well (it used to be served
+// as it was, because the redirect came after the static files).
+app.UseHttpsRedirection();
+
 app.UseDefaultFiles();
 
 // /uploads is not a static folder: any file in it would be handed to anybody. UploadsController answers it instead, and
@@ -176,8 +192,6 @@ app.UseWhen(context => !context.Request.Path.StartsWithSegments("/uploads"), fil
     }
 }));
 
-app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -187,7 +201,10 @@ app.UseMiddleware<LogContextMiddleware>();
 // After authentication, so the general limit can count per signed-in user.
 app.UseRateLimiter();
 
-app.MapControllers();
+// Every controller action needs a signed-in person unless it says [AllowAnonymous] (sign-in, registration, password reset). A
+// controller added later without [Authorize] is closed, not silently public. (Done here and not as a fallback policy: a
+// fallback policy also answers 401 to every address that does not exist, and a mistyped address must get the 404 page.)
+app.MapControllers().RequireAuthorization();
 
 // For monitors and load balancers: 200 "Healthy" when the database answers, 503 otherwise.
 app.MapHealthChecks("/health").AllowAnonymous();

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using SocialNetworkPlatformProject.Application.DTOs.Users;
@@ -9,6 +10,7 @@ namespace SocialNetworkPlatformProject.Controllers;
 // index.html "Şifremi unuttum": forgot-password.html asks for the link, reset-password.html uses it
 [ApiController]
 [Route("api/auth")]
+[AllowAnonymous]
 public class PasswordResetController : ControllerBase
 {
     private readonly IPasswordResetService _passwordReset;

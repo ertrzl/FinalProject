@@ -27,7 +27,7 @@ function postCardHtml(post) {
   ].join("");
 
   const menu = `<div class="dropdown">
-         <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown"><i class="bi bi-three-dots"></i></button>
+         <button class="btn btn-sm btn-light rounded-circle" data-bs-toggle="dropdown" aria-label="Gönderi seçenekleri"><i class="bi bi-three-dots"></i></button>
          <ul class="dropdown-menu dropdown-menu-end">${menuItems}</ul>
        </div>`;
 

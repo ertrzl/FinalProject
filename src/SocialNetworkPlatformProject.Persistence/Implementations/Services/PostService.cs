@@ -2,8 +2,6 @@ using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using SocialNetworkPlatformProject.Application.Common;
-using SocialNetworkPlatformProject.Application.DTOs.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Posts;
 using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
@@ -359,33 +357,17 @@ public class PostService : IPostService
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 50);
 
-        // A user's saved list stays small, so it's filtered for visibility and paged in memory:
-        // a post may have turned private since it was saved and must silently drop out.
-        var savedEntries = await _saved.GetAll(
-                filter: s => s.UserId == currentUserId,
-                orderBy: s => s.CreatedAt,
-                isDescending: true,
-                asNoTracking: true)
-            .ToListAsync();
+        // The saved posts the viewer may still see (a post may have turned private since it was saved and must silently
+        // drop out), counted and paged by the database: only the page asked for is loaded, however many posts were saved.
+        var visible = _access.VisibleTo(
+            _posts.GetAll(p => p.SavedBy.Any(s => s.UserId == currentUserId), asNoTracking: true),
+            currentUserId);
 
-        var savedIds = savedEntries.Select(s => s.PostId).ToList();
-        var posts = await _posts.GetAll(p => savedIds.Contains(p.Id), asNoTracking: true, includes: PostIncludes).ToListAsync();
-        var visible = await _access.FilterVisibleAsync(posts, currentUserId);
-
-        var savedOrder = savedIds.Select((id, index) => (id, index)).ToDictionary(x => x.id, x => x.index);
-        var pagePosts = visible
-            .OrderBy(p => savedOrder[p.Id])
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
-
-        return new PagedResult<GetPostDto>
-        {
-            Items = await _dtos.BuildAsync(pagePosts, currentUserId),
-            Page = page,
-            PageSize = pageSize,
-            TotalCount = visible.Count
-        };
+        // Most recently saved first.
+        return await PageOfVisibleAsync(
+            visible,
+            posts => posts.OrderByDescending(p => p.SavedBy.Where(s => s.UserId == currentUserId).Max(s => s.CreatedAt)).ThenBy(p => p.Id),
+            currentUserId, page, pageSize);
     }
 
     private async Task<PagedResult<GetPostDto>> GetPagedAsync(Expression<Func<Post, bool>> filter, Guid currentUserId, int page, int pageSize)

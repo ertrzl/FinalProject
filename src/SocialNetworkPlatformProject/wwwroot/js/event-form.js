@@ -13,21 +13,21 @@ const EVENT_FORM_HTML = `
         <div class="mb-3 d-none" id="eventError"></div>
         <div class="alert alert-info small d-none" id="eventGroupNote"></div>
         <div class="mb-3">
-          <label class="form-label fw-semibold small">Etkinlik Adı</label>
+          <label class="form-label fw-semibold small" for="eventTitle">Etkinlik Adı</label>
           <input type="text" id="eventTitle" class="form-control" placeholder="Örn. Sahil Voleybolu">
         </div>
         <div class="row g-3 mb-3">
           <div class="col-6">
-            <label class="form-label fw-semibold small">Tarih</label>
+            <label class="form-label fw-semibold small" for="eventDate">Tarih</label>
             <input type="date" id="eventDate" class="form-control">
           </div>
           <div class="col-6">
-            <label class="form-label fw-semibold small">Saat</label>
+            <label class="form-label fw-semibold small" for="eventTime">Saat</label>
             <input type="time" id="eventTime" class="form-control">
           </div>
         </div>
         <div class="mb-3">
-          <label class="form-label fw-semibold small">Bitiş <span class="text-muted fw-normal">(isteğe bağlı)</span></label>
+          <label class="form-label fw-semibold small" for="eventEndsAt">Bitiş <span class="text-muted fw-normal">(isteğe bağlı)</span></label>
           <input type="datetime-local" id="eventEndsAt" class="form-control">
           <div class="form-text" id="eventScheduleHint">Boş bırakırsan etkinlik 3 saat sürer.</div>
         </div>
@@ -41,16 +41,16 @@ const EVENT_FORM_HTML = `
           <label class="form-check-label small fw-semibold" for="eventIsOnline">Çevrimiçi etkinlik</label>
         </div>
         <div class="mb-3" id="eventLocationWrap">
-          <label class="form-label fw-semibold small">Konum</label>
+          <label class="form-label fw-semibold small" for="eventLocation">Konum</label>
           <input type="text" id="eventLocation" class="form-control" placeholder="Örn. Caddebostan Sahili">
         </div>
         <div class="mb-3 d-none" id="eventOnlineWrap">
-          <label class="form-label fw-semibold small">Bağlantı</label>
+          <label class="form-label fw-semibold small" for="eventOnlineLink">Bağlantı</label>
           <input type="url" id="eventOnlineLink" class="form-control" placeholder="https://meet.google.com/...">
           <div class="form-text">Bağlantıyı sadece "Katılıyorum" diyenler ve sen görürsün.</div>
         </div>
         <div class="mb-3">
-          <label class="form-label fw-semibold small">Açıklama</label>
+          <label class="form-label fw-semibold small" for="eventDescription">Açıklama</label>
           <textarea id="eventDescription" class="form-control" rows="3" placeholder="Etkinlik hakkında bilgi ver..."></textarea>
         </div>
         <div class="mb-3">

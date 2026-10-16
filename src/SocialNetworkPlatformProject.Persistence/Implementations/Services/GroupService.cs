@@ -158,11 +158,10 @@ public class GroupService : IGroupService
                 filter: g => g.Members.Any(m => m.UserId == currentUserId),
                 orderBy: g => g.CreatedAt,
                 isDescending: true,
-                asNoTracking: true,
-                includes: MemberIncludes)
+                asNoTracking: true)
             .ToListAsync();
 
-        return (await Task.WhenAll(groups.Select(g => ToDtoAsync(g, currentUserId, includeMembers: false)))).ToList();
+        return await ToListDtosAsync(groups, currentUserId);
     }
 
     public async Task<List<GetGroupDto>> DiscoverAsync(Guid currentUserId, string? search)
@@ -176,16 +175,13 @@ public class GroupService : IGroupService
                              && (term == null || g.Name.Contains(term)),
                 orderBy: g => g.CreatedAt,
                 isDescending: true,
-                asNoTracking: true,
-                includes: MemberIncludes)
+                asNoTracking: true)
             .ToListAsync();
 
         if (groups.Count == 0)
             return new List<GetGroupDto>();
 
-        // ToDtoAsync's own awaits only run when includeMembers is true, so this Task.WhenAll stays safe:
-        // every task here resolves synchronously, never touching the shared DbContext concurrently.
-        var dtos = (await Task.WhenAll(groups.Select(g => ToDtoAsync(g, currentUserId, includeMembers: false)))).ToList();
+        var dtos = await ToListDtosAsync(groups, currentUserId);
 
         // One batched query for "did I already request to join any of these" instead of one per group.
         var groupIds = groups.Select(g => g.Id).ToList();
@@ -574,6 +570,25 @@ public class GroupService : IGroupService
         var isAdmin = group.Members.Any(m => m.UserId == currentUserId && m.Role == GroupMemberRole.Admin);
         if (!isAdmin)
             throw new ForbiddenException(Loc.T("group.adminOnly"));
+    }
+
+    // The cards of a list of groups: the member rows are not loaded, the database counts them and says what role the viewer has
+    // (one query for all the groups; loading every member of every group just to count them grew with the site).
+    private async Task<List<GetGroupDto>> ToListDtosAsync(IReadOnlyList<Group> groups, Guid currentUserId)
+    {
+        var memberships = await _groups.GetMembershipsAsync(groups.Select(g => g.Id).ToList(), currentUserId);
+
+        return groups.Select(group =>
+        {
+            var membership = memberships[group.Id];
+            var dto = _mapper.Map<GetGroupDto>(group);
+            dto.MemberCount = membership.MemberCount;
+            dto.IsCurrentUserMember = membership.ViewerRole != null;
+            dto.IsCurrentUserAdmin = membership.ViewerRole == GroupMemberRole.Admin;
+            dto.IsCurrentUserModerator = membership.ViewerRole == GroupMemberRole.Moderator;
+            dto.IsCurrentUserOwner = group.CreatedByUserId == currentUserId;
+            return dto;
+        }).ToList();
     }
 
     private async Task<GetGroupDto> ToDtoAsync(Group group, Guid currentUserId, bool includeMembers)

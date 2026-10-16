@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.Identity;
 
 namespace SocialNetworkPlatformProject.Persistence.Identity;
 
-// Lives in Infrastructure (not Domain) because it depends on ASP.NET Core Identity.
+// Lives in Persistence (not Domain) because it depends on ASP.NET Core Identity.
 // Domain entities reference users only by a plain Guid (AuthorId, SenderId, etc.),
 // never by a navigation property to this class — that keeps Domain free of
-// Infrastructure dependencies (Onion architecture rule).
+// Persistence dependencies (Onion architecture rule).
 public class ApplicationUser : IdentityUser<Guid>
 {
     // F1: registration fields (register.html)
@@ -38,7 +38,7 @@ public class ApplicationUser : IdentityUser<Guid>
     // profile.html "Katılma tarihi"
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    // Admin panel: a suspended account cannot sign in and its sessions are ended (see AdminService.SuspendAsync).
+    // Admin panel: a suspended account cannot sign in and its sessions are ended (see AdminService.SuspendUserAsync).
     public bool IsSuspended { get; set; } = false;
     public DateTime? SuspendedAt { get; set; }
     public string? SuspendReason { get; set; }

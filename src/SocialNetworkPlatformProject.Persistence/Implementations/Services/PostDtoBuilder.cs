@@ -1,6 +1,5 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Posts;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;

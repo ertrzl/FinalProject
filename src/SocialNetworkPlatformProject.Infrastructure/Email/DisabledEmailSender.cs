@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 
 namespace SocialNetworkPlatformProject.Infrastructure.Email;

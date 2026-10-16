@@ -1,5 +1,3 @@
-using SocialNetworkPlatformProject.Application.Common;
-
 namespace SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 
 // Not an IRepository<T>: users are ASP.NET Identity's ApplicationUser (Persistence), not a BaseEntity.

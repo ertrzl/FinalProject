@@ -2,11 +2,10 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Serilog;
 using SocialNetworkPlatformProject.Filters;
 using SocialNetworkPlatformProject.Application;
-using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Extensions;
 using SocialNetworkPlatformProject.Infrastructure;
@@ -64,6 +63,7 @@ builder.Services.AddDataProtection()
 builder.Services.AddControllers().AddMvcOptions(options =>
 {
     LocalizedModelBindingMessages.Apply(options);
+    options.Filters.Add<FluentValidationFilter>();
     options.Filters.Add<ActionLogFilter>();
     options.Filters.Add<MediaCookieFilter>();
 });
@@ -72,18 +72,19 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "SocialNetworkPlatformProject API", Version = "v1" });
 
-    var jwtScheme = new OpenApiSecurityScheme
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
         Type = SecuritySchemeType.Http,
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Paste just the JWT (no 'Bearer ' prefix) — Swagger adds it for you.",
-        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-    };
-    options.AddSecurityDefinition("Bearer", jwtScheme);
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement { [jwtScheme] = Array.Empty<string>() });
+        Description = "Paste just the JWT (no 'Bearer ' prefix) — Swagger adds it for you."
+    });
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = new List<string>()
+    });
 });
 
 // Who is calling (browser, address) for the services that must not touch HttpContext: the list of open sessions.

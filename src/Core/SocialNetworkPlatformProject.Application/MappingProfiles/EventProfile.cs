@@ -1,7 +1,6 @@
 using AutoMapper;
 using SocialNetworkPlatformProject.Application.DTOs.Events;
 using SocialNetworkPlatformProject.Domain.Entities;
-using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Application.MappingProfiles;
 

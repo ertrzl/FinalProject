@@ -1,5 +1,4 @@
 using FluentValidation;
-using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Posts;
 
 namespace SocialNetworkPlatformProject.Application.Validators.Posts;

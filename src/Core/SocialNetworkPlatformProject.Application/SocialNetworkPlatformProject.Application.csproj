@@ -5,11 +5,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The DTOs of the uploads use IFormFile (Microsoft.AspNetCore.Http). It used to arrive through FluentValidation.AspNetCore. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Not lower than 16.x: every older version has the high-severity GHSA-rvv3-g6hj-g44x. From 15 on AutoMapper wants a
+         license key (the free Community one is enough); see AutoMapper:LicenseKey in ServiceRegistration. -->
     <PackageReference Include="AutoMapper" Version="16.2.0" />
-    <PackageReference Include="FluentValidation" Version="12.1.1" />
-    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
-    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
+    <PackageReference Include="FluentValidation" Version="12.2.0" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0" />
   </ItemGroup>
 
   <PropertyGroup>

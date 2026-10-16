@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Domain.Entities;
 using SocialNetworkPlatformProject.Persistence.Converters;
 

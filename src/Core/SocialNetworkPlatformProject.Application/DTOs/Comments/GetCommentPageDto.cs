@@ -1,5 +1,3 @@
-using SocialNetworkPlatformProject.Application.Common;
-
 namespace SocialNetworkPlatformProject.Application.DTOs.Comments;
 
 // One page of a post's comments. Items are the page's top-level comments, each followed by all of its replies (oldest first);

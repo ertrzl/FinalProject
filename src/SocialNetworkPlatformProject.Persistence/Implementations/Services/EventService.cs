@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Events;
 using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;

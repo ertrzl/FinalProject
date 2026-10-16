@@ -35,6 +35,12 @@ public class SecurityHeadersMiddleware
             headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
             headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
             headers["Content-Security-Policy"] = ContentSecurityPolicy;
+
+            // What the API answers is about one person (their messages, their account): no browser or proxy keeps a copy.
+            // (The pages and scripts have their own rule in Program.cs.)
+            if (context.Request.Path.StartsWithSegments("/api"))
+                headers.CacheControl = "no-store";
+
             return Task.CompletedTask;
         });
 

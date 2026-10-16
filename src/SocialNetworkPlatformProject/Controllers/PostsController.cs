@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SocialNetworkPlatformProject.Application.Common;
-using SocialNetworkPlatformProject.Application.DTOs.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Posts;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Extensions;

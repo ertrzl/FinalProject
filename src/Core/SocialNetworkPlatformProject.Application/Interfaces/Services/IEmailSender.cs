@@ -1,5 +1,3 @@
-using SocialNetworkPlatformProject.Application.Common;
-
 namespace SocialNetworkPlatformProject.Application.Interfaces.Services;
 
 // Sends an e-mail. Implemented in Infrastructure: through an SMTP account when one is configured ("Email:Smtp"),

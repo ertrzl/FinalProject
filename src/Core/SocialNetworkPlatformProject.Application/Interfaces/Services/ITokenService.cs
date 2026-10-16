@@ -1,5 +1,3 @@
-using SocialNetworkPlatformProject.Application.Common;
-
 namespace SocialNetworkPlatformProject.Application.Interfaces.Services;
 
 // Implemented in Infrastructure (SocialNetworkPlatformProject.Infrastructure.Services.TokenService).

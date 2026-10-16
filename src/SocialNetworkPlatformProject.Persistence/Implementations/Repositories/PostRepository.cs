@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Domain.Entities;
 using SocialNetworkPlatformProject.Domain.Enums;

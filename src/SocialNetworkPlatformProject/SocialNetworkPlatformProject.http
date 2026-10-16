@@ -1,6 +1,29 @@
 @SocialNetworkPlatformProject_HostAddress = http://localhost:5051
 
-GET {{SocialNetworkPlatformProject_HostAddress}}/weatherforecast/
-Accept: application/json
+# Try the API from Visual Studio: send "login" first, the other requests reuse its token.
+# (Swagger at /swagger lists every endpoint; this file is only a few quick examples.)
 
-###
+### Is the server up and the database answering? (200 "Healthy")
+GET {{SocialNetworkPlatformProject_HostAddress}}/health
+
+### Sign in
+# @name login
+POST {{SocialNetworkPlatformProject_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "emailOrUserName": "you@example.com",
+  "password": "your password"
+}
+
+### My news feed
+GET {{SocialNetworkPlatformProject_HostAddress}}/api/posts/feed
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### The devices my account is signed in on
+GET {{SocialNetworkPlatformProject_HostAddress}}/api/auth/sessions
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### My notifications
+GET {{SocialNetworkPlatformProject_HostAddress}}/api/notifications
+Authorization: Bearer {{login.response.body.$.accessToken}}

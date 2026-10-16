@@ -410,7 +410,7 @@ function renderSellPhotos() {
     <div class="position-relative" style="width:76px;height:76px;">
       <img src="${url}" class="rounded-3 w-100 h-100" style="object-fit:cover;" alt="">
       <button type="button" class="btn btn-dark btn-sm rounded-circle position-absolute top-0 end-0 p-0 d-flex align-items-center justify-content-center"
-              style="width:22px;height:22px;transform:translate(35%,-35%);" onclick="${onRemove}"><i class="bi bi-x"></i></button>
+              style="width:22px;height:22px;transform:translate(35%,-35%);" onclick="${onRemove}" aria-label="Fotoğrafı Kaldır"><i class="bi bi-x"></i></button>
     </div>`;
 
   document.getElementById("sellPhotoGrid").innerHTML =

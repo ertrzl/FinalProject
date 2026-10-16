@@ -268,8 +268,7 @@ html[data-design="inbox"] .page-head h1, html[data-design="inbox"] .page-head .h
 html[data-design="inbox"] .page-head p { margin: 2px 0 0; color: var(--muted); }
 
 /* ---------- Rows: the posts, comments and everything else drawn as a list ---------- */
-html[data-design="inbox"] .page-main .card,
-html[data-design="inbox"] .page-list .card {
+html[data-design="inbox"] .page-main .card {
   border: 0 !important; border-bottom: 1px solid var(--line) !important; border-radius: 0 !important; background: transparent; box-shadow: none !important;
   margin: 0 !important; padding: 14px 18px !important;
 }

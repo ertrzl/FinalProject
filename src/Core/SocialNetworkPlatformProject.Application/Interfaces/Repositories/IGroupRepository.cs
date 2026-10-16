@@ -5,5 +5,7 @@ namespace SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 
 public interface IGroupRepository : IRepository<Group>
 {
-    // Entity-specific query methods will be added here as the Group service needs them.
+    // For several groups at once, in one query: the member count and the viewer's role (the lists of groups show these without
+    // needing the members themselves). Every given group is in the result.
+    Task<Dictionary<Guid, GroupMembership>> GetMembershipsAsync(IReadOnlyCollection<Guid> groupIds, Guid viewerId);
 }

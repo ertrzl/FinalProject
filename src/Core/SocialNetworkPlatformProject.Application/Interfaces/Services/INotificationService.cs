@@ -1,4 +1,3 @@
-using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Notifications;
 using SocialNetworkPlatformProject.Domain.Enums;
 

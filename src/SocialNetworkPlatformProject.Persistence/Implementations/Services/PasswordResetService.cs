@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Users;
 using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;

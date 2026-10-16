@@ -103,25 +103,25 @@
         </div>
         <div class="mb-3 d-none" id="sellError"></div>
         <div class="mb-3">
-          <label class="form-label fw-semibold small">Ürün Adı</label>
+          <label class="form-label fw-semibold small" for="sellTitle">Ürün Adı</label>
           <input type="text" id="sellTitle" class="form-control" placeholder="Örn. Bisiklet">
         </div>
         <div class="row g-3 mb-3">
           <div class="col-6">
-            <label class="form-label fw-semibold small">Fiyat (₺)</label>
+            <label class="form-label fw-semibold small" for="sellPrice">Fiyat (₺)</label>
             <input type="number" id="sellPrice" class="form-control" placeholder="0">
           </div>
           <div class="col-6">
-            <label class="form-label fw-semibold small">Kategori</label>
+            <label class="form-label fw-semibold small" for="sellCategory">Kategori</label>
             <select id="sellCategory" class="form-select"></select>
           </div>
         </div>
         <div class="mb-3">
-          <label class="form-label fw-semibold small">Konum</label>
+          <label class="form-label fw-semibold small" for="sellLocation">Konum</label>
           <input type="text" id="sellLocation" class="form-control" placeholder="İstanbul, Türkiye">
         </div>
         <div class="mb-1">
-          <label class="form-label fw-semibold small">Açıklama</label>
+          <label class="form-label fw-semibold small" for="sellDescription">Açıklama</label>
           <textarea id="sellDescription" class="form-control" rows="3" placeholder="Ürün hakkında bilgi ver..."></textarea>
         </div>
       </div>
@@ -146,8 +146,8 @@
           <div class="col-md-6">
             <div id="listingCarousel" class="carousel slide rounded-3 overflow-hidden">
               <div class="carousel-inner" id="listingCarouselInner"></div>
-              <button class="carousel-control-prev" type="button" data-bs-target="#listingCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
-              <button class="carousel-control-next" type="button" data-bs-target="#listingCarousel" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+              <button class="carousel-control-prev" type="button" data-bs-target="#listingCarousel" data-bs-slide="prev" aria-label="Önceki"><span class="carousel-control-prev-icon"></span></button>
+              <button class="carousel-control-next" type="button" data-bs-target="#listingCarousel" data-bs-slide="next" aria-label="Sonraki"><span class="carousel-control-next-icon"></span></button>
             </div>
           </div>
           <div class="col-md-6">

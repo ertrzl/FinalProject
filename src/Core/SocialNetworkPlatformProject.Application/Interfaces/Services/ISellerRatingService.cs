@@ -1,4 +1,3 @@
-using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Marketplace;
 
 namespace SocialNetworkPlatformProject.Application.Interfaces.Services;

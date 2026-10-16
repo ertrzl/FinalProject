@@ -1,4 +1,3 @@
-using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Events;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 

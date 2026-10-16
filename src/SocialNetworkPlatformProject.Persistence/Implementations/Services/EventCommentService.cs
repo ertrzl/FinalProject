@@ -1,11 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Events;
 using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Domain.Entities;
-using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 

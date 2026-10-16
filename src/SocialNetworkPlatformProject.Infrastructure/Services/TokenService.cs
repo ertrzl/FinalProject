@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 
 namespace SocialNetworkPlatformProject.Infrastructure.Services;

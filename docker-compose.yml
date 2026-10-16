@@ -1,0 +1,84 @@
+# HOW TO RUN WITH DOCKER
+#   1. Copy .env.example to a new file named .env and fill in the values (at least the database password, the token
+#      key and your e-mail address; the comments in .env.example say what each one needs to look like).
+#   2. Run:   docker compose up --build
+#   3. Open http://localhost:8080 once both containers are up. The first start takes a little longer: the database has
+#      to start, and then the app creates its tables.
+#   Stop with Ctrl+C (or "docker compose down"). The data survives that. "docker compose down -v" also deletes the
+#   volumes, which means the database, the uploaded files and the keys are gone for good.
+#
+# This file starts two containers: "db" (SQL Server) and "web" (the site). It speaks plain http; for real HTTPS put a
+# reverse proxy or a tunnel in front of port 8080.
+
+services:
+
+  # ---- The database ----
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      # SQL Server refuses to start unless the licence terms are accepted.
+      ACCEPT_EULA: "Y"
+      # The password of the administrator account "sa". Compose stops with a message if it is missing from .env.
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD:?Set SA_PASSWORD in the .env file}
+    volumes:
+      # Where SQL Server keeps its files. A named volume, so the data is still there after the container is recreated.
+      - sql-data:/var/opt/mssql
+    healthcheck:
+      # "Healthy" means SQL Server really answers a query, not just that the process is running. The "web" service waits
+      # for this. ($$ is a literal $: the shell inside the container reads the password from its own environment, so the
+      # password is never written into this file.)
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      # SQL Server needs a while to start; failures during this time do not count.
+      start_period: 30s
+    restart: unless-stopped
+
+  # ---- The site ----
+  web:
+    # Built from the Dockerfile in this folder.
+    build: .
+    depends_on:
+      db:
+        # Wait until the database is healthy, not just started. (The app also retries by itself when it migrates.)
+        condition: service_healthy
+    ports:
+      # left side = port on your computer, right side = port inside the container
+      - "8080:8080"
+    environment:
+      # "Production" by default: no Swagger page and no browser opening. Set ASPNETCORE_ENVIRONMENT=Development in .env to change it.
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+
+      # How the app reaches the database: "db" is the name of the service above (Compose gives it as a host name inside
+      # the private network). TrustServerCertificate is needed because the SQL Server container uses a self-made
+      # certificate. The password therefore must not contain ; ' " or $ (see .env.example).
+      ConnectionStrings__DefaultConnection: "Server=db,1433;Database=FinalProjectDB;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;"
+
+      # Create or update the tables when the app starts (the database starts out empty).
+      Database__MigrateOnStart: "true"
+
+      # The key that signs login tokens, at least 32 characters. Keep it secret; changing it logs everybody out.
+      Jwt__SecretKey: ${JWT_SECRET_KEY:?Set JWT_SECRET_KEY in the .env file (at least 32 characters)}
+
+      # Whoever signs in with this e-mail address becomes an administrator. (Register the account on the site first.)
+      Admin__Emails__0: ${ADMIN_EMAIL:-}
+
+      # The address people use to reach the site; it is put into the links in e-mails (password reset) and calendar files.
+      App__PublicBaseUrl: ${PUBLIC_BASE_URL:-http://localhost:8080}
+
+      # Optional AutoMapper licence key (the free Community key is enough). Empty is fine.
+      AutoMapper__LicenseKey: ${AUTOMAPPER_LICENSE_KEY:-}
+    volumes:
+      # The three folders the app writes to. Named volumes keep them when the container is recreated.
+      - uploads:/app/wwwroot/uploads
+      - app-data:/app/App_Data
+      - logs:/app/logs
+    restart: unless-stopped
+
+# The named volumes. Docker manages where they live on disk.
+volumes:
+  sql-data:
+  uploads:
+  app-data:
+  logs:

@@ -1,0 +1,36 @@
+# Everything listed here is kept out of the Docker build context: it makes the build faster and keeps secrets, user
+# uploads and local leftovers from ending up inside an image. The source code, the wwwroot pages and the
+# Locales/*.json language files (embedded in the Application project) are NOT listed on purpose: the build needs them.
+
+# Build output (the Dockerfile builds its own)
+**/bin/
+**/obj/
+
+# Data made while running locally: logs, uploaded files, the JWT key file and the data-protection keys
+**/logs/
+**/App_Data/
+**/wwwroot/uploads/
+
+# Secrets and per-machine settings
+.env
+*.env
+**/*.user
+**/secrets.json
+
+# Version control, editors and the CI workflow
+.git/
+.gitignore
+.gitattributes
+.github/
+.vs/
+.vscode/
+.idea/
+*.suo
+
+# Docker's own files do not need to be inside the build
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Node leftovers, if a front-end tool was ever run here
+**/node_modules/

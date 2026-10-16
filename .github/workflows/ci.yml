@@ -1,0 +1,103 @@
+# Continuous integration: every push and every pull request gets a red or green mark on GitHub,
+# so a broken build or a vulnerable package is noticed before anyone merges it.
+# Note: this workflow only checks that the code builds. The project deliberately has no tests,
+# so there is no test step here.
+name: CI
+
+on:
+  # Run on a push to any branch, so every commit gets a mark.
+  push:
+    branches: ['**']
+  # Run on every pull request too, so the result is shown right inside the PR.
+  pull_request:
+
+# The workflow only needs to read the code, so we give it the smallest permission possible.
+# This limits the damage if one of the actions we use were ever compromised.
+permissions:
+  contents: read
+
+# If a newer commit arrives on the same branch while an older run is still going,
+# cancel the older run. Its result is outdated anyway and this saves build minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keep the output free of telemetry and welcome banners.
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  # Force English CLI messages, because the vulnerability check below searches for English text.
+  DOTNET_CLI_UI_LANGUAGE: en
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      # Download the repository code onto the runner.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install the .NET 10 SDK. Any 10.0.x patch version is fine.
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Keep downloaded NuGet packages between runs so restore is fast.
+      # This repo has no packages.lock.json, so setup-dotnet's built-in cache cannot be used.
+      # Instead the cache key is a hash of all .csproj files: when a package reference changes,
+      # the key changes and a fresh cache is created.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      # Download all NuGet packages that the projects need.
+      - name: Restore
+        run: dotnet restore SocialNetworkPlatformProject.slnx
+
+      # Compile the whole solution in Release mode, like a real deployment would.
+      # -warnaserror turns every compiler warning into an error, so warnings cannot pile up unnoticed.
+      # --no-restore is used because the packages were already restored in the previous step.
+      - name: Build (warnings are errors)
+        run: dotnet build SocialNetworkPlatformProject.slnx --configuration Release --no-restore -warnaserror
+
+      # Fail the run if any NuGet package (including packages pulled in indirectly)
+      # has a publicly known security vulnerability.
+      # When something is found, the dotnet CLI prints "has the following vulnerable packages".
+      # When everything is clean it prints "has no vulnerable packages". The CLI is forced to
+      # English above, so searching for the English sentence is safe on the runner.
+      - name: Check for vulnerable NuGet packages
+        run: |
+          dotnet list SocialNetworkPlatformProject.slnx package --vulnerable --include-transitive | tee vulnerable-packages.txt
+          if grep -q "has the following vulnerable packages" vulnerable-packages.txt; then
+            echo "::error::Vulnerable NuGet packages were found. See the list above."
+            exit 1
+          fi
+          echo "No vulnerable NuGet packages found."
+
+  # Optional second job: checks that the Docker image can be built.
+  # It only does real work when a Dockerfile exists at the repository root, so the workflow
+  # stays valid (and green) on branches that do not have Docker support yet.
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      # The checkout must come first, because hashFiles() can only look at files that are on disk.
+      # (A job-level "if" cannot use hashFiles, so the check is done on each step instead.)
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Tell the reader of the log why the next step is skipped.
+      - name: Note when there is no Dockerfile
+        if: hashFiles('Dockerfile') == ''
+        run: echo "No Dockerfile at the repository root, skipping the Docker build."
+
+      # Build the image only to prove that the Dockerfile works. Nothing is pushed anywhere.
+      - name: Build Docker image
+        if: hashFiles('Dockerfile') != ''
+        run: docker build -t socialnet:ci .

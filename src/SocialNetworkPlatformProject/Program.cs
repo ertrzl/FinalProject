@@ -13,6 +13,7 @@ using SocialNetworkPlatformProject.Infrastructure.Hubs;
 using SocialNetworkPlatformProject.Infrastructure.Services;
 using SocialNetworkPlatformProject.Middlewares;
 using SocialNetworkPlatformProject.Persistence;
+using SocialNetworkPlatformProject.Persistence.Extensions;
 
 // The first lines of the log: written before the configuration is read, so a start that fails (a bad setting, a busy
 // port) still leaves a trace. UseSerilog below replaces it with the configured logger.
@@ -98,6 +99,10 @@ builder.Services
     .AddApiRateLimiting(builder.Configuration);
 
 var app = builder.Build();
+
+// With "Database:MigrateOnStart" on (the Docker setup), the tables are created or updated before the first request is
+// answered. Off by default: see DatabaseMigrationExtensions.
+await app.MigrateDatabaseIfRequestedAsync();
 
 // A few facts about this run, so a log starts with what it is about.
 Log.Information("Starting in {Environment}. Admin e-mails configured: {AdminCount}. Public address set: {HasPublicAddress}. SMTP configured: {HasSmtp}",

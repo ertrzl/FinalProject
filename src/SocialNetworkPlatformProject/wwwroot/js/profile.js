@@ -242,8 +242,9 @@ function loadPhotosFromPosts() {
   const grid = document.getElementById("photosGrid");
   // Every photo of every post (a post with several photos gives several tiles); videos show up on the wall itself.
   const photos = loadedPosts.flatMap(p => p.media).filter(m => m.type === "Image");
+  const photoKey = registerPhotoSet("profile-photos", photos.map(m => m.url));
   grid.innerHTML = photos.length
-    ? photos.map(m => `<div class="col"><img src="${m.url}" class="w-100 rounded-3" style="aspect-ratio:1/1;object-fit:cover;" alt=""></div>`).join("")
+    ? photos.map((m, i) => `<div class="col"><img src="${m.url}" class="w-100 rounded-3 photo-zoomable" style="aspect-ratio:1/1;object-fit:cover;" alt="" onclick="openPhotoViewer('${photoKey}', ${i})"></div>`).join("")
     : `<div class="text-muted small">Henüz fotoğraf yok.</div>`;
 }
 

@@ -10,6 +10,9 @@ let currentGroup = 0;
 let currentStory = 0; // index inside the current person's stories
 let renderedGroup = -1; // whose bars are on screen
 let storyTimer = null;
+let storyLoading = false; // the picture of the current story is not there yet
+let storyPaused = false;  // somebody is typing a reply or reading the viewers list
+let storyLoadToken = 0;   // tells a late picture of a story we left from the current one
 
 // One entry per person: { userId, userName, userAvatarUrl, stories: oldest first }. Your own first, then the people with
 // something you have not watched, then the rest; newest person first inside each part.
@@ -115,7 +118,12 @@ function showStory(groupIndex, storyIndex) {
 
   currentGroup = groupIndex;
   currentStory = storyIndex;
-  if (renderedGroup !== currentGroup) renderStoryBars();
+  storyLoading = true; // until the picture is there (below): nothing runs, and resumeStory() leaves the bar alone
+  storyPaused = false;
+  if (renderedGroup !== currentGroup) {
+    renderStoryBars();
+    storyGroups[currentGroup].stories.forEach(preloadStory);
+  }
 
   const group = currentGroupItem();
   const story = currentStoryItem();
@@ -136,25 +144,87 @@ function showStory(groupIndex, storyIndex) {
   hideStoryViewersPanel();
   if (!isMine && !story.isViewed) reportStoryView(story);
 
-  const img = document.getElementById("storyViewerImage");
-  const video = document.getElementById("storyViewerVideo");
-  const isVideo = story.mediaType === "Video";
-
-  img.classList.toggle("d-none", isVideo);
-  video.classList.toggle("d-none", !isVideo);
-  if (isVideo) {
-    img.src = "";
-    video.src = story.mediaUrl;
-    video.currentTime = 0;
-    video.play().catch(() => {});
-  } else {
-    video.pause();
-    video.removeAttribute("src");
-    img.src = story.mediaUrl;
+  markBarsDone(storyIndex);
+  const fill = document.querySelector(`#storyBar-${storyIndex} .fill`);
+  if (fill) {
+    fill.style.transition = "none";
+    fill.style.width = "0%";
   }
 
-  markBarsDone(storyIndex);
-  runProgress(storyIndex);
+  loadStoryMedia(story);
+  preloadStory(nextStoryItem());
+}
+
+// Puts the story's picture or video on screen. The bar does not start until it is really there: on a slow connection a
+// photo takes longer than a story lasts, and the viewer used to keep showing the one before it (the stories looked
+// like the same one three times) while the bars ran on. A spinner shows meanwhile.
+function loadStoryMedia(story) {
+  const img = document.getElementById("storyViewerImage");
+  const video = document.getElementById("storyViewerVideo");
+  const spinner = document.getElementById("storyLoading");
+  const isVideo = story.mediaType === "Video";
+  const token = ++storyLoadToken;
+
+  clearTimeout(storyTimer);
+  storyLoading = true;
+  spinner.classList.remove("d-none");
+  img.classList.add("story-media-hidden");
+  video.classList.add("story-media-hidden");
+  img.classList.toggle("d-none", isVideo);
+  video.classList.toggle("d-none", !isVideo);
+
+  // A story we have already left (tapped past, or closed) never finishes loading into the current one.
+  const loaded = () => {
+    if (token !== storyLoadToken) return;
+    storyLoading = false;
+    spinner.classList.add("d-none");
+    (isVideo ? video : img).classList.remove("story-media-hidden");
+    startStoryIfReady();
+  };
+  const failed = () => {
+    if (token !== storyLoadToken) return;
+    toast("Hikâye yüklenemedi.");
+    storyLoading = false;
+    spinner.classList.add("d-none");
+    startStoryIfReady();
+  };
+
+  if (isVideo) {
+    img.onload = img.onerror = null;
+    img.removeAttribute("src");
+    video.onloadeddata = loaded;
+    video.onerror = failed;
+    video.src = story.mediaUrl;
+    video.currentTime = 0;
+  } else {
+    video.onloadeddata = video.onerror = null;
+    video.pause();
+    video.removeAttribute("src");
+    img.onload = loaded;
+    img.onerror = failed;
+    img.removeAttribute("src"); // the previous picture goes at once
+    img.src = story.mediaUrl;
+  }
+}
+
+// Starts the bar (and a video) once the picture is there and nobody is typing or reading the viewers list.
+function startStoryIfReady() {
+  if (storyLoading || storyPaused) return;
+  runProgress(currentStory);
+  if (currentStoryItem().mediaType === "Video") document.getElementById("storyViewerVideo").play().catch(() => {});
+}
+
+// The next story of the same person, or the first one to watch of the next person.
+function nextStoryItem() {
+  const next = currentGroupItem().stories[currentStory + 1];
+  if (next) return next;
+  const nextGroup = storyGroups[currentGroup + 1];
+  return nextGroup ? nextGroup.stories[firstUnviewedIndex(nextGroup)] : null;
+}
+
+// Fetches a picture ahead of time so it is there when its turn comes (videos are left to stream).
+function preloadStory(story) {
+  if (story && story.mediaType !== "Video") new Image().src = story.mediaUrl;
 }
 
 function runProgress(index) {
@@ -175,6 +245,7 @@ function runProgress(index) {
 
 // The story stands still while somebody reads the viewers list or types a reply; resuming starts its bar over.
 function pauseStory() {
+  storyPaused = true;
   clearTimeout(storyTimer);
   document.getElementById("storyViewerVideo").pause();
   const fill = document.querySelector(`#storyBar-${currentStory} .fill`);
@@ -186,8 +257,8 @@ function pauseStory() {
 
 function resumeStory() {
   if (document.getElementById("storyViewer").classList.contains("d-none")) return; // closed meanwhile
-  runProgress(currentStory);
-  if (currentStoryItem().mediaType === "Video") document.getElementById("storyViewerVideo").play().catch(() => {});
+  storyPaused = false;
+  startStoryIfReady();
 }
 
 function openStory(groupIndex) {
@@ -207,6 +278,8 @@ function prevStory() {
 
 function closeStory() {
   clearTimeout(storyTimer);
+  storyLoadToken++; // a picture still on its way is no longer wanted
+  storyLoading = false;
   document.getElementById("storyViewer").classList.add("d-none");
   document.getElementById("storyViewerVideo").pause();
   document.body.style.overflow = "";
@@ -342,6 +415,20 @@ function previewNewStory(input) {
   if (isVideo) { img.src = ""; video.src = url; } else { video.src = ""; img.src = url; }
   wrap.classList.remove("d-none");
 }
+
+// With the "Hikaye Ekle" window open, a picture pasted anywhere in it becomes the story's picture.
+document.addEventListener("paste", event => {
+  if (!document.getElementById("addStoryModal")?.classList.contains("show")) return;
+  const pictures = getPastedImages(event);
+  if (pictures.length === 0) return;
+
+  const input = document.getElementById("addStoryFileInput");
+  const transfer = new DataTransfer();
+  transfer.items.add(pictures[0]);
+  input.files = transfer.files;
+  previewNewStory(input);
+  event.preventDefault();
+});
 
 async function publishStory() {
   const fileInput = document.getElementById("addStoryFileInput");

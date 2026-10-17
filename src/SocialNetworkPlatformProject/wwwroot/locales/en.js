@@ -370,6 +370,7 @@ window.PHRASES.en = {
   "Hikâyen silindi.": "Your story was deleted.",
   "Hikâyeyi sil": "Delete story",
   "Beğenilemedi.": "Couldn't like it.",
+  "Önizle": "Preview",
   "Mesaj gönder...": "Send a message...",
   "Mesaj gönder": "Send a message",
   "Mesajın gönderildi.": "Your message was sent.",

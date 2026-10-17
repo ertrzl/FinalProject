@@ -145,6 +145,15 @@
       else submitContent();
     });
 
+    // Pasting a picture into the bar attaches it, with the same small preview and send arrow as the photo button.
+    input.addEventListener("paste", e => {
+      const pictures = typeof getPastedImages === "function" ? getPastedImages(e) : [];
+      if (pictures.length === 0) return;
+
+      setAttachment(pictures[0]);
+      if (!e.clipboardData.getData("text/plain")) e.preventDefault();
+    });
+
     input.addEventListener("keydown", e => {
       if (e.key !== "Enter") return;
       e.preventDefault();

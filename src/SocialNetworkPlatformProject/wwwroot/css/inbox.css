@@ -546,7 +546,10 @@ html[data-design="inbox"] .chat-msg-row .bg-body-tertiary { background: var(--bu
 html[data-design="inbox"] .chat-msg-row .text-white-50 { font-family: var(--mono); }
 html[data-design="inbox"] .chat-msg-row .text-muted { font-family: var(--mono); }
 @media (max-width: 991.98px) {
-  html[data-design="inbox"] .messages-card { height: calc(100vh - 130px); }
+  /* The card fills exactly what is between the top bar and the bottom bar (dvh: the part of the screen that is really
+     visible, the address bar of a phone browser not counted), so the box to write in is never under the bottom bar. */
+  html[data-design="inbox"] .messages-card { height: calc(100vh - 138px); height: calc(100dvh - 74px - 68px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height: 300px; }
+  html[data-design="inbox"] body > .container:has(.messages-card) { padding-top: 0 !important; padding-bottom: 0 !important; }
   html[data-design="inbox"] .messages-card .messages-list-col { flex: 0 0 100%; width: 100%; max-width: none; }
 }
 
@@ -803,3 +806,11 @@ html[data-design="inbox"] .admin-row .badge.text-bg-danger { background: var(--a
 html[data-design="inbox"] .admin-row .badge.text-bg-light, html[data-design="inbox"] .admin-row .badge.text-bg-secondary, html[data-design="inbox"] .admin-row .badge.text-bg-primary, html[data-design="inbox"] .admin-row .badge.text-bg-warning { background: var(--chip) !important; color: var(--ink-2) !important; }
 html[data-design="inbox"] .report-reason:hover { background: var(--chip); }
 html[data-design="inbox"] .not-found-code { color: var(--accent); font-family: var(--mono); letter-spacing: -0.06em; }
+
+/* ---------- Big screens ----------
+   The page does not stick to the left edge of an endless row: from 1500 px it stays a block of at most 1280 px, in the
+   middle of the room beside the menu. */
+@media (min-width: 1500px) {
+  html[data-design="inbox"] body > .container,
+  html[data-design="inbox"] body > .container-fluid { max-width: 1280px !important; margin-left: auto !important; margin-right: auto !important; }
+}

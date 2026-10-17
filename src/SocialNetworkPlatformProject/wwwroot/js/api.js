@@ -425,21 +425,112 @@ function eventAttendanceText(ev) {
 // Post card media block: one <img>, a <video>, or - for several photos - a carousel you can swipe or click through.
 let postCarouselCount = 0;
 
+// ---- Full-size photos ----
+// A photo shown cropped on a page opens at its full size on top of the page. Pages register the photos of a post (or of
+// a profile's photo tab) under a key, and the <img> asks for the viewer with that key and its own place in the list:
+//   registerPhotoSet("key", [url, url...])   <img class="photo-zoomable" onclick="openPhotoViewer('key', 2)">
+// Several photos: arrows (buttons, the keyboard's arrow keys, or a swipe) go through them. Esc, the X or a click beside the
+// photo closes it.
+const photoSets = {};
+
+function registerPhotoSet(key, urls) {
+  photoSets[key] = urls;
+  return key;
+}
+
+function openPhotoViewer(key, startIndex = 0) {
+  const urls = photoSets[key] || [];
+  if (urls.length === 0) return;
+
+  let index = Math.min(Math.max(startIndex, 0), urls.length - 1);
+  const overlay = document.createElement("div");
+  overlay.className = "photo-viewer";
+  overlay.setAttribute("role", "dialog");
+  overlay.innerHTML = `
+    <button type="button" class="photo-viewer-btn photo-viewer-close" aria-label="Kapat"><i class="bi bi-x-lg"></i></button>
+    ${urls.length > 1 ? `
+      <button type="button" class="photo-viewer-btn photo-viewer-prev" aria-label="Önceki"><i class="bi bi-chevron-left"></i></button>
+      <button type="button" class="photo-viewer-btn photo-viewer-next" aria-label="Sonraki"><i class="bi bi-chevron-right"></i></button>
+      <span class="photo-viewer-count"></span>` : ""}
+    <img class="photo-viewer-image" alt="">
+    <video class="photo-viewer-image photo-viewer-video d-none" controls playsinline></video>`;
+
+  const image = overlay.querySelector("img.photo-viewer-image");
+  const video = overlay.querySelector(".photo-viewer-video");
+  const counter = overlay.querySelector(".photo-viewer-count");
+  const stopVideo = () => { video.pause(); video.removeAttribute("src"); };
+  const show = next => {
+    index = (next + urls.length) % urls.length;
+
+    // An entry is a picture's address, or { url, type: "Video" } for a video, which plays here with its controls.
+    const item = urls[index];
+    const isVideo = typeof item === "object" && item.type === "Video";
+    const src = typeof item === "object" ? item.url : item;
+    image.classList.toggle("d-none", isVideo);
+    video.classList.toggle("d-none", !isVideo);
+    if (isVideo) {
+      image.removeAttribute("src");
+      video.src = src;
+      video.play().catch(() => {});
+    } else {
+      stopVideo();
+      image.src = src;
+    }
+    if (counter) counter.textContent = `${index + 1} / ${urls.length}`;
+  };
+
+  const previousOverflow = document.body.style.overflow;
+  const close = () => {
+    stopVideo();
+    overlay.remove();
+    document.body.style.overflow = previousOverflow;
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = event => {
+    if (event.key === "Escape") close();
+    else if (event.target.tagName === "VIDEO") return; // the arrows of a playing video seek inside it
+    else if (urls.length > 1 && event.key === "ArrowLeft") show(index - 1);
+    else if (urls.length > 1 && event.key === "ArrowRight") show(index + 1);
+  };
+
+  overlay.addEventListener("click", event => {
+    if (event.target.closest(".photo-viewer-close") || event.target === overlay) close();
+    else if (event.target.closest(".photo-viewer-prev")) show(index - 1);
+    else if (event.target.closest(".photo-viewer-next")) show(index + 1);
+  });
+
+  // A swipe on a touch screen goes to the next or previous photo.
+  let touchStartX = null;
+  overlay.addEventListener("touchstart", event => { touchStartX = event.touches[0].clientX; }, { passive: true });
+  overlay.addEventListener("touchend", event => {
+    if (touchStartX === null || urls.length < 2) return;
+    const dx = event.changedTouches[0].clientX - touchStartX;
+    touchStartX = null;
+    if (Math.abs(dx) > 50) show(index + (dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  document.addEventListener("keydown", onKey);
+  document.body.style.overflow = "hidden";
+  document.body.appendChild(overlay);
+  show(index);
+}
+
 function postMediaHtml(post) {
   const media = post.media || [];
   if (media.length === 0) return "";
 
   if (media[0].type === "Video") {
-    return `<div class="rounded-3 overflow-hidden mb-2"><video src="${media[0].url}" class="w-100" style="max-height:420px;object-fit:cover;" controls></video></div>`;
+    return `<div class="post-video rounded-3 overflow-hidden mb-2"><video src="${media[0].url}" class="d-block" controls playsinline preload="metadata"></video></div>`;
   }
 
+  const photoKey = registerPhotoSet(`post-${post.id}-${++postCarouselCount}`, media.map(m => m.url));
   if (media.length === 1) {
-    return `<div class="rounded-3 overflow-hidden mb-2"><img src="${media[0].url}" class="w-100" style="max-height:420px;object-fit:cover;" alt=""></div>`;
+    return `<div class="rounded-3 overflow-hidden mb-2"><img src="${media[0].url}" class="w-100 photo-zoomable" style="max-height:420px;object-fit:cover;" alt="" onclick="openPhotoViewer('${photoKey}', 0)"></div>`;
   }
 
-  const id = `post-media-${post.id}-${++postCarouselCount}`;
+  const id = `post-media-${post.id}-${postCarouselCount}`;
   const slides = media.map((m, i) => `
-        <div class="carousel-item ${i === 0 ? "active" : ""}"><img src="${m.url}" class="d-block w-100" style="height:420px;object-fit:cover;" alt=""></div>`).join("");
+        <div class="carousel-item ${i === 0 ? "active" : ""}"><img src="${m.url}" class="d-block w-100 photo-zoomable" style="height:420px;object-fit:cover;" alt="" onclick="openPhotoViewer('${photoKey}', ${i})"></div>`).join("");
   const dots = media.map((_, i) => `
         <button type="button" data-bs-target="#${id}" data-bs-slide-to="${i}" class="${i === 0 ? "active" : ""}" aria-label="${i + 1}. fotoğraf"></button>`).join("");
 

@@ -179,6 +179,32 @@ function previewAvatar(input) {
 // later. How many are allowed, and whether photos and a video may mix, is the server's rule: the page just sends them.
 let composerFiles = [];
 
+// ---- Pasting a picture (Ctrl+V / right-click Paste): a screenshot, or a picture copied from another page ----
+// The pictures on the clipboard of a paste event, ready to be sent: a name with an extension the server accepts is given
+// to those that come without one. [] when the clipboard holds no picture (an ordinary text paste goes on as usual).
+const PASTE_IMAGE_EXTENSIONS = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp" };
+
+function getPastedImages(event) {
+  const files = Array.from(event.clipboardData?.files || []).filter(file => PASTE_IMAGE_EXTENSIONS[file.type]);
+  return files.map((file, i) => {
+    const extension = PASTE_IMAGE_EXTENSIONS[file.type];
+    return new RegExp(`\\.${extension === "jpg" ? "jpe?g" : extension}$`, "i").test(file.name)
+      ? file
+      : new File([file], `pasted-${Date.now()}-${i}.${extension}`, { type: file.type });
+  });
+}
+
+// A paste of a picture into the box of a post adds it to the post, like the "Fotoğraf/Video Ekle" button does. When the
+// clipboard also has text (a copy from a web page), the text is pasted as usual as well.
+document.addEventListener("paste", event => {
+  if (event.target.id !== "composerText") return;
+  const pictures = getPastedImages(event);
+  if (pictures.length === 0) return;
+
+  addComposerFiles({ files: pictures, value: "" });
+  if (!event.clipboardData.getData("text/plain")) event.preventDefault();
+});
+
 function addComposerFiles(input) {
   composerFiles.push(...Array.from(input.files || []));
   input.value = ""; // the same file can be picked again after removing it
@@ -279,16 +305,36 @@ function getComposerFiles() {
   return composerFiles;
 }
 
+// The address a chosen file is shown from (one per file; given back when the file is taken out).
+const composerPreviewUrls = new Map();
+
 function renderComposerPreview() {
   const wrap = document.getElementById("composerPreview");
   if (!wrap) return;
 
+  for (const [file, url] of composerPreviewUrls) {
+    if (!composerFiles.includes(file)) {
+      URL.revokeObjectURL(url);
+      composerPreviewUrls.delete(file);
+    }
+  }
+  composerFiles.forEach(file => {
+    if (!composerPreviewUrls.has(file)) composerPreviewUrls.set(file, URL.createObjectURL(file));
+  });
+
+  // Tapping a chosen photo or video opens it big (a video plays with its controls) before anything is posted.
+  registerPhotoSet("composer-preview", composerFiles.map(file => ({
+    url: composerPreviewUrls.get(file),
+    type: file.type.startsWith("video/") ? "Video" : "Image"
+  })));
+
   wrap.classList.toggle("d-none", composerFiles.length === 0);
   wrap.innerHTML = composerFiles.map((file, i) => {
-    const url = URL.createObjectURL(file);
+    const url = composerPreviewUrls.get(file);
+    const open = `openPhotoViewer('composer-preview', ${i})`;
     const thumb = file.type.startsWith("video/")
-      ? `<video src="${url}" class="composer-thumb" muted></video><i class="bi bi-play-circle-fill composer-thumb-badge"></i>`
-      : `<img src="${url}" class="composer-thumb" alt="">`;
+      ? `<video src="${url}" class="composer-thumb photo-zoomable" muted preload="metadata" title="Önizle" onclick="${open}"></video><i class="bi bi-play-circle-fill composer-thumb-badge"></i>`
+      : `<img src="${url}" class="composer-thumb photo-zoomable" alt="" title="Önizle" onclick="${open}">`;
     return `
       <div class="composer-thumb-wrap">
         ${thumb}

@@ -244,6 +244,24 @@ a { color: inherit; text-decoration: none; }
 }
 .chat-image-viewer img { max-width: 92vw; max-height: 92vh; border-radius: 8px; }
 
+/* ---------- Full-size photo viewer (openPhotoViewer in js/api.js) ---------- */
+.photo-zoomable { cursor: zoom-in; }
+.photo-viewer {
+  position: fixed; inset: 0; z-index: 2000; background: rgba(0, 0, 0, 0.92);
+  display: flex; align-items: center; justify-content: center;
+}
+.photo-viewer-image { max-width: 94vw; max-height: 90vh; object-fit: contain; border-radius: 6px; user-select: none; }
+.photo-viewer-btn {
+  position: absolute; width: 46px; height: 46px; border: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
+  background: rgba(255, 255, 255, 0.14); color: #fff;
+}
+.photo-viewer-btn:hover { background: rgba(255, 255, 255, 0.28); }
+.photo-viewer-close { top: 16px; right: 16px; }
+.photo-viewer-prev { left: 16px; top: 50%; transform: translateY(-50%); }
+.photo-viewer-next { right: 16px; top: 50%; transform: translateY(-50%); }
+.photo-viewer-count { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 0.9rem; }
+
 /* ---------- Location autocomplete ---------- */
 .location-suggestions {
   position: absolute; top: 100%; left: 0; right: 0; z-index: 20; margin-top: 4px;
@@ -312,7 +330,7 @@ a { color: inherit; text-decoration: none; }
 #composerPreview.d-none { display: none !important; }
 .composer-thumb-wrap { position: relative; width: 96px; height: 96px; border-radius: 12px; overflow: hidden; }
 .composer-thumb { width: 100%; height: 100%; object-fit: cover; }
-.composer-thumb-badge { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 26px; text-shadow: 0 1px 4px rgba(0,0,0,.6); }
+.composer-thumb-badge { pointer-events: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #fff; font-size: 26px; text-shadow: 0 1px 4px rgba(0,0,0,.6); }
 .composer-thumb-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; padding: 0; line-height: 1; opacity: .85; }
 .post-carousel .carousel-control-prev, .post-carousel .carousel-control-next { width: 12%; }
 
@@ -320,7 +338,7 @@ a { color: inherit; text-decoration: none; }
 .messages-card { height: calc(100vh - 130px); min-height: 480px; }
 @media (max-width: 767.98px) {
   /* top bar + page padding + the bottom tab bar are around the card; and only one column shows at a time */
-  .messages-card { height: calc(100vh - 175px); min-height: 360px; }
+  .messages-card { height: calc(100vh - 175px); height: calc(100dvh - 175px); min-height: 360px; }
   .messages-thread-col { display: none !important; }
   #messagesLayout.thread-open .messages-list-col { display: none !important; }
   #messagesLayout.thread-open .messages-thread-col { display: flex !important; }
@@ -408,6 +426,8 @@ a { color: inherit; text-decoration: none; }
   display: flex; align-items: center; gap: 8px;
 }
 .story-viewer-image { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
+.story-media-hidden { visibility: hidden; }
+.story-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .story-viewer-nav { position: absolute; inset: 0; display: flex; }
 .story-nav-zone { flex: 1; }
 /* Reply box + heart on somebody else's story (above the tap zones, so typing and tapping the heart do not skip it) */
@@ -532,3 +552,17 @@ body > .container, body > .container-fluid, body > main {
 
 /* The avatar of a notice from the admins (no person behind it). */
 .notif-system-avatar { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bs-secondary-bg); color: var(--bs-secondary-color); font-size: 1.1rem; }
+
+/* ---------- Videos ----------
+   A video keeps its own proportions: a wide one fills the width, a tall one (a phone video) is as high as the screen allows
+   and sits in the middle on black, instead of being cut at the top and bottom. */
+.post-video { background: #000; }
+.post-video video { width: 100%; max-height: min(70vh, 560px); object-fit: contain; }
+#storyViewerVideo { object-fit: contain; background: #000; }
+
+/* ---------- Narrow screens: nothing pushes a row wider than the screen ----------
+   A long name or a word with no spaces wraps instead of widening its row, and the pieces that must keep their size
+   (pictures, buttons, icons) do not shrink while the text beside them does. */
+body { overflow-wrap: break-word; }
+.d-flex > div, .flex-grow-1 { min-width: 0; }
+.d-flex > img, .d-flex > .btn, .d-flex > i, .avatar-xs, .avatar-sm, .avatar-md, .avatar-lg { flex-shrink: 0; }

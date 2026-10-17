@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SocialNetworkPlatformProject.Application.DTOs.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Stories;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Extensions;
@@ -37,6 +38,12 @@ public class StoriesController : ControllerBase
     {
         await _stories.RecordViewAsync(User.GetUserId(), id);
         return NoContent();
+    }
+
+    [HttpPost("{id:guid}/like")]
+    public async Task<ActionResult<GetLikeResultDto>> ToggleLike(Guid id)
+    {
+        return await _stories.ToggleLikeAsync(User.GetUserId(), id);
     }
 
     [HttpGet("{id:guid}/viewers")]

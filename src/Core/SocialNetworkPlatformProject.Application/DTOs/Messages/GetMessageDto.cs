@@ -12,4 +12,7 @@ public class GetMessageDto
     public bool IsRead { get; set; }
     public bool IsDeleted { get; set; } // taken back by the sender: Text and MediaUrl are empty
     public DateTime SentAt { get; set; }
+
+    // Set when this message is an answer to somebody's story (see PostMessageDto.StoryId).
+    public GetStoryReplyDto? StoryReply { get; set; }
 }

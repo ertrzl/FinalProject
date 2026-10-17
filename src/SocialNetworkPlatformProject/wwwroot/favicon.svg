@@ -1,7 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="16" fill="#4a6cf7"/>
-  <path d="M32 14c-10.5 0-19 7.4-19 16.6 0 4.7 2.2 8.9 5.8 11.9-.3 2.7-1.4 5.1-3.3 7.1 4-.3 7.2-1.8 9.6-3.5 1.9.5 3.9.8 6 .8 10.5 0 19-7.4 19-16.3S42.5 14 32 14z" fill="#fff"/>
-  <circle cx="24" cy="30.5" r="2.6" fill="#4a6cf7"/>
-  <circle cx="32" cy="30.5" r="2.6" fill="#4a6cf7"/>
-  <circle cx="40" cy="30.5" r="2.6" fill="#4a6cf7"/>
+  <rect width="64" height="64" rx="16" fill="#f2600c"/>
+  <!-- Stoop: three steps going up -->
+  <path d="M15 49V40h11v-9h11v-9h12v27z" fill="#fff" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
 </svg>

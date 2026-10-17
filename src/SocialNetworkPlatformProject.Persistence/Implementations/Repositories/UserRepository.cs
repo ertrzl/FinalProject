@@ -23,6 +23,7 @@ public class UserRepository : IUserRepository
         Education = u.Education,
         IsPrivateAccount = u.IsPrivateAccount,
         ShowOnlineStatus = u.ShowOnlineStatus,
+        ShowFriendsList = u.ShowFriendsList,
         IsSuspended = u.IsSuspended,
         LastSeenAt = u.LastSeenAt,
         CreatedAt = u.CreatedAt
@@ -286,8 +287,9 @@ public class UserRepository : IUserRepository
         await _context.Set<Friendship>().Where(f => f.UserOneId == userId || f.UserTwoId == userId).ExecuteDeleteAsync();
         await _context.Set<UserBlock>().Where(b => b.BlockerId == userId || b.BlockedId == userId).ExecuteDeleteAsync();
 
-        // The user's own stories take their view rows with them (cascade); the views they left on others' stories don't.
+        // The user's own stories take their view and like rows with them (cascade); the ones they left on others' stories don't.
         await _context.Set<StoryView>().Where(v => v.ViewerId == userId).ExecuteDeleteAsync();
+        await _context.Set<StoryLike>().Where(l => l.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<Story>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
 
         await _context.Set<Conversation>().Where(c => myConversationIds.Contains(c.Id)).ExecuteDeleteAsync();

@@ -175,9 +175,9 @@ html[data-design="inbox"] .avatar-upload-btn { color: var(--ink); border-color: 
    body becomes a two-column grid; the menu (nav#siteNav.inbox-nav) is the first column and everything else that takes
    room (the page) is the second. Fixed things (bottom bar, dialogs, chat dock, toasts) are outside the grid.
    ========================================================= */
-html[data-design="inbox"] body { display: grid; grid-template-columns: 220px minmax(0, 1fr); align-items: start; min-height: 100vh; }
+html[data-design="inbox"] body { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: start; min-height: 100vh; }
 html[data-design="inbox"] body > .inbox-nav {
-  grid-column: 1; grid-row: 1 / span 200; position: sticky; top: 0; height: 100vh; overflow-y: auto; z-index: 1030;
+  grid-column: 1; grid-row: 1 / span 200; position: sticky; top: 0; height: 100vh; overflow: visible; z-index: 1030;
   background: var(--canvas); border-right: 1px solid var(--line); min-height: 0; padding: 0 !important;
 }
 html[data-design="inbox"] body > :not(.inbox-nav) { grid-column: 2; min-width: 0; }
@@ -215,6 +215,66 @@ html[data-design="inbox"] .side-me:hover, html[data-design="inbox"] .side-me.act
 html[data-design="inbox"] .side-me-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 html[data-design="inbox"] .side-tool { border: 0; background: transparent; color: var(--muted); width: 40px; height: 44px; border-radius: 6px; font-size: 17px; display: flex; align-items: center; justify-content: center; }
 html[data-design="inbox"] .side-tool:hover { background: var(--chip); color: var(--ink); }
+
+/* ---------- The rail (from 992 px) ----------
+   Only the icons show; with the mouse on the column it opens over the page with the names, and closes again when the
+   mouse leaves (or the keyboard focus leaves it). The page does not move: the column keeps its 72 px. */
+@media (min-width: 992px) {
+  html[data-design="inbox"] .side-menu {
+    position: absolute; top: 0; left: 0; width: 72px; height: 100%; padding: 20px 12px 16px;
+    background: var(--canvas); border-right: 1px solid var(--line);
+    transition: width .22s cubic-bezier(.4, 0, .2, 1), box-shadow .22s;
+  }
+  html[data-design="inbox"] .inbox-nav:hover .side-menu,
+  html[data-design="inbox"] .inbox-nav:has(:focus-visible) .side-menu { width: 244px; box-shadow: 10px 0 30px rgba(0, 0, 0, .14); }
+
+  /* The names: closed they have no width, open they slide out. */
+  html[data-design="inbox"] .side-text {
+    display: block; max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap;
+    transition: max-width .22s cubic-bezier(.4, 0, .2, 1), opacity .15s;
+  }
+  html[data-design="inbox"] .inbox-nav:hover .side-text,
+  html[data-design="inbox"] .inbox-nav:has(:focus-visible) .side-text { max-width: 170px; opacity: 1; transition-delay: 0s, .08s; }
+
+  html[data-design="inbox"] .side-brand { gap: 12px; padding: 0 8px 18px; height: 52px; align-items: center; }
+  html[data-design="inbox"] .side-brand-mark { width: 32px; height: 32px; border-radius: 0; background: url("/images/logo.svg") center / contain no-repeat; }
+
+  html[data-design="inbox"] .side-link { gap: 16px; min-height: 48px; padding: 0 12px; justify-content: flex-start; position: relative; }
+  html[data-design="inbox"] .side-link > span:first-child { flex: 0 1 auto; }
+  html[data-design="inbox"] .side-icon { font-size: 23px; line-height: 1; width: 24px; flex: none; text-align: center; }
+  html[data-design="inbox"] .side-link.active { background: transparent; border-color: transparent; }
+  html[data-design="inbox"] .side-link.active .side-icon { color: var(--accent); }
+  html[data-design="inbox"] .side-link-end { margin-left: auto; }
+
+  /* Closed: a counter sits on the corner of its icon; open: at the end of the row. */
+  html[data-design="inbox"] .side-link .badge { position: absolute !important; top: 5px; left: 28px; font-size: 10px; padding: 2px 5px; }
+  html[data-design="inbox"] .inbox-nav:hover .side-link .badge,
+  html[data-design="inbox"] .inbox-nav:has(:focus-visible) .side-link .badge { position: static !important; }
+  html[data-design="inbox"] .side-link .kbd { display: none; }
+  html[data-design="inbox"] .inbox-nav:hover .side-link .kbd,
+  html[data-design="inbox"] .inbox-nav:has(:focus-visible) .side-link .kbd { display: inline-block; }
+
+  /* The search is the magnifier until the column opens. */
+  html[data-design="inbox"] .side-search { overflow: hidden; flex-wrap: nowrap; }
+  html[data-design="inbox"] .side-search .form-control { min-width: 0; }
+  html[data-design="inbox"] .side-search::after { display: none; }
+  html[data-design="inbox"] .inbox-nav:hover .side-search::after,
+  html[data-design="inbox"] .inbox-nav:has(:focus-visible) .side-search::after { display: block; }
+
+  /* The groups and the account's buttons are only there when the column is open. */
+  html[data-design="inbox"] .side-groups { opacity: 0; visibility: hidden; transition: opacity .15s; }
+  html[data-design="inbox"] .inbox-nav:hover .side-groups,
+  html[data-design="inbox"] .inbox-nav:has(:focus-visible) .side-groups { opacity: 1; visibility: visible; }
+  html[data-design="inbox"] .side-me { gap: 14px; padding: 0 8px; flex: 1 1 0; }
+  html[data-design="inbox"] .side-me .avatar-xs { width: 32px; height: 32px; flex: none; }
+  html[data-design="inbox"] .side-tool { width: 0; padding: 0; opacity: 0; visibility: hidden; overflow: hidden; transition: opacity .15s; }
+  html[data-design="inbox"] .inbox-nav:hover .side-tool,
+  html[data-design="inbox"] .inbox-nav:has(:focus-visible) .side-tool { width: 40px; opacity: 1; visibility: visible; }
+}
+
+/* The logo in the top bar of a phone and on the sign-in pages */
+html[data-design="inbox"] .top-bar .side-brand-mark { width: 28px; height: 28px; border-radius: 0; background: url("/images/logo.svg") center / contain no-repeat; }
+html[data-design="inbox"] .auth-logo::before { width: 30px; height: 30px; margin-right: 10px; border-radius: 0; background: url("/images/logo.svg") center / contain no-repeat; }
 
 /* Below 992 px: the column becomes a bar at the top, and the links go to the bar at the bottom and the drawer (see js/navbar.js). */
 html[data-design="inbox"] .top-bar { align-items: center; gap: 10px; padding: calc(8px + env(safe-area-inset-top)) 14px 8px; background: var(--surface); }
@@ -726,7 +786,7 @@ html[data-design="inbox"] .nav-pills, html[data-design="inbox"] .nav-tabs { scro
 html[data-design="inbox"] .nav-pills::-webkit-scrollbar, html[data-design="inbox"] .nav-tabs::-webkit-scrollbar { display: none; }
 
 /* The suggestions under the search of the menu stay inside the column (it scrolls, so it would cut anything wider). */
-@media (min-width: 992px) { html[data-design="inbox"] body > .inbox-nav { overflow-x: hidden; } }
+@media (min-width: 992px) { html[data-design="inbox"] body > .inbox-nav { overflow: visible; } }
 html[data-design="inbox"] .side-search .search-suggestions { min-width: 0; left: 0; right: 0; }
 html[data-design="inbox"] .side-search .search-suggestions button { padding: 8px 10px; min-width: 0; }
 html[data-design="inbox"] .side-search .search-suggestions span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

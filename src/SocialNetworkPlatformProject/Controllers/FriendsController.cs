@@ -26,6 +26,13 @@ public class FriendsController : ControllerBase
         return await _friends.GetFriendsAsync(User.GetUserId());
     }
 
+    // Another person's friend list, when they have opened it in their settings (profile.html).
+    [HttpGet("of/{userId:guid}")]
+    public async Task<ActionResult<List<GetFriendDto>>> GetFriendsOf(Guid userId)
+    {
+        return await _friends.GetFriendListAsync(User.GetUserId(), userId);
+    }
+
     [HttpGet("requests/incoming")]
     public async Task<ActionResult<List<GetFriendRequestDto>>> GetIncomingRequests()
     {

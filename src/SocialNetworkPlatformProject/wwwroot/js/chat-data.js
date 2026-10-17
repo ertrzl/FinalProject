@@ -22,6 +22,25 @@ window.chatMessagePreviewText = function (m) {
   return m.type === "Image" ? "📷 Fotoğraf" : m.text;
 };
 
+// The story a message answers, shown above its text: who answered whose story, and the story itself (or a note that it
+// is gone: stories last 24 hours).
+window.chatStoryReplyHtml = function (m, compact) {
+  const reply = m.storyReply;
+  if (!reply) return "";
+
+  const label = m.isMine ? "Bir hikâyeye yanıt verdin" : "Hikâyene yanıt verdi";
+  let thumb;
+  if (!reply.isAvailable) {
+    thumb = `<div class="chat-story-gone small"><i class="bi bi-clock-history me-1"></i>Hikâye artık yok</div>`;
+  } else if (reply.mediaType === "Video") {
+    thumb = `<video src="${reply.mediaUrl}" class="chat-story-thumb d-block" muted preload="metadata"></video>`;
+  } else {
+    thumb = `<img src="${reply.mediaUrl}" class="chat-story-thumb d-block" alt="Hikâye" onclick="openChatImage('${reply.mediaUrl}')">`;
+  }
+
+  return `<div class="chat-story-reply${compact ? " compact" : ""} mb-2"><div class="chat-story-label"><i class="bi bi-reply-fill me-1"></i>${label}</div>${thumb}</div>`;
+};
+
 // Inner HTML of a message bubble: a photo (+ caption), a large sticker emoji, or plain text.
 window.chatMessageBodyHtml = function (m, compact) {
   if (m.isDeleted)
@@ -30,7 +49,7 @@ window.chatMessageBodyHtml = function (m, compact) {
   if (m.type === "Sticker")
     return `<div class="chat-sticker" style="font-size:${compact ? 44 : 64}px;">${escapeHtml(m.text)}</div>`;
 
-  let html = "";
+  let html = window.chatStoryReplyHtml(m, compact);
   if (m.type === "Image") {
     html += `<img src="${m.mediaUrl}" class="chat-image d-block rounded-3" style="max-width:${compact ? 170 : 260}px;max-height:${compact ? 180 : 300}px;" onclick="openChatImage('${m.mediaUrl}')" alt="Fotoğraf">`;
   }

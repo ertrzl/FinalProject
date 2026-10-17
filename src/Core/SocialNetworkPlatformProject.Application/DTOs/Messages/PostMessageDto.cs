@@ -10,4 +10,8 @@ public class PostMessageDto
     public Guid? ReceiverId { get; set; }
     public string? Type { get; set; }
     public string Text { get; set; } = string.Empty;
+
+    // Set to answer a story: the message goes to the story's owner and is shown together with the story. Plain text
+    // only, and only while the story is still up and the sender may see it (a friend of the owner).
+    public Guid? StoryId { get; set; }
 }

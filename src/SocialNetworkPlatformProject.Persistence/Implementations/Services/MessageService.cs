@@ -14,6 +14,7 @@ public class MessageService : IMessageService
     private readonly IConversationRepository _conversations;
     private readonly IConversationParticipantRepository _participants;
     private readonly IMessageRepository _messages;
+    private readonly IStoryRepository _stories;
     private readonly IUserRepository _users;
     private readonly IFriendService _friends;
     private readonly IBlockService _blocks;
@@ -26,6 +27,7 @@ public class MessageService : IMessageService
         IConversationRepository conversations,
         IConversationParticipantRepository participants,
         IMessageRepository messages,
+        IStoryRepository stories,
         IUserRepository users,
         IFriendService friends,
         IBlockService blocks,
@@ -37,6 +39,7 @@ public class MessageService : IMessageService
         _conversations = conversations;
         _participants = participants;
         _messages = messages;
+        _stories = stories;
         _users = users;
         _friends = friends;
         _blocks = blocks;
@@ -122,7 +125,7 @@ public class MessageService : IMessageService
 
         return new PagedResult<GetMessageDto>
         {
-            Items = MapMessages(newestFirst, currentUserId),
+            Items = await MapMessagesAsync(newestFirst, currentUserId),
             Page = page,
             PageSize = pageSize,
             TotalCount = total
@@ -132,7 +135,10 @@ public class MessageService : IMessageService
     public async Task<GetMessageDto> SendAsync(Guid currentUserId, PostMessageDto dto)
     {
         var type = dto.Type == "Sticker" ? MessageType.Sticker : MessageType.Text;
-        return await SendCoreAsync(currentUserId, dto.ConversationId, dto.ReceiverId, type, dto.Text.Trim(), null);
+        if (dto.StoryId.HasValue && type != MessageType.Text)
+            throw new BadRequestException(Loc.T("message.storyTextOnly"));
+
+        return await SendCoreAsync(currentUserId, dto.ConversationId, dto.ReceiverId, type, dto.Text.Trim(), null, dto.StoryId);
     }
 
     public async Task<GetMessageDto> SendImageAsync(Guid currentUserId, PostMessageImageDto dto)
@@ -151,7 +157,8 @@ public class MessageService : IMessageService
     }
 
     private async Task<GetMessageDto> SendCoreAsync(
-        Guid currentUserId, Guid? conversationIdArg, Guid? receiverIdArg, MessageType type, string text, string? mediaUrl)
+        Guid currentUserId, Guid? conversationIdArg, Guid? receiverIdArg, MessageType type, string text, string? mediaUrl,
+        Guid? storyId = null)
     {
         Guid conversationId;
         Guid recipientId;
@@ -196,24 +203,40 @@ public class MessageService : IMessageService
         if (await _blocks.AreBlockedAsync(currentUserId, recipientId))
             throw new ForbiddenException(Loc.T("message.cannot"));
 
+        // An answer to a story: the story must be up, belong to the person written to, and be one the sender may see.
+        if (storyId.HasValue)
+        {
+            var story = await _stories.GetByIdAsync(storyId.Value);
+            if (story == null || story.ExpiresAt <= DateTime.UtcNow || !await _friends.AreFriendsAsync(currentUserId, story.UserId))
+                throw new NotFoundException(Loc.T("story.notFound"));
+
+            if (story.UserId != recipientId)
+                throw new BadRequestException(Loc.T("message.storyOwnerOnly"));
+        }
+
         var message = new Message
         {
             ConversationId = conversationId,
             SenderId = currentUserId,
             Type = type,
             Text = text,
-            MediaUrl = mediaUrl
+            MediaUrl = mediaUrl,
+            ReplyToStoryId = storyId
         };
 
         await _messages.AddAsync(message);
         await _messages.SaveChangesAsync();
 
+        var storyReply = storyId.HasValue ? (await LoadStoryRepliesAsync(new[] { storyId.Value }))[storyId.Value] : null;
+
         var forRecipient = _mapper.Map<GetMessageDto>(message);
         forRecipient.IsMine = false;
+        forRecipient.StoryReply = storyReply;
         await _notifier.SendMessageAsync(recipientId, forRecipient);
 
         var forSender = _mapper.Map<GetMessageDto>(message);
         forSender.IsMine = true;
+        forSender.StoryReply = storyReply;
         // Also reaches the sender's other open tabs/devices; the client de-duplicates by message id.
         await _notifier.SendMessageAsync(currentUserId, forSender);
         return forSender;
@@ -347,12 +370,39 @@ public class MessageService : IMessageService
         return message.Type == MessageType.Image ? Loc.T("message.preview.photo") : message.Text;
     }
 
-    private List<GetMessageDto> MapMessages(List<Message> messages, Guid currentUserId)
+    private async Task<List<GetMessageDto>> MapMessagesAsync(List<Message> messages, Guid currentUserId)
     {
         var dtos = _mapper.Map<List<GetMessageDto>>(messages);
+        var replies = await LoadStoryRepliesAsync(messages.Where(m => m.ReplyToStoryId.HasValue).Select(m => m.ReplyToStoryId!.Value));
         for (var i = 0; i < dtos.Count; i++)
+        {
             dtos[i].IsMine = messages[i].SenderId == currentUserId;
+            if (messages[i].ReplyToStoryId is { } storyId)
+                dtos[i].StoryReply = replies[storyId];
+        }
 
         return dtos;
+    }
+
+    // The stories some messages answer, in one query. A story that is gone or expired comes back as not available
+    // (and without its media: an expired story is no longer shown to anybody).
+    private async Task<Dictionary<Guid, GetStoryReplyDto>> LoadStoryRepliesAsync(IEnumerable<Guid> storyIds)
+    {
+        var ids = storyIds.Distinct().ToList();
+        var result = ids.ToDictionary(id => id, id => new GetStoryReplyDto { StoryId = id });
+        if (ids.Count == 0)
+            return result;
+
+        var now = DateTime.UtcNow;
+        var stories = await _stories.GetAll(s => ids.Contains(s.Id) && s.ExpiresAt > now, asNoTracking: true).ToListAsync();
+        foreach (var story in stories)
+        {
+            var reply = result[story.Id];
+            reply.IsAvailable = true;
+            reply.MediaUrl = story.MediaUrl;
+            reply.MediaType = story.MediaType.ToString();
+        }
+
+        return result;
     }
 }

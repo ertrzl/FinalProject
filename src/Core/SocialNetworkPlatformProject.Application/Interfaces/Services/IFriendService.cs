@@ -20,6 +20,11 @@ public interface IFriendService
 
     Task<List<GetFriendDto>> GetFriendsAsync(Guid userId);
 
+    // Somebody's friend list as the viewer may see it: always your own; another person's only when they switched
+    // "show my friends" on (otherwise Forbidden). Somebody who blocked you looks as if they do not exist, and people
+    // you blocked or who blocked you are left out of the list.
+    Task<List<GetFriendDto>> GetFriendListAsync(Guid viewerId, Guid userId);
+
     Task RemoveFriendAsync(Guid currentUserId, Guid friendUserId);
 
     Task<List<GetUserSearchResultDto>> GetSuggestionsAsync(Guid currentUserId, int take);

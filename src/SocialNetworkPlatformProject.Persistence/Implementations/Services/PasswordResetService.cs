@@ -69,7 +69,7 @@ public class PasswordResetService : IPasswordResetService
         // valid for the time set in PasswordReset:LinkLifetimeMinutes.
         var code = await _userManager.GeneratePasswordResetTokenAsync(user);
         _logger.LogInformation("Password reset link requested for {UserName} ({UserId:l})", user.UserName, user.Id.ToString());
-        var link = $"{linkBaseUrl}/reset-password.html?email={Uri.EscapeDataString(user.Email!)}&token={WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code))}";
+        var link = $"{linkBaseUrl}/reset-password?email={Uri.EscapeDataString(user.Email!)}&token={WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code))}";
 
         // Not awaited on purpose: sending takes seconds, and only an address that has an account would wait for
         // it. The reply would then show who is registered. Failures are logged by SendAsync.
@@ -144,7 +144,7 @@ public class PasswordResetService : IPasswordResetService
 
         var html = $"""
             <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;color:#1c2436;line-height:1.5">
-              <h2 style="color:#4a6cf7;margin-bottom:4px">SocialNet</h2>
+              <h2 style="color:#4a6cf7;margin-bottom:4px">Stoop</h2>
               <p>{helloHtml}</p>
               <p>{Loc.T("email.reset.introHtml")}</p>
               <p><a href="{htmlLink}" style="display:inline-block;background:#4a6cf7;color:#ffffff;padding:10px 24px;border-radius:24px;text-decoration:none;font-weight:bold">{Loc.T("email.reset.button")}</a></p>

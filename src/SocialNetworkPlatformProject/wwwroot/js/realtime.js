@@ -23,6 +23,7 @@
     PostLiked: "gönderini beğendi.",
     CommentAdded: "gönderine yorum yaptı.",
     CommentLiked: "yorumunu beğendi.",
+    StoryLiked: "hikâyeni beğendi.",
     Mentioned: "seni etiketledi.",
     PostShared: "gönderini paylaştı."
   };

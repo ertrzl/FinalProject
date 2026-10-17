@@ -80,7 +80,7 @@ function searchFormHtml(extraClass = "") {
 function topMenuHtml(active) {
   return `
     <div class="container-fluid px-3 px-md-4">
-      <a class="navbar-brand site-brand" href="home.html">SocialNet</a>
+      <a class="navbar-brand site-brand" href="home.html">Stoop</a>
 
       ${searchFormHtml("mx-2 mx-md-3")}
 
@@ -105,39 +105,56 @@ function topMenuHtml(active) {
 
 // ---- Inbox design ----
 
-// A row of the column on the left: the name, a counter if the link has one, and (on the page you are on) the key that jumps to it.
+// The column on the left is a rail of icons; it opens over the page with the names when the mouse is on it (css/inbox.css).
+// Each link has an outline icon, and the filled one on the page you are on.
+const SIDE_ICONS = {
+  home: ["bi-house-door", "bi-house-door-fill"],
+  explore: ["bi-compass", "bi-compass-fill"],
+  friends: ["bi-people", "bi-people-fill"],
+  messages: ["bi-chat-dots", "bi-chat-dots-fill"],
+  notifications: ["bi-bell", "bi-bell-fill"],
+  groups: ["bi-diagram-3", "bi-diagram-3-fill"],
+  events: ["bi-calendar-event", "bi-calendar-event-fill"],
+  marketplace: ["bi-bag", "bi-bag-fill"],
+  saved: ["bi-bookmark", "bi-bookmark-fill"],
+  settings: ["bi-gear", "bi-gear-fill"],
+  admin: ["bi-shield-check", "bi-shield-fill-check"]
+};
+
+// A row of the column on the left: the icon, the name, a counter if the link has one, and (on the page you are on) the key that jumps to it.
 function sideLinkHtml(item, active) {
   const link = findLink(item.key);
   const isActive = active === item.key;
   const counter = link.badge ? `<span class="badge bg-danger ${link.badge} d-none">0</span>` : "";
   const hint = isActive ? `<span class="kbd" title="g, sonra ${item.shortcut}">g ${item.shortcut}</span>` : "";
   const label = link.key === "marketplace" ? "Pazar" : link.label; // the design calls it "Pazar" (the classic menu says Marketplace)
-  return `<a href="${link.href}" data-section="${link.key}" data-shortcut="${item.shortcut}" class="side-link ${isActive ? "active" : ""}"><span>${label}</span><span class="side-link-end">${counter}${hint}</span></a>`;
+  const [iconOff, iconOn] = SIDE_ICONS[item.key] || [link.icon, link.icon];
+  return `<a href="${link.href}" title="${label}" data-section="${link.key}" data-shortcut="${item.shortcut}" class="side-link ${isActive ? "active" : ""}"><i class="bi ${isActive ? iconOn : iconOff} side-icon"></i><span class="side-text">${label}</span><span class="side-link-end">${counter}${hint}</span></a>`;
 }
 
 function sideMenuHtml(active) {
   const me = getSession();
   return `
     <div class="side-menu d-none d-lg-flex">
-      <a class="side-brand" href="home.html"><span class="side-brand-mark"></span>SocialNet</a>
+      <a class="side-brand" href="home.html"><span class="side-brand-mark"></span><span class="side-text">Stoop</span></a>
       ${searchFormHtml("side-search")}
       <div class="side-links">${SIDE_LINKS.map(item => sideLinkHtml(item, active)).join("")}${isAdmin() ? sideLinkHtml({ key: "admin", shortcut: "y" }, active) : ""}</div>
       <div class="side-groups d-none" id="sideGroups">
-        <div class="side-caption">Gruplarım</div>
+        <div class="side-caption side-text">Gruplarım</div>
         <div id="sideGroupsList"></div>
       </div>
       <div class="side-grow"></div>
       <div class="side-account">
         <a href="profile.html" class="side-me ${active === "profile" ? "active" : ""}" title="Profilim">
           <img src="images/default-avatar.png" class="avatar-xs nav-profile-avatar" alt="">
-          <span class="side-me-name">${escapeHtml(me?.fullName || "Profilim")}</span>
+          <span class="side-me-name side-text">${escapeHtml(me?.fullName || "Profilim")}</span>
         </a>
         <button type="button" class="side-tool" onclick="toggleTheme()" title="Temayı Değiştir"><i class="bi bi-moon-stars-fill theme-icon"></i></button>
         <button type="button" class="side-tool" onclick="logout()" title="Çıkış Yap"><i class="bi bi-box-arrow-right"></i></button>
       </div>
     </div>
     <div class="top-bar d-flex d-lg-none">
-      <a class="side-brand" href="home.html"><span class="side-brand-mark"></span>SocialNet</a>
+      <a class="side-brand" href="home.html"><span class="side-brand-mark"></span>Stoop</a>
       ${searchFormHtml("top-bar-search")}
       <button type="button" class="burger-btn" data-bs-toggle="offcanvas" data-bs-target="#siteMenu" aria-label="Menü"><i class="bi bi-list"></i></button>
     </div>`;

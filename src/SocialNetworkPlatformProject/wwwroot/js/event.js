@@ -45,7 +45,7 @@ function showEventError(message) {
 
 function renderEvent() {
   const ev = currentEvent;
-  document.title = `${ev.title} | SocialNet`;
+  document.title = `${ev.title} | Stoop`;
   document.getElementById("eventLoading").classList.add("d-none");
   document.getElementById("eventPage").classList.remove("d-none");
 

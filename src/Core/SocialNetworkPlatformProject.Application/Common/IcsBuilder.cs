@@ -19,7 +19,7 @@ public static class IcsBuilder
         {
             "BEGIN:VCALENDAR",
             "VERSION:2.0",
-            "PRODID:-//SocialNet//Events//",
+            "PRODID:-//Stoop//Events//",
             "CALSCALE:GREGORIAN",
             "METHOD:PUBLISH",
             "BEGIN:VEVENT",

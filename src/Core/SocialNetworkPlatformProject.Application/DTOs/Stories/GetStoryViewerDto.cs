@@ -7,4 +7,7 @@ public class GetStoryViewerDto
     public string FullName { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
     public DateTime ViewedAt { get; set; }
+
+    // This viewer also liked the story (a heart next to the name).
+    public bool HasLiked { get; set; }
 }

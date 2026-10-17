@@ -1,4 +1,4 @@
-// SocialNet — small helpers every page shares: toasts, the composer's attachment preview, search form, dark mode.
+// Stoop — small helpers every page shares: toasts, the composer's attachment preview, search form, dark mode.
 // Tabs, collapses, dropdowns, and modals are handled by Bootstrap's own JS bundle; posts and comments are in post-card.js.
 
 // ---- Tiny toast helper ----

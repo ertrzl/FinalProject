@@ -87,6 +87,8 @@ public class UserService : IUserService
             FriendCount = friendCount,
             IsOnline = user.ShowOnlineStatus && _presence.IsOnline(user.Id),
             IsPrivateAccount = user.IsPrivateAccount,
+            ShowOnlineStatus = user.ShowOnlineStatus,
+            ShowFriendsList = user.ShowFriendsList,
             IsOwnProfile = isOwnProfile,
             IsBlockedByMe = blockedByMe,
             FriendshipStatus = friendshipStatus,
@@ -150,6 +152,7 @@ public class UserService : IUserService
 
         user.IsPrivateAccount = dto.IsPrivateAccount;
         user.ShowOnlineStatus = dto.ShowOnlineStatus;
+        user.ShowFriendsList = dto.ShowFriendsList;
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)

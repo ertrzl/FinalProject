@@ -180,6 +180,9 @@ else
 // as it was, because the redirect came after the static files).
 app.UseHttpsRedirection();
 
+// Before the files: /friends is answered from friends.html, and /friends.html is sent to /friends.
+app.UseMiddleware<CleanUrlMiddleware>();
+
 app.UseDefaultFiles();
 
 // /uploads is not a static folder: any file in it would be handed to anybody. UploadsController answers it instead, and

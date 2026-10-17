@@ -14,6 +14,7 @@ public class UserSummary
     public string? Education { get; init; }
     public bool IsPrivateAccount { get; init; }
     public bool ShowOnlineStatus { get; init; }
+    public bool ShowFriendsList { get; init; }
     public bool IsSuspended { get; init; }
     public DateTime? LastSeenAt { get; init; }
     public DateTime CreatedAt { get; init; }

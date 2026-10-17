@@ -41,6 +41,6 @@ public class EventCalendarController : ControllerBase
     {
         var configuredBase = _configuration["App:PublicBaseUrl"];
         var baseUrl = string.IsNullOrWhiteSpace(configuredBase) ? $"{Request.Scheme}://{Request.Host}" : configuredBase.TrimEnd('/');
-        return $"{baseUrl}/event.html?id={eventId}";
+        return $"{baseUrl}/event?id={eventId}";
     }
 }

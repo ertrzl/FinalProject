@@ -13,6 +13,8 @@ public class StoryProfile : Profile
             .ForMember(dest => dest.UserName, opt => opt.Ignore())
             .ForMember(dest => dest.UserAvatarUrl, opt => opt.Ignore())
             .ForMember(dest => dest.ViewCount, opt => opt.Ignore())
-            .ForMember(dest => dest.IsViewed, opt => opt.Ignore());
+            .ForMember(dest => dest.IsViewed, opt => opt.Ignore())
+            .ForMember(dest => dest.LikeCount, opt => opt.Ignore())
+            .ForMember(dest => dest.IsLiked, opt => opt.Ignore());
     }
 }

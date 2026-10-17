@@ -20,6 +20,11 @@ public class GetUserProfileDto
     public bool IsOnline { get; set; }
     public bool IsPrivateAccount { get; set; }
 
+    // The owner's switches (settings.html "Gizlilik" loads them); ShowFriendsList also tells a visitor whether the
+    // friend list can be opened (GET /api/friends/of/{id}).
+    public bool ShowOnlineStatus { get; set; }
+    public bool ShowFriendsList { get; set; }
+
     public bool IsOwnProfile { get; set; }
 
     // The current user blocked this person: the page offers "Engeli Kaldır" instead of the friend / message buttons.

@@ -142,6 +142,25 @@ public class FriendService : IFriendService
         return await BuildRequestDtosAsync(requests, currentUserId);
     }
 
+    public async Task<List<GetFriendDto>> GetFriendListAsync(Guid viewerId, Guid userId)
+    {
+        if (viewerId == userId)
+            return await GetFriendsAsync(userId);
+
+        var owner = await _users.GetSummaryAsync(userId)
+            ?? throw new NotFoundException(Loc.T("user.notFound"));
+
+        if (await _blocks.HasBlockedAsync(userId, viewerId))
+            throw new NotFoundException(Loc.T("user.notFound"));
+
+        if (!owner.ShowFriendsList)
+            throw new ForbiddenException(Loc.T("friend.listHidden"));
+
+        var hidden = await _blocks.GetBlockedIdsAsync(viewerId);
+        var friends = await GetFriendsAsync(userId);
+        return friends.Where(f => f.UserId != viewerId && !hidden.Contains(f.UserId)).ToList();
+    }
+
     public async Task<List<GetFriendDto>> GetFriendsAsync(Guid userId)
     {
         var friendships = await _friendships.GetAll(

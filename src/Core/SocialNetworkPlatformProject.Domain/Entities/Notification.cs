@@ -16,6 +16,7 @@ public class Notification : BaseEntity
     public Guid? GroupId { get; set; }
     public Guid? OfferId { get; set; }
     public Guid? EventId { get; set; } // soft reference (no FK), like OfferId; cleaned up when the event is deleted
+    public Guid? StoryId { get; set; } // soft reference (no FK): stories expire after a day, the notification stays
     public string? Subject { get; set; } // snapshot of a title whose source row is gone (e.g. a cancelled event)
     public decimal? Amount { get; set; } // the price involved in a marketplace offer event
 

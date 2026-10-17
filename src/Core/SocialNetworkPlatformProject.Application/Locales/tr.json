@@ -141,10 +141,13 @@
   "friend.cancelSenderOnly": "Bu isteği sadece gönderen iptal edebilir.",
   "friend.notFriends": "Bu kişiyle arkadaş değilsin.",
   "friend.answered": "Bu arkadaşlık isteği zaten yanıtlanmış.",
+  "friend.listHidden": "Bu kişi arkadaş listesini gizlemiş.",
 
   "message.self": "Kendine mesaj gönderemezsin.",
   "message.friendsOnly": "Bu kişi yeni mesajları sadece arkadaşlarından kabul ediyor.",
   "message.target": "Sohbet ya da alıcı belirtilmeli.",
+  "message.storyTextOnly": "Bir hikâyeye sadece yazıyla yanıt verilebilir.",
+  "message.storyOwnerOnly": "Bir hikâyeye sadece sahibine yanıt verebilirsin.",
   "message.cannot": "Bu kişiye mesaj gönderemezsin.",
   "message.deleteOwn": "Sadece kendi mesajlarını silebilirsin.",
   "message.preview.deleted": "🚫 Mesaj silindi",
@@ -168,7 +171,8 @@
   "poll.voted": "Bu ankette zaten oy kullandın.",
 
   "story.deleteOwn": "Sadece kendi hikâyelerini silebilirsin.",
-  "story.viewersOwner": "Hikâyeyi kimin izlediğini sadece hikâyenin sahibi görebilir.",
+  "story.likeOwn": "Kendi hikâyeni beğenemezsin.",
+  "story.viewersOwner":"Hikâyeyi kimin izlediğini sadece hikâyenin sahibi görebilir.",
 
   "user.currentPasswordWrong": "Mevcut şifre hatalı.",
   "user.passwordWrong": "Şifre hatalı.",

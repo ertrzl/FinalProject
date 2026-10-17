@@ -6,6 +6,8 @@ function requestCardHtml(req, kind) {
   // kind: "incoming" (they sent it to me) or "sent" (I sent it to them)
   const otherName = kind === "incoming" ? req.senderName : req.receiverName;
   const otherAvatar = kind === "incoming" ? req.senderAvatarUrl : req.receiverAvatarUrl;
+  const otherId = kind === "incoming" ? req.senderId : req.receiverId;
+  const profileLink = `profile.html?id=${otherId}`;
   const mutualLabel = req.mutualFriendsCount > 0 ? `${req.mutualFriendsCount} ortak arkadaş` : "Ortak arkadaş yok";
 
   const actions = kind === "incoming"
@@ -15,9 +17,9 @@ function requestCardHtml(req, kind) {
 
   return `
     <div class="request-card d-flex align-items-center gap-3 rounded-3 p-3 mb-2 bg-body-tertiary" data-request-id="${req.id}">
-      <img src="${otherAvatar || DEFAULT_AVATAR}" class="avatar-md" alt="">
+      <a href="${profileLink}"><img src="${otherAvatar || DEFAULT_AVATAR}" class="avatar-md" alt=""></a>
       <div class="flex-grow-1">
-        <div class="fw-bold">${escapeHtml(otherName)}</div>
+        <div class="fw-bold"><a href="${profileLink}" class="text-body text-decoration-none">${escapeHtml(otherName)}</a></div>
         <div class="text-muted small">${kind === "incoming" ? mutualLabel : "Bekleniyor..."}</div>
       </div>
       ${actions}

@@ -26,6 +26,10 @@ public class ApplicationUser : IdentityUser<Guid>
     public bool IsPrivateAccount { get; set; } = false;
     public bool ShowOnlineStatus { get; set; } = true;
 
+    // Whether other people can see this user's friend list on the profile (the friend count is always shown).
+    // Off by default: the list is the owner's own until they open it.
+    public bool ShowFriendsList { get; set; } = false;
+
     // settings.html "Bildirim Tercihleri": which kinds of notification are created for this user at all
     // (see NotificationPreferences for which notification types belong to which switch).
     public bool NotifyOnLikes { get; set; } = true;

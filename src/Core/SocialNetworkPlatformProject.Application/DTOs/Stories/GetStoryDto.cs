@@ -17,4 +17,10 @@ public class GetStoryDto
 
     // Somebody else's story that you have already watched: its ring on the story bar is greyed out.
     public bool IsViewed { get; set; }
+
+    // Only filled in on your own stories: how many people liked it (who liked it: HasLiked in the viewers list).
+    public int LikeCount { get; set; }
+
+    // Somebody else's story that you liked: its heart is filled.
+    public bool IsLiked { get; set; }
 }

@@ -17,7 +17,7 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -822,6 +822,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<Guid?>("ReplyToStoryId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("SenderId")
                         .HasColumnType("uniqueidentifier");
 
@@ -880,6 +883,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("RecipientId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("StoryId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Subject")
@@ -1334,6 +1340,29 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.ToTable("Stories");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryLike", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("StoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoryId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("StoryLikes");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryView", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1473,6 +1502,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("ShowFriendsList")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("ShowOnlineStatus")
                         .HasColumnType("bit");
@@ -1825,6 +1857,17 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .IsRequired();
 
                     b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryLike", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Story", "Story")
+                        .WithMany()
+                        .HasForeignKey("StoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Story");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryView", b =>

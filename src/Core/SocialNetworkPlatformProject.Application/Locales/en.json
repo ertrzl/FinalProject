@@ -141,10 +141,13 @@
   "friend.cancelSenderOnly": "Only the sender can cancel this request.",
   "friend.notFriends": "You are not friends with this user.",
   "friend.answered": "This friend request has already been answered.",
+  "friend.listHidden": "This person keeps their friend list hidden.",
 
   "message.self": "You can't message yourself.",
   "message.friendsOnly": "This person only accepts new messages from friends.",
   "message.target": "Either ConversationId or ReceiverId must be provided.",
+  "message.storyTextOnly": "A story can only be answered with text.",
+  "message.storyOwnerOnly": "You can only answer a story to the person who posted it.",
   "message.cannot": "You can't message this person.",
   "message.deleteOwn": "You can only delete your own messages.",
   "message.preview.deleted": "🚫 Message deleted",
@@ -168,7 +171,8 @@
   "poll.voted": "You have already voted in this poll.",
 
   "story.deleteOwn": "You can only delete your own stories.",
-  "story.viewersOwner": "Only the owner of a story can see who watched it.",
+  "story.likeOwn": "You can't like your own story.",
+  "story.viewersOwner":"Only the owner of a story can see who watched it.",
 
   "user.currentPasswordWrong": "Current password is incorrect.",
   "user.passwordWrong": "Password is incorrect.",

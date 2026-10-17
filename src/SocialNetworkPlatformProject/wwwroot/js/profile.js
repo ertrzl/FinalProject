@@ -196,20 +196,26 @@ async function loadFriendsSummary() {
   const tabList = document.getElementById("friendsTabList");
   const summary = document.getElementById("friendsSummary");
 
-  if (!isOwn) {
+  // The links lead to the viewer's own friends page, so only the profile owner gets them.
+  document.getElementById("friendsSeeAllLink").classList.toggle("d-none", !isOwn);
+  document.getElementById("friendsManageLink").classList.toggle("d-none", !isOwn);
+
+  // Somebody else's list is only there when they opened it in their settings (the server checks it again).
+  if (!isOwn && !currentProfile.showFriendsList) {
     heading.textContent = `${currentProfile.friendCount} Arkadaş`;
-    tabList.innerHTML = `<div class="text-muted small">Arkadaş listesi sadece profil sahibine görünür.</div>`;
+    tabList.innerHTML = `<div class="text-muted small">Bu kişi arkadaş listesini gizlemiş.</div>`;
     summary.innerHTML = `<div class="text-muted small">Liste gizli.</div>`;
     return;
   }
 
   try {
-    const friends = await apiFetch("/api/friends");
+    const friends = await apiFetch(isOwn ? "/api/friends" : `/api/friends/of/${currentProfile.id}`);
     heading.textContent = `${friends.length} Arkadaş`;
 
+    const emptyText = isOwn ? "Henüz arkadaşın yok." : "Henüz arkadaşı yok.";
     const tile = f => `<div class="col friend-tile"><img src="${f.avatarUrl || DEFAULT_AVATAR}" alt=""><div class="small fw-semibold mt-1"><a href="profile.html?id=${f.userId}" class="text-body text-decoration-none">${escapeHtml(f.name)}</a></div></div>`;
-    tabList.innerHTML = friends.length ? friends.map(tile).join("") : `<div class="text-muted small">Henüz arkadaşın yok.</div>`;
-    summary.innerHTML = friends.slice(0, 6).map(tile).join("") || `<div class="text-muted small">Henüz arkadaşın yok.</div>`;
+    tabList.innerHTML = friends.length ? friends.map(tile).join("") : `<div class="text-muted small">${emptyText}</div>`;
+    summary.innerHTML = friends.slice(0, 6).map(tile).join("") || `<div class="text-muted small">${emptyText}</div>`;
   } catch (err) {
     tabList.innerHTML = `<div class="alert alert-danger small">${escapeHtml(err.message)}</div>`;
   }

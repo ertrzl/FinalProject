@@ -16,6 +16,8 @@ async function loadSettings() {
     document.getElementById("settingsBio").value = p.bio || "";
     document.getElementById("settingsAvatarPreview").src = p.avatarUrl || DEFAULT_AVATAR;
     document.getElementById("privateAccount").checked = p.isPrivateAccount;
+    document.getElementById("showOnline").checked = p.showOnlineStatus;
+    document.getElementById("showFriendsList").checked = p.showFriendsList;
     settingsAvatarMarkedForRemoval = false;
     document.getElementById("removeSettingsAvatarBtn").classList.toggle("d-none", !p.avatarUrl);
     updateSessionAvatar(p.avatarUrl);
@@ -98,7 +100,8 @@ async function savePrivacy() {
       method: "PUT",
       body: {
         isPrivateAccount: document.getElementById("privateAccount").checked,
-        showOnlineStatus: document.getElementById("showOnline").checked
+        showOnlineStatus: document.getElementById("showOnline").checked,
+        showFriendsList: document.getElementById("showFriendsList").checked
       }
     });
     toast("Gizlilik ayarları kaydedildi.");

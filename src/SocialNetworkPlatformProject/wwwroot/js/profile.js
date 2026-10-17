@@ -40,7 +40,7 @@ async function loadProfile() {
   }
 
   const p = currentProfile;
-  document.title = (p.isOwnProfile ? "Profilim" : p.fullName) + " | SocialNet";
+  document.title = (p.isOwnProfile ? "Profilim" : p.fullName) + " | Stoop";
   document.getElementById("profileName").textContent = p.fullName;
   document.getElementById("profileHandle").textContent = "@" + p.userName;
   document.getElementById("profileFriendCount").textContent = p.friendCount;

@@ -8,7 +8,7 @@ public class EmailOptions
     // The sender people see. Gmail and most providers insist on the account's own address, so when this is empty
     // the SMTP user name is used.
     public string FromAddress { get; set; } = string.Empty;
-    public string FromName { get; set; } = "SocialNet";
+    public string FromName { get; set; } = "Stoop";
 
     public SmtpOptions Smtp { get; set; } = new();
 }

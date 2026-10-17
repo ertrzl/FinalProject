@@ -279,9 +279,9 @@
   "val.birth.invalid": "Doğum tarihi geçerli değil.",
   "val.reset.code": "Sıfırlama kodu eksik.",
 
-  "email.reset.subject": "SocialNet şifre sıfırlama",
+  "email.reset.subject": "Stoop şifre sıfırlama",
   "email.reset.hello": "Merhaba {0},",
-  "email.reset.introText": "SocialNet hesabın için şifre sıfırlama isteği aldık. Yeni şifre belirlemek için bu bağlantıyı aç:",
+  "email.reset.introText": "Stoop hesabın için şifre sıfırlama isteği aldık. Yeni şifre belirlemek için bu bağlantıyı aç:",
   "email.reset.introHtml": "Hesabın için şifre sıfırlama isteği aldık. Yeni şifre belirlemek için aşağıdaki düğmeye tıkla.",
   "email.reset.button": "Şifremi sıfırla",
   "email.reset.validity": "Bağlantı {0} geçerlidir ve yalnızca bir kez kullanılabilir.",

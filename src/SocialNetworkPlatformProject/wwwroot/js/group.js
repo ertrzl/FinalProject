@@ -26,7 +26,7 @@ function actionAreaHtml(group) {
 
 function renderGroup(group) {
   currentGroup = group;
-  document.title = group.name + " | SocialNet";
+  document.title = group.name + " | Stoop";
 
   const cover = document.getElementById("groupCover");
   cover.style.backgroundImage = group.coverImageUrl ? `url(${group.coverImageUrl})` : "";

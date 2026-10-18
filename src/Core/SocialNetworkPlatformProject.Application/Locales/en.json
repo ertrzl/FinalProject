@@ -20,6 +20,7 @@
   "file.empty": "The uploaded file is empty.",
   "file.imageType": "Only JPG, PNG, GIF and WEBP images are allowed.",
   "file.imageSize": "Images can be at most 5 MB.",
+  "file.imagePixels": "The picture is too large in width and height.",
   "file.videoType": "Only MP4, WEBM and MOV videos are allowed.",
   "file.videoSize": "Videos can be at most 25 MB.",
 

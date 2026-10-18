@@ -20,6 +20,7 @@
   "file.empty": "Yüklenen dosya boş.",
   "file.imageType": "Sadece JPG, PNG, GIF ve WEBP görselleri yüklenebilir.",
   "file.imageSize": "Görseller en fazla 5 MB olabilir.",
+  "file.imagePixels": "Görselin boyutları (genişlik x yükseklik) çok büyük.",
   "file.videoType": "Sadece MP4, WEBM ve MOV videoları yüklenebilir.",
   "file.videoSize": "Videolar en fazla 25 MB olabilir.",
 

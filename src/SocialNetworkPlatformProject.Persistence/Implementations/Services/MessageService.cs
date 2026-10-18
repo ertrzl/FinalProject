@@ -1,11 +1,13 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Messages;
 using SocialNetworkPlatformProject.Application.Exceptions;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Domain.Entities;
 using SocialNetworkPlatformProject.Domain.Enums;
+using SocialNetworkPlatformProject.Persistence.Extensions;
 
 namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
@@ -14,6 +16,7 @@ public class MessageService : IMessageService
     private readonly IConversationRepository _conversations;
     private readonly IConversationParticipantRepository _participants;
     private readonly IMessageRepository _messages;
+    private readonly IMessageReactionRepository _reactions;
     private readonly IStoryRepository _stories;
     private readonly IUserRepository _users;
     private readonly IFriendService _friends;
@@ -27,6 +30,7 @@ public class MessageService : IMessageService
         IConversationRepository conversations,
         IConversationParticipantRepository participants,
         IMessageRepository messages,
+        IMessageReactionRepository reactions,
         IStoryRepository stories,
         IUserRepository users,
         IFriendService friends,
@@ -39,6 +43,7 @@ public class MessageService : IMessageService
         _conversations = conversations;
         _participants = participants;
         _messages = messages;
+        _reactions = reactions;
         _stories = stories;
         _users = users;
         _friends = friends;
@@ -138,7 +143,7 @@ public class MessageService : IMessageService
         if (dto.StoryId.HasValue && type != MessageType.Text)
             throw new BadRequestException(Loc.T("message.storyTextOnly"));
 
-        return await SendCoreAsync(currentUserId, dto.ConversationId, dto.ReceiverId, type, dto.Text.Trim(), null, dto.StoryId);
+        return await SendCoreAsync(currentUserId, dto.ConversationId, dto.ReceiverId, type, dto.Text.Trim(), null, dto.StoryId, dto.ReplyToMessageId);
     }
 
     public async Task<GetMessageDto> SendImageAsync(Guid currentUserId, PostMessageImageDto dto)
@@ -146,7 +151,8 @@ public class MessageService : IMessageService
         var mediaUrl = await _files.SaveImageAsync(dto.Image!, "messages");
         try
         {
-            return await SendCoreAsync(currentUserId, dto.ConversationId, dto.ReceiverId, MessageType.Image, (dto.Text ?? string.Empty).Trim(), mediaUrl);
+            return await SendCoreAsync(currentUserId, dto.ConversationId, dto.ReceiverId, MessageType.Image, (dto.Text ?? string.Empty).Trim(), mediaUrl,
+                replyToMessageId: dto.ReplyToMessageId);
         }
         catch
         {
@@ -158,7 +164,7 @@ public class MessageService : IMessageService
 
     private async Task<GetMessageDto> SendCoreAsync(
         Guid currentUserId, Guid? conversationIdArg, Guid? receiverIdArg, MessageType type, string text, string? mediaUrl,
-        Guid? storyId = null)
+        Guid? storyId = null, Guid? replyToMessageId = null)
     {
         Guid conversationId;
         Guid recipientId;
@@ -214,6 +220,14 @@ public class MessageService : IMessageService
                 throw new BadRequestException(Loc.T("message.storyOwnerOnly"));
         }
 
+        // An answer to a message: it has to be one of this conversation and still there.
+        if (replyToMessageId.HasValue)
+        {
+            var quoted = await _messages.GetByIdAsync(replyToMessageId.Value);
+            if (quoted == null || quoted.ConversationId != conversationId || quoted.IsDeleted)
+                throw new NotFoundException(Loc.T("message.replyInvalid"));
+        }
+
         var message = new Message
         {
             ConversationId = conversationId,
@@ -221,22 +235,17 @@ public class MessageService : IMessageService
             Type = type,
             Text = text,
             MediaUrl = mediaUrl,
-            ReplyToStoryId = storyId
+            ReplyToStoryId = storyId,
+            ReplyToMessageId = replyToMessageId
         };
 
         await _messages.AddAsync(message);
         await _messages.SaveChangesAsync();
 
-        var storyReply = storyId.HasValue ? (await LoadStoryRepliesAsync(new[] { storyId.Value }))[storyId.Value] : null;
-
-        var forRecipient = _mapper.Map<GetMessageDto>(message);
-        forRecipient.IsMine = false;
-        forRecipient.StoryReply = storyReply;
+        var forRecipient = await MapOneAsync(message, recipientId);
         await _notifier.SendMessageAsync(recipientId, forRecipient);
 
-        var forSender = _mapper.Map<GetMessageDto>(message);
-        forSender.IsMine = true;
-        forSender.StoryReply = storyReply;
+        var forSender = await MapOneAsync(message, currentUserId);
         // Also reaches the sender's other open tabs/devices; the client de-duplicates by message id.
         await _notifier.SendMessageAsync(currentUserId, forSender);
         return forSender;
@@ -260,22 +269,71 @@ public class MessageService : IMessageService
             var mediaUrl = message.MediaUrl;
             message.MarkDeleted();
             await _messages.SaveChangesAsync();
+            await _reactions.DeleteForMessageAsync(messageId); // a message that is gone keeps no emojis
 
             _files.Delete(mediaUrl);
 
             // Every open tab of both people replaces the bubble; each gets the message as it sees it.
             foreach (var other in participants.Where(p => p.UserId != currentUserId))
-            {
-                var forOther = _mapper.Map<GetMessageDto>(message);
-                forOther.IsMine = false;
-                await _notifier.PublishToMessagesAsync(other.UserId, "MessageDeleted", forOther);
-            }
+                await _notifier.PublishToMessagesAsync(other.UserId, "MessageDeleted", await MapOneAsync(message, other.UserId));
         }
 
-        var forSender = _mapper.Map<GetMessageDto>(message);
-        forSender.IsMine = true;
+        var forSender = await MapOneAsync(message, currentUserId);
         await _notifier.PublishToMessagesAsync(currentUserId, "MessageDeleted", forSender);
         return forSender;
+    }
+
+    public async Task<GetMessageDto> SetReactionAsync(Guid currentUserId, Guid messageId, string? emoji)
+    {
+        var message = await _messages.GetByIdAsync(messageId)
+            ?? throw new NotFoundException(Loc.T("message.notFound"));
+
+        // Somebody outside the conversation must not learn that the message exists.
+        var participants = await _participants.GetAll(p => p.ConversationId == message.ConversationId, asNoTracking: true).ToListAsync();
+        if (participants.All(p => p.UserId != currentUserId))
+            throw new NotFoundException(Loc.T("message.notFound"));
+
+        if (message.IsDeleted)
+            throw new BadRequestException(Loc.T("message.reactDeleted"));
+
+        foreach (var other in participants.Where(p => p.UserId != currentUserId))
+        {
+            if (await _blocks.AreBlockedAsync(currentUserId, other.UserId))
+                throw new ForbiddenException(Loc.T("message.cannot"));
+        }
+
+        emoji = string.IsNullOrWhiteSpace(emoji) ? null : emoji.Trim();
+        if (emoji != null && !MessageReactions.Allowed.Contains(emoji))
+            throw new BadRequestException(Loc.T("message.reactionInvalid"));
+
+        var existing = await _reactions.GetAll(r => r.MessageId == messageId && r.UserId == currentUserId).FirstOrDefaultAsync();
+        if (existing != null && (emoji == null || existing.Emoji == emoji))
+            _reactions.Delete(existing); // the same emoji again (or none): taken back
+        else if (existing != null)
+            existing.Emoji = emoji!; // another emoji replaces it
+        else if (emoji != null)
+            await _reactions.AddAsync(new MessageReaction { MessageId = messageId, UserId = currentUserId, Emoji = emoji });
+
+        try
+        {
+            await _reactions.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueViolation())
+        {
+            // Two taps at the same moment: the other one was stored first, and the answer below shows what is stored.
+        }
+
+        // Every open tab of both people shows the new emojis at once; each gets the message as it sees it.
+        GetMessageDto? forCaller = null;
+        foreach (var participant in participants)
+        {
+            var dto = await MapOneAsync(message, participant.UserId);
+            await _notifier.PublishToMessagesAsync(participant.UserId, "MessageUpdated", dto);
+            if (participant.UserId == currentUserId)
+                forCaller = dto;
+        }
+
+        return forCaller!;
     }
 
     public async Task MarkConversationAsReadAsync(Guid currentUserId, Guid conversationId)
@@ -370,18 +428,75 @@ public class MessageService : IMessageService
         return message.Type == MessageType.Image ? Loc.T("message.preview.photo") : message.Text;
     }
 
+    // The messages as `currentUserId` sees them: whose they are, the story or message they answer, the emojis on them.
     private async Task<List<GetMessageDto>> MapMessagesAsync(List<Message> messages, Guid currentUserId)
     {
         var dtos = _mapper.Map<List<GetMessageDto>>(messages);
-        var replies = await LoadStoryRepliesAsync(messages.Where(m => m.ReplyToStoryId.HasValue).Select(m => m.ReplyToStoryId!.Value));
+        var stories = await LoadStoryRepliesAsync(messages.Where(m => m.ReplyToStoryId.HasValue).Select(m => m.ReplyToStoryId!.Value));
+        var quotes = await LoadQuotesAsync(messages.Where(m => m.ReplyToMessageId.HasValue).Select(m => m.ReplyToMessageId!.Value), currentUserId);
+        var reactions = (await _reactions.GetForMessagesAsync(messages.Select(m => m.Id).ToList()))
+            .GroupBy(r => r.MessageId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         for (var i = 0; i < dtos.Count; i++)
         {
             dtos[i].IsMine = messages[i].SenderId == currentUserId;
             if (messages[i].ReplyToStoryId is { } storyId)
-                dtos[i].StoryReply = replies[storyId];
+                dtos[i].StoryReply = stories[storyId];
+            if (messages[i].ReplyToMessageId is { } quotedId)
+                dtos[i].ReplyTo = quotes[quotedId];
+            if (reactions.TryGetValue(messages[i].Id, out var onThis))
+                dtos[i].Reactions = SummarizeReactions(onThis, currentUserId);
         }
 
         return dtos;
+    }
+
+    private async Task<GetMessageDto> MapOneAsync(Message message, Guid viewerId)
+        => (await MapMessagesAsync(new List<Message> { message }, viewerId))[0];
+
+    // The emojis under a message: each with its count, the most used first.
+    private static List<GetMessageReactionDto> SummarizeReactions(List<MessageReaction> reactions, Guid currentUserId)
+    {
+        return reactions
+            .GroupBy(r => r.Emoji)
+            .Select(g => new GetMessageReactionDto { Emoji = g.Key, Count = g.Count(), ReactedByMe = g.Any(r => r.UserId == currentUserId) })
+            .OrderByDescending(r => r.Count)
+            .ThenBy(r => MessageReactions.Allowed.ToList().IndexOf(r.Emoji))
+            .ToList();
+    }
+
+    // The quote above a reply, for several messages at once: who wrote the quoted message and the beginning of it. A quoted
+    // message that was taken back (or is gone) comes back as deleted, without its text or picture.
+    private async Task<Dictionary<Guid, GetMessageReplyDto>> LoadQuotesAsync(IEnumerable<Guid> quotedIds, Guid currentUserId)
+    {
+        var ids = quotedIds.Distinct().ToList();
+        var result = ids.ToDictionary(id => id, id => new GetMessageReplyDto { MessageId = id, IsDeleted = true });
+        if (ids.Count == 0)
+            return result;
+
+        var quoted = await _messages.GetAll(m => ids.Contains(m.Id), asNoTracking: true).ToListAsync();
+        var authors = await _users.GetSummariesAsync(quoted.Select(m => m.SenderId));
+        foreach (var message in quoted)
+        {
+            var text = message.IsDeleted ? null : message.Text;
+            if (text != null && text.Length > MessageReactions.QuotePreviewLength)
+                text = text[..MessageReactions.QuotePreviewLength] + "…";
+
+            result[message.Id] = new GetMessageReplyDto
+            {
+                MessageId = message.Id,
+                SenderId = message.SenderId,
+                SenderName = authors.TryGetValue(message.SenderId, out var author) ? author.FullName : string.Empty,
+                IsMine = message.SenderId == currentUserId,
+                Type = message.Type.ToString(),
+                Text = text,
+                MediaUrl = message.IsDeleted ? null : message.MediaUrl,
+                IsDeleted = message.IsDeleted
+            };
+        }
+
+        return result;
     }
 
     // The stories some messages answer, in one query. A story that is gone or expired comes back as not available

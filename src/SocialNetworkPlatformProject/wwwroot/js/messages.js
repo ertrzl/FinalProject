@@ -47,11 +47,12 @@ function readStatusHtml(isRead) {
 function messageBubbleHtml(m) {
   return `
       <div class="chat-msg-row d-flex align-items-center mb-3 ${m.isMine ? "justify-content-end" : "justify-content-start"}" data-message-id="${m.id}">
-        ${window.chatDeleteButtonHtml(m)}
+        ${m.isMine ? window.chatMessageActionsHtml(m) : ""}
         <div class="px-3 py-2 rounded-4 ${window.chatBubbleColorClasses(m)}" style="max-width:70%;">
           ${window.chatMessageBodyHtml(m)}
           <div class="mt-1 ${m.isMine && m.type !== "Sticker" && !m.isDeleted ? "text-white-50" : "text-muted"}" style="font-size:10.5px;">${timeAgo(m.sentAt)}${m.isMine && !m.isDeleted ? readStatusHtml(m.isRead) : ""}</div>
         </div>
+        ${m.isMine ? "" : window.chatMessageActionsHtml(m)}
       </div>`;
 }
 
@@ -190,12 +191,15 @@ document.addEventListener("realtime:messages-read", e => {
   });
 });
 
-// The sender took a message back: redraw its bubble (the last-message preview in the list changes too).
-document.addEventListener("realtime:message-deleted", e => {
-  const row = document.querySelector(`#conversationThread [data-message-id="${e.detail.id}"]`);
-  if (row) row.outerHTML = messageBubbleHtml(e.detail);
-  renderList();
-});
+// The sender took a message back, or somebody left or took back an emoji on it: redraw its bubble (the last-message
+// preview in the list changes too).
+for (const eventName of ["realtime:message-deleted", "realtime:message-updated"]) {
+  document.addEventListener(eventName, e => {
+    const row = document.querySelector(`#conversationThread [data-message-id="${e.detail.id}"]`);
+    if (row) row.outerHTML = messageBubbleHtml(e.detail);
+    renderList();
+  });
+}
 
 // "yazıyor..." replaces the online label for a few seconds after each typing signal.
 let typingTimer = null;

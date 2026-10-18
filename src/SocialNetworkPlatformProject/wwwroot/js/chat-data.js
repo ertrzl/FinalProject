@@ -41,20 +41,43 @@ window.chatStoryReplyHtml = function (m, compact) {
   return `<div class="chat-story-reply${compact ? " compact" : ""} mb-2"><div class="chat-story-label"><i class="bi bi-reply-fill me-1"></i>${label}</div>${thumb}</div>`;
 };
 
-// Inner HTML of a message bubble: a photo (+ caption), a large sticker emoji, or plain text.
+// The message a message answers, shown above it as a quote (a tap on it scrolls to the original).
+window.chatReplyQuoteHtml = function (m) {
+  const q = m.replyTo;
+  if (!q) return "";
+
+  let body;
+  if (q.isDeleted) body = `<span class="fst-italic"><i class="bi bi-slash-circle me-1"></i>Bu mesaj silindi</span>`;
+  else if (q.type === "Image") body = `${q.mediaUrl ? `<img src="${q.mediaUrl}" class="chat-quote-thumb" alt="">` : ""}<span data-no-i18n>📷 ${q.text ? escapeHtml(q.text) : i18n("chat.photo")}</span>`;
+  else body = `<span data-no-i18n>${escapeHtml(q.text || "")}</span>`;
+
+  const who = q.isMine ? i18n("chat.you") : escapeHtml(q.senderName);
+  return `<div class="chat-quote" onclick="jumpToChatMessage('${q.messageId}')"><div class="chat-quote-name" data-no-i18n>${who}</div><div class="chat-quote-body">${body}</div></div>`;
+};
+
+// The emojis under a bubble, each with its count; the ones I left are highlighted, and a tap on one leaves it too (or takes mine back).
+window.chatReactionsHtml = function (m) {
+  if (!m.reactions || m.reactions.length === 0) return "";
+  const pills = m.reactions.map(r => `<button type="button" class="chat-reaction${r.reactedByMe ? " mine" : ""}" onclick="reactToChatMessage('${m.id}', '${r.emoji}')"><span>${r.emoji}</span>${r.count > 1 ? `<span class="chat-reaction-count">${r.count}</span>` : ""}</button>`).join("");
+  return `<div class="chat-reactions">${pills}</div>`;
+};
+
+// Inner HTML of a message bubble: the quote of the message it answers, a photo (+ caption), a large sticker emoji, or
+// plain text, and the emojis left on it.
 window.chatMessageBodyHtml = function (m, compact) {
   if (m.isDeleted)
     return `<div class="fst-italic ${compact ? "" : "small"}"><i class="bi bi-slash-circle me-1"></i>Bu mesaj silindi</div>`;
 
+  let html = window.chatReplyQuoteHtml(m);
   if (m.type === "Sticker")
-    return `<div class="chat-sticker" style="font-size:${compact ? 44 : 64}px;">${escapeHtml(m.text)}</div>`;
+    return html + `<div class="chat-sticker" style="font-size:${compact ? 44 : 64}px;">${escapeHtml(m.text)}</div>` + window.chatReactionsHtml(m);
 
-  let html = window.chatStoryReplyHtml(m, compact);
+  html += window.chatStoryReplyHtml(m, compact);
   if (m.type === "Image") {
     html += `<img src="${m.mediaUrl}" class="chat-image d-block rounded-3" style="max-width:${compact ? 170 : 260}px;max-height:${compact ? 180 : 300}px;" onclick="openChatImage('${m.mediaUrl}')" alt="Fotoğraf">`;
   }
   if (m.text) html += `<div class="${compact ? "" : "small"}${m.type === "Image" ? " mt-1" : ""}" data-no-i18n>${escapeHtml(m.text)}</div>`;
-  return html;
+  return html + window.chatReactionsHtml(m);
 };
 
 // Stickers have no bubble background.
@@ -64,10 +87,74 @@ window.chatBubbleColorClasses = function (m) {
   return m.isMine ? "bg-primary text-white" : "bg-body-tertiary";
 };
 
-// The trash button next to one of my own messages (shown on hover; always on touch screens, see .msg-delete).
-window.chatDeleteButtonHtml = function (m) {
-  if (!m.isMine || m.isDeleted) return "";
-  return `<button type="button" class="msg-delete btn btn-link btn-sm text-muted p-0 mx-2" title="Mesajı sil" onclick="deleteChatMessage('${m.id}')"><i class="bi bi-trash"></i></button>`;
+// The messages on screen, by id: what "Yanıtla" and the emoji bar need to know about a message.
+window.chatMessageCache = new Map();
+
+// The small buttons beside a bubble (shown on hover; always on touch screens, see .msg-action): leave an emoji, answer
+// it, and (my own messages only) take it back. A message that was taken back has none.
+window.chatMessageActionsHtml = function (m) {
+  if (m.isDeleted) return "";
+  window.chatMessageCache.set(m.id, m);
+  const remove = m.isMine ? `<button type="button" class="msg-action" title="Mesajı sil" onclick="deleteChatMessage('${m.id}')"><i class="bi bi-trash"></i></button>` : "";
+  return `<span class="msg-actions d-flex align-items-center mx-1">
+    <button type="button" class="msg-action" title="Tepki ver" onclick="openChatReactionPicker(event, '${m.id}')"><i class="bi bi-emoji-smile"></i></button>
+    <button type="button" class="msg-action" title="Yanıtla" onclick="replyToChatMessage('${m.id}')"><i class="bi bi-reply"></i></button>${remove}</span>`;
+};
+
+// The emojis offered under "Tepki ver". Which ones are accepted is the server's rule (MessageReactions.Allowed).
+window.CHAT_REACTIONS = ["❤️", "😂", "😮", "😢", "😡", "👍"];
+
+window.openChatReactionPicker = function (event, id) {
+  event.stopPropagation();
+  document.querySelector(".reaction-picker")?.remove();
+
+  const mine = (window.chatMessageCache.get(id)?.reactions || []).find(r => r.reactedByMe)?.emoji;
+  const picker = document.createElement("div");
+  picker.className = "reaction-picker";
+  picker.innerHTML = window.CHAT_REACTIONS.map(emoji => `<button type="button" class="${emoji === mine ? "mine" : ""}" data-emoji="${emoji}">${emoji}</button>`).join("");
+  document.body.appendChild(picker);
+
+  // Above the button, kept inside the screen.
+  const button = event.currentTarget.getBoundingClientRect();
+  const width = picker.offsetWidth;
+  picker.style.left = Math.max(8, Math.min(window.innerWidth - width - 8, button.left + button.width / 2 - width / 2)) + "px";
+  picker.style.top = Math.max(8, button.top - picker.offsetHeight - 6) + "px";
+
+  const close = () => { picker.remove(); document.removeEventListener("click", close); document.removeEventListener("keydown", onKey); };
+  const onKey = e => { if (e.key === "Escape") close(); };
+  picker.addEventListener("click", e => {
+    const choice = e.target.closest("[data-emoji]");
+    if (choice) window.reactToChatMessage(id, choice.dataset.emoji);
+    close();
+  });
+  setTimeout(() => { document.addEventListener("click", close); document.addEventListener("keydown", onKey); }, 0);
+};
+
+// Leaves the emoji on a message, or takes it back when it is the one I left. The server tells every open tab of both
+// people ("MessageUpdated"); the event is also raised here from the answer, so this tab updates even when the live
+// connection is down. Pages redraw on the event.
+window.reactToChatMessage = async function (id, emoji) {
+  try {
+    const updated = await apiFetch(`/api/messages/${id}/reaction`, { method: "PUT", body: { emoji } });
+    document.dispatchEvent(new CustomEvent("realtime:message-updated", { detail: updated }));
+  } catch (err) {
+    toast(err.message || "Tepki bırakılamadı.");
+  }
+};
+
+// "Yanıtla": the message bar of that conversation (chat-composer.js) shows what is being answered.
+window.replyToChatMessage = function (id) {
+  const message = window.chatMessageCache.get(id);
+  if (message) document.dispatchEvent(new CustomEvent("chat:reply-to", { detail: message }));
+};
+
+// A tap on a quote scrolls to the message it quotes, which lights up for a moment.
+window.jumpToChatMessage = function (id) {
+  const row = Array.from(document.querySelectorAll(`[data-message-id="${id}"]`)).find(el => el.offsetParent !== null);
+  if (!row) return;
+  row.scrollIntoView({ block: "center", behavior: "smooth" });
+  row.classList.add("chat-msg-flash");
+  setTimeout(() => row.classList.remove("chat-msg-flash"), 1600);
 };
 
 // "Delete for everyone". The server tells every open tab of both people ("MessageDeleted"); the event is also raised

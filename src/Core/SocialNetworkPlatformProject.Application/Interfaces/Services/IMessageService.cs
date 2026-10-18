@@ -20,6 +20,12 @@ public interface IMessageService
     // Returns the message as the caller sees it now.
     Task<GetMessageDto> DeleteAsync(Guid currentUserId, Guid messageId);
 
+    // Leaves an emoji (one of MessageReactions.Allowed) on a message of one of the user's conversations, replacing the
+    // one they left before; the same emoji again, or none, takes it back. Not on a message that was taken back, and not
+    // between people who blocked each other. Both people's open tabs are told ("MessageUpdated"). Returns the message
+    // as the caller sees it now.
+    Task<GetMessageDto> SetReactionAsync(Guid currentUserId, Guid messageId, string? emoji);
+
     // Also tells the other participant (read receipt) when something was actually marked read.
     Task MarkConversationAsReadAsync(Guid currentUserId, Guid conversationId);
 

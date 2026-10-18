@@ -292,6 +292,7 @@ public class UserRepository : IUserRepository
         await _context.Set<StoryLike>().Where(l => l.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<Story>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
 
+        await _context.Set<MessageReaction>().Where(r => r.UserId == userId).ExecuteDeleteAsync(); // emojis left on other people's messages (their own messages go with the conversations)
         await _context.Set<Conversation>().Where(c => myConversationIds.Contains(c.Id)).ExecuteDeleteAsync();
 
         // Marketplace trail: reviews written by or about the user, their offers on other people's listings

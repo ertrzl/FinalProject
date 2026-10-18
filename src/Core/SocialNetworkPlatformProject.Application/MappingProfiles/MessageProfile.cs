@@ -12,7 +12,9 @@ public class MessageProfile : Profile
             .ForMember(dest => dest.SentAt, opt => opt.MapFrom(src => src.CreatedAt))
             .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(src => src.DeletedAt != null))
             .ForMember(dest => dest.IsMine, opt => opt.Ignore())
-            .ForMember(dest => dest.StoryReply, opt => opt.Ignore());
+            .ForMember(dest => dest.StoryReply, opt => opt.Ignore())
+            .ForMember(dest => dest.ReplyTo, opt => opt.Ignore())
+            .ForMember(dest => dest.Reactions, opt => opt.Ignore());
 
         CreateMap<Conversation, GetConversationDto>()
             .ForMember(dest => dest.OtherUserId, opt => opt.Ignore())

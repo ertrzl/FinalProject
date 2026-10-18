@@ -115,10 +115,11 @@ async function renderPopup(id) {
 function bubbleHtml(m) {
   return `
       <div class="chat-msg-row d-flex align-items-center mb-2 ${m.isMine ? "justify-content-end" : "justify-content-start"}" data-message-id="${m.id}">
-        ${window.chatDeleteButtonHtml(m)}
+        ${m.isMine ? window.chatMessageActionsHtml(m) : ""}
         <div class="px-2 py-1 rounded-3 ${window.chatBubbleColorClasses(m)}" style="max-width:80%; font-size:13px;">
           ${window.chatMessageBodyHtml(m, true)}${m.isMine && !m.isDeleted ? ` <i class="bi ${m.isRead ? "bi-check2-all text-info" : "bi-check2"} read-status" style="font-size:11px;"></i>` : ""}
         </div>
+        ${m.isMine ? "" : window.chatMessageActionsHtml(m)}
       </div>`;
 }
 
@@ -168,12 +169,15 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) openPopups.forEach(markPopupRead);
 });
 
-// The sender took a message back: redraw its bubble (the last-message preview in the list changes too).
-document.addEventListener("realtime:message-deleted", e => {
-  const row = document.querySelector(`#chatPopupThread-${e.detail.conversationId} [data-message-id="${e.detail.id}"]`);
-  if (row) row.outerHTML = bubbleHtml(e.detail);
-  renderDockList();
-});
+// The sender took a message back, or somebody left or took back an emoji on it: redraw its bubble (the last-message
+// preview in the list changes too).
+for (const eventName of ["realtime:message-deleted", "realtime:message-updated"]) {
+  document.addEventListener(eventName, e => {
+    const row = document.querySelector(`#chatPopupThread-${e.detail.conversationId} [data-message-id="${e.detail.id}"]`);
+    if (row) row.outerHTML = bubbleHtml(e.detail);
+    renderDockList();
+  });
+}
 
 // The other person has opened our messages: turn our single ticks into double ticks.
 document.addEventListener("realtime:messages-read", e => {

@@ -20,6 +20,7 @@
   "file.empty": "Yüklenen dosya boş.",
   "file.imageType": "Sadece JPG, PNG, GIF ve WEBP görselleri yüklenebilir.",
   "file.imageSize": "Görseller en fazla 5 MB olabilir.",
+  "file.imagePixels": "Görselin boyutları (genişlik x yükseklik) çok büyük.",
   "file.videoType": "Sadece MP4, WEBM ve MOV videoları yüklenebilir.",
   "file.videoSize": "Videolar en fazla 25 MB olabilir.",
 
@@ -148,6 +149,9 @@
   "message.target": "Sohbet ya da alıcı belirtilmeli.",
   "message.storyTextOnly": "Bir hikâyeye sadece yazıyla yanıt verilebilir.",
   "message.storyOwnerOnly": "Bir hikâyeye sadece sahibine yanıt verebilirsin.",
+  "message.reactionInvalid": "Bu emoji mesaja bırakılamaz.",
+  "message.reactDeleted": "Silinmiş bir mesaja tepki verilemez.",
+  "message.replyInvalid": "Yanıtlanan mesaj bulunamadı.",
   "message.cannot": "Bu kişiye mesaj gönderemezsin.",
   "message.deleteOwn": "Sadece kendi mesajlarını silebilirsin.",
   "message.preview.deleted": "🚫 Mesaj silindi",

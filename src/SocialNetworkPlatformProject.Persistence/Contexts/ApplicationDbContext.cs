@@ -42,6 +42,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<ConversationParticipant> ConversationParticipants => Set<ConversationParticipant>();
     public DbSet<Message> Messages => Set<Message>();
+    public DbSet<MessageReaction> MessageReactions => Set<MessageReaction>();
 
     // Groups
     public DbSet<Group> Groups => Set<Group>();

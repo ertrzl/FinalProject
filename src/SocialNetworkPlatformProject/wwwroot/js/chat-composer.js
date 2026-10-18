@@ -18,6 +18,10 @@
     form.classList.add("chat-composer");
     if (compact) form.classList.add("compact-bar");
     form.innerHTML = `
+      <div class="chat-reply-bar d-none">
+        <div class="chat-reply-text"></div>
+        <button type="button" class="btn-close" title="Vazgeç"></button>
+      </div>
       <div class="chat-attach-preview d-none">
         <img alt="">
         <button type="button" class="btn-close btn-close-white" title="Kaldır"></button>
@@ -41,6 +45,35 @@
     const sendBtn = form.querySelector(".chat-send-btn");
     const fileInput = form.querySelector("input[type=file]");
     const preview = form.querySelector(".chat-attach-preview");
+    const replyBar = form.querySelector(".chat-reply-bar");
+
+    // "Yanıtla" on a bubble (chat-data.js) puts the message here: what the next message answers. It goes out with that
+    // message (text, photo or sticker) and the bar is empty again.
+    let replyTarget = null;
+
+    function setReplyTarget(message) {
+      replyTarget = message;
+      replyBar.classList.toggle("d-none", !message);
+      if (!message) return;
+
+      const who = message.isMine ? i18n("chat.you") : (window.findChatConversation?.(message.conversationId)?.otherUserName || "");
+      replyBar.querySelector(".chat-reply-text").innerHTML =
+        `<div class="chat-reply-name" data-no-i18n>${i18n("chat.replyingTo", escapeHtml(who))}</div><div class="chat-reply-preview" data-no-i18n>${escapeHtml(window.chatMessagePreviewText(message))}</div>`;
+      input.focus();
+    }
+
+    function takeReplyId() {
+      const id = replyTarget?.id;
+      setReplyTarget(null);
+      return id;
+    }
+
+    replyBar.querySelector(".btn-close").addEventListener("click", () => setReplyTarget(null));
+    const onReplyRequest = e => {
+      if (!form.isConnected) { document.removeEventListener("chat:reply-to", onReplyRequest); return; }
+      if (getTarget()?.conversationId === e.detail.conversationId) setReplyTarget(e.detail);
+    };
+    document.addEventListener("chat:reply-to", onReplyRequest);
     const popovers = {
       emoji: form.querySelector('[data-popover="emoji"]'),
       sticker: form.querySelector('[data-popover="sticker"]')
@@ -107,14 +140,16 @@
 
     function sendSticker(emoji) {
       closePopovers();
-      return send(target => window.realtime.sendMessage({ ...target, type: "Sticker", text: emoji }));
+      const replyToMessageId = takeReplyId();
+      return send(target => window.realtime.sendMessage({ ...target, type: "Sticker", text: emoji, replyToMessageId }));
     }
 
-    function sendImage(file, caption) {
+    function sendImage(file, caption, replyToMessageId) {
       return send(target => {
         const data = new FormData();
         if (target.conversationId) data.append("conversationId", target.conversationId);
         if (target.receiverId) data.append("receiverId", target.receiverId);
+        if (replyToMessageId) data.append("replyToMessageId", replyToMessageId);
         data.append("image", file);
         if (caption) data.append("text", caption);
         return apiFetchForm("/api/messages/image", { method: "POST", body: data });
@@ -131,11 +166,12 @@
         setAttachment(null);
         input.value = "";
         refreshSendButton();
-        sendImage(file, text);
+        sendImage(file, text, takeReplyId());
       } else if (text) {
         input.value = "";
         refreshSendButton();
-        send(target => window.realtime.sendMessage({ ...target, text }));
+        const replyToMessageId = takeReplyId();
+        send(target => window.realtime.sendMessage({ ...target, text, replyToMessageId }));
       }
     }
 
@@ -184,7 +220,10 @@
       if (!form.contains(e.target)) closePopovers();
     });
     form.addEventListener("keydown", e => {
-      if (e.key === "Escape") closePopovers();
+      if (e.key !== "Escape") return;
+      const popoverOpen = Object.values(popovers).some(p => !p.classList.contains("d-none"));
+      if (popoverOpen) closePopovers();
+      else setReplyTarget(null);
     });
 
     return { input, focus: () => input.focus() };

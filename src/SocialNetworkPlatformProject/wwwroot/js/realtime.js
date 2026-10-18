@@ -121,6 +121,10 @@
     window.refreshMessageBadge?.();
   });
 
+  // Somebody left or took back an emoji on a message: detail = the message as this user sees it now.
+  messages.connection.on("MessageUpdated", m =>
+    document.dispatchEvent(new CustomEvent("realtime:message-updated", { detail: m })));
+
   messages.connection.on("MessagesRead", data =>
     document.dispatchEvent(new CustomEvent("realtime:messages-read", { detail: data })));
 

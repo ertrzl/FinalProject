@@ -15,4 +15,10 @@ public class GetMessageDto
 
     // Set when this message is an answer to somebody's story (see PostMessageDto.StoryId).
     public GetStoryReplyDto? StoryReply { get; set; }
+
+    // Set when this message answers another message of the conversation (see PostMessageDto.ReplyToMessageId).
+    public GetMessageReplyDto? ReplyTo { get; set; }
+
+    // The emojis left on this message, with how many people left each (none: empty).
+    public List<GetMessageReactionDto> Reactions { get; set; } = new();
 }

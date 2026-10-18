@@ -14,4 +14,8 @@ public class PostMessageDto
     // Set to answer a story: the message goes to the story's owner and is shown together with the story. Plain text
     // only, and only while the story is still up and the sender may see it (a friend of the owner).
     public Guid? StoryId { get; set; }
+
+    // Set to answer a message of the conversation (WhatsApp-style "reply": the new message shows a quote of that one).
+    // It has to be a message of this conversation that has not been taken back.
+    public Guid? ReplyToMessageId { get; set; }
 }

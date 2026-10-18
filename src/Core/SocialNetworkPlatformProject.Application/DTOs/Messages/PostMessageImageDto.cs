@@ -9,4 +9,5 @@ public class PostMessageImageDto
     public Guid? ReceiverId { get; set; }
     public IFormFile? Image { get; set; }
     public string? Text { get; set; }
+    public Guid? ReplyToMessageId { get; set; } // as in PostMessageDto
 }

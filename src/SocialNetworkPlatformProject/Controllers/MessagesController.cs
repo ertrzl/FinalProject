@@ -38,6 +38,12 @@ public class MessagesController : ControllerBase
         return await _messages.DeleteAsync(User.GetUserId(), messageId);
     }
 
+    [HttpPut("{messageId:guid}/reaction")]
+    public async Task<ActionResult<GetMessageDto>> SetReaction(Guid messageId, PutMessageReactionDto dto)
+    {
+        return await _messages.SetReactionAsync(User.GetUserId(), messageId, dto.Emoji);
+    }
+
     [HttpPost("conversations/{conversationId:guid}/read")]
     public async Task<IActionResult> MarkAsRead(Guid conversationId)
     {

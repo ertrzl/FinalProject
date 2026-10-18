@@ -69,6 +69,7 @@ public static class ServiceRegistration
         services.AddScoped<IConversationRepository, ConversationRepository>();
         services.AddScoped<IConversationParticipantRepository, ConversationParticipantRepository>();
         services.AddScoped<IMessageRepository, MessageRepository>();
+        services.AddScoped<IMessageReactionRepository, MessageReactionRepository>();
 
         // Groups
         services.AddScoped<IGroupRepository, GroupRepository>();

@@ -85,8 +85,8 @@ a { color: inherit; text-decoration: none; }
 .phone-tabbar .phone-tab { flex: 1; min-width: 0; padding: 6px 2px; }
 .phone-tabbar .phone-tab .badge { top: 2px !important; right: calc(50% - 26px) !important; }
 
-/* Tablets: eight links do not fit with their names, so the top menu shows only the icons (the name is the tooltip). */
-@media (min-width: 768px) and (max-width: 1099.98px) {
+/* Tablets: nine links do not fit with their names, so the top menu shows only the icons (the name is the tooltip). */
+@media (min-width: 768px) and (max-width: 1199.98px) {
   #siteNav .nav-pill-link .nav-label { display: none; }
   #siteNav .nav-pill-link { padding: 8px 10px; }
 }
@@ -594,3 +594,262 @@ body { overflow-wrap: break-word; }
 
 .chat-msg-flash > div:not(.msg-actions) { animation: chat-flash 1.6s ease; }
 @keyframes chat-flash { 0%, 60% { box-shadow: 0 0 0 3px rgba(255, 193, 7, .75); } 100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); } }
+
+/* ---------- X-O games (games.html and game.html) ----------
+   The tokens fall back to Bootstrap's own variables, so the classic design (which has no --surface, --ink...) looks right too.
+   X takes the accent of the design and O the pink of Bootstrap (the inbox design swaps it for teal, see inbox.css): the two
+   letters also differ in shape, so colour is never the only difference. */
+.xo-page, .xo-modal {
+  --xo-surface: var(--surface, var(--bs-body-bg));
+  --xo-ink: var(--ink, var(--bs-body-color));
+  --xo-muted: var(--muted, var(--bs-secondary-color));
+  --xo-line: var(--line, var(--bs-border-color));
+  --xo-chip: var(--chip, var(--bs-secondary-bg));
+  --xo-accent: var(--accent, var(--bs-primary));
+  --xo-accent-ink: var(--accent-ink, var(--bs-primary));
+  --xo-x: var(--xo-accent);
+  --xo-o: var(--bs-pink, #d63384);
+}
+.xo-page .text-muted, .xo-modal .text-muted { color: var(--xo-muted) !important; }
+
+/* The hub */
+.xo-hero { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; padding: 1rem; border: 1px solid var(--xo-line); border-radius: 14px; background: var(--xo-surface); }
+.xo-hero-text { flex: 1 1 14rem; min-width: 0; }
+.xo-logo { display: grid; grid-auto-flow: column; place-content: center; gap: 2px; width: 56px; height: 56px; flex-shrink: 0; border-radius: 14px; background: var(--xo-chip); font-size: 1.4rem; font-weight: 800; line-height: 1; }
+.xo-logo .x, .xo-player-mark[data-mark="X"], .xo-cell[data-mark="X"] { color: var(--xo-x); }
+.xo-logo .o, .xo-player-mark[data-mark="O"], .xo-cell[data-mark="O"] { color: var(--xo-o); }
+
+.xo-stats { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.xo-chip { display: inline-flex; align-items: center; gap: .4rem; padding: .3rem .8rem; border-radius: 999px; background: var(--xo-chip); color: var(--xo-ink); font-size: .85rem; }
+.xo-chip b { font-variant-numeric: tabular-nums; }
+
+.xo-section { margin-top: 1.5rem; }
+.xo-section-title { display: flex; align-items: center; gap: .5rem; margin: 0 0 .5rem; font-size: .8rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--xo-muted); }
+.xo-count { padding: 0 .5rem; border-radius: 999px; background: var(--xo-chip); color: var(--xo-ink); font-size: .75rem; line-height: 1.5rem; }
+.xo-list { display: flex; flex-direction: column; gap: .5rem; }
+.xo-empty { padding: .9rem 1rem; border: 1px dashed var(--xo-line); border-radius: 12px; color: var(--xo-muted); font-size: .9rem; }
+
+.xo-row { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; padding: .7rem .8rem; border: 1px solid var(--xo-line); border-radius: 12px; background: var(--xo-surface); }
+.xo-row-body { flex: 1 1 10rem; min-width: 0; }
+.xo-row-name { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem .5rem; font-weight: 600; }
+.xo-row-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-left: auto; }
+.xo-turn-badge { padding: .2rem .55rem; border-radius: 999px; background: color-mix(in srgb, var(--xo-accent) 16%, transparent); color: var(--xo-accent-ink); font-size: .75rem; font-weight: 700; }
+@media (max-width: 479.98px) {
+  .xo-row-actions { width: 100%; }
+  .xo-row-actions .btn { flex: 1 1 0; }
+}
+
+.xo-picker-list { max-height: 50vh; overflow-y: auto; }
+
+/* The board page */
+.xo-game { max-width: 560px; margin: 0 auto; }
+.xo-players { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.xo-player { display: flex; align-items: center; gap: .6rem; min-width: 0; padding: .6rem .75rem; border: 2px solid var(--xo-line); border-radius: 12px; background: var(--xo-surface); transition: border-color .15s, box-shadow .15s; }
+.xo-player.is-turn { border-color: var(--xo-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--xo-accent) 20%, transparent); }
+.xo-player-name { display: block; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xo-player-mark { margin-left: auto; font-size: 1.5rem; font-weight: 800; line-height: 1; }
+@media (max-width: 419.98px) { .xo-players { grid-template-columns: 1fr; } }
+
+.xo-status { margin: 1.25rem 0 .25rem; text-align: center; font-size: 1.25rem; font-weight: 700; }
+.xo-status.is-win { color: var(--bs-success-text-emphasis); }
+.xo-status.is-loss { color: var(--bs-danger-text-emphasis); }
+.xo-status-sub { min-height: 1.4rem; margin-bottom: 1rem; text-align: center; font-size: .9rem; color: var(--xo-muted); }
+
+/* The board is a square that never gets wider than 420 px; the marks scale with it (container query units) */
+.xo-board { container-type: inline-size; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: min(100%, 420px); aspect-ratio: 1; margin: 0 auto; padding: 8px; border-radius: 16px; background: var(--xo-chip); }
+.xo-board.is-idle { opacity: .55; }
+.xo-board.is-busy { pointer-events: none; }
+.xo-cell {
+  position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 44px; padding: 0; border: 0; border-radius: 12px;
+  background: var(--xo-surface); color: var(--xo-ink); font-size: clamp(2rem, 14vw, 3.5rem); font-size: 22cqw; font-weight: 800; line-height: 1; cursor: default;
+  transition: background-color .15s, box-shadow .15s;
+}
+.xo-cell.is-playable { cursor: pointer; }
+.xo-cell:focus-visible { outline: 3px solid var(--xo-accent); outline-offset: 2px; }
+.xo-cell.is-new > span { animation: pop-in .18s ease-out; }
+.xo-cell.is-win { background: color-mix(in srgb, var(--xo-accent) 22%, var(--xo-surface)); box-shadow: inset 0 0 0 3px var(--xo-accent); }
+/* On a mouse: the free cell shows the mark you would put there, faintly */
+@media (hover: hover) {
+  .xo-cell.is-playable:hover { background: color-mix(in srgb, var(--xo-accent) 10%, var(--xo-surface)); }
+  .xo-cell.is-playable:hover::after { content: attr(data-ghost); opacity: .25; }
+}
+
+.xo-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin-top: 1.25rem; }
+.xo-actions .btn { min-height: 44px; }
+
+/* Menu colour of the games link */
+.nav-pill-link[data-section="games"] { --nav-accent: #0ea5e9; }
+
+/* ---------- Rock-paper-scissors (games.html cards, game.html) ----------
+   Uses the xo-* tokens above, so both designs and the dark theme follow along. The motion is switched off by the
+   prefers-reduced-motion rule further up (animation: none for everything). */
+
+/* The hub: one card per game, side by side when there is room */
+.xo-kinds { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: .75rem; }
+.xo-kinds .xo-hero { align-content: flex-start; }
+.xo-kinds .xo-hero > .btn { min-height: 44px; }
+.rps-logo { width: auto; min-width: 56px; padding: 0 .5rem; font-size: 1.15rem; letter-spacing: 1px; }
+.xo-kind { padding: .05rem .5rem; border: 1px solid var(--xo-line); border-radius: 999px; color: var(--xo-muted); font-size: .72rem; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+
+/* The score under the two player cards */
+.rps-scoreboard { margin-top: 1rem; text-align: center; }
+.rps-score-line { display: flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: .25rem .6rem; }
+.rps-score-who { color: var(--xo-muted); font-size: .9rem; font-weight: 600; }
+.rps-score-num { min-width: 1ch; font-size: 2rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.rps-score-dash { color: var(--xo-muted); font-size: 1.5rem; }
+.rps-score-round { color: var(--xo-muted); font-size: .85rem; font-weight: 600; }
+.rps-picked { margin-left: auto; color: var(--bs-success-text-emphasis, #198754); font-size: 1.3rem; line-height: 1; }
+
+.rps-area { margin-top: .5rem; }
+
+/* The running round: my hand and the closed hand of the other one */
+.rps-stage { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1rem; }
+.rps-slot { display: flex; flex-direction: column; align-items: center; gap: .15rem; width: 5.5rem; padding: .6rem .25rem .4rem; border: 2px dashed var(--xo-line); border-radius: 14px; background: var(--xo-chip); }
+.rps-slot.is-filled { border-style: solid; border-color: var(--xo-accent); background: color-mix(in srgb, var(--xo-accent) 10%, var(--xo-surface)); }
+.rps-slot-hand { font-size: 2.2rem; line-height: 1.2; }
+.rps-slot-who { color: var(--xo-muted); font-size: .75rem; font-weight: 600; }
+.rps-slot-vs { color: var(--xo-muted); font-size: .85rem; font-weight: 700; text-transform: uppercase; }
+
+/* Three big buttons */
+.rps-picks { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; max-width: 420px; margin: 0 auto; }
+.rps-picks.is-busy { pointer-events: none; }
+.rps-pick {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .25rem; min-width: 0; min-height: 96px; padding: .75rem .25rem;
+  border: 2px solid var(--xo-line); border-radius: 16px; background: var(--xo-surface); color: var(--xo-ink); cursor: default;
+  transition: border-color .15s, background-color .15s, transform .12s, opacity .15s;
+}
+.rps-pick-emoji { font-size: clamp(2rem, 11vw, 3rem); line-height: 1.1; }
+.rps-pick-word { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: .95rem; font-weight: 700; }
+.rps-pick.is-playable { cursor: pointer; }
+.rps-pick.is-playable:active { transform: scale(.96); }
+.rps-pick:focus-visible { outline: 3px solid var(--xo-accent); outline-offset: 2px; }
+.rps-pick:not(.is-playable):not(.is-chosen) { opacity: .5; }
+.rps-pick.is-chosen { border-color: var(--xo-accent); background: color-mix(in srgb, var(--xo-accent) 14%, var(--xo-surface)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--xo-accent) 22%, transparent); }
+@media (hover: hover) {
+  .rps-pick.is-playable:hover { border-color: var(--xo-accent); background: color-mix(in srgb, var(--xo-accent) 10%, var(--xo-surface)); transform: translateY(-2px); }
+}
+
+/* The rounds played so far */
+.rps-history { max-width: 420px; margin: 1.5rem auto 0; }
+.rps-history:empty { display: none; }
+.rps-rounds { display: flex; flex-direction: column; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.rps-round { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem .6rem; padding: .55rem .75rem; border: 1px solid var(--xo-line); border-left-width: 5px; border-radius: 12px; background: var(--xo-surface); }
+.rps-round.is-win { border-left-color: var(--bs-success, #198754); }
+.rps-round.is-loss { border-left-color: var(--bs-danger, #dc3545); }
+.rps-round.is-draw { border-left-color: var(--bs-secondary, #6c757d); }
+.rps-round-no { display: grid; place-content: center; width: 1.6rem; height: 1.6rem; flex-shrink: 0; border-radius: 50%; background: var(--xo-chip); font-size: .8rem; font-weight: 700; }
+.rps-hand { display: inline-flex; align-items: center; gap: .3rem; font-weight: 600; white-space: nowrap; }
+.rps-hand-emoji { font-size: 1.4rem; line-height: 1; }
+.rps-vs { color: var(--xo-muted); font-size: .75rem; font-weight: 700; text-transform: uppercase; }
+.rps-round .badge { margin-left: auto; }
+.rps-round.is-new { animation: rps-reveal .7s ease-out; }
+@keyframes rps-reveal {
+  0% { opacity: 0; transform: scale(.94); background: color-mix(in srgb, var(--xo-accent) 30%, var(--xo-surface)); }
+  40% { opacity: 1; transform: scale(1.02); }
+  100% { transform: none; background: var(--xo-surface); }
+}
+@media (max-width: 359.98px) {
+  .rps-stage { gap: .5rem; }
+  .rps-slot { width: 4.5rem; }
+  .rps-picks { gap: .5rem; }
+}
+
+/* ---------- Battleship / Amiral Batti (games.html card, game.html, js/game-battleship.js) ----------
+   The page around the boards follows the theme through the xo-* tokens; the boards themselves keep the light-blue sea in the dark theme
+   too (they are drawn in physical colours). The motion is switched off by the prefers-reduced-motion rule further up. */
+
+.bs-logo { padding: 0; overflow: hidden; background: #BFDDEC; }
+.bs-logo svg { display: block; }
+
+/* A wider page than the 560px of X-O: two boards side by side. */
+.xo-game.is-bs { max-width: 940px; }
+@media (max-width: 575.98px) {
+  html:root .xo-page.is-bs { padding-left: 6px; padding-right: 6px; } /* the boards are 10 cells wide: every pixel counts on a phone */
+}
+.is-bs .xo-players { max-width: 560px; margin-left: auto; margin-right: auto; }
+
+.bs-area { margin-top: .5rem; }
+.bs-hint { margin: 0 0 .75rem; text-align: center; color: var(--xo-muted); font-size: .9rem; }
+
+/* A board: the sea (svg), the frame of the newest shot, and a grid of buttons over it */
+.bs-board {
+  position: relative; width: min(100%, 520px); aspect-ratio: 1; margin: 0 auto; overflow: hidden; border-radius: 10px; background: #BFDDEC;
+  line-height: 0; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.bs-board.is-busy { pointer-events: none; opacity: .85; }
+.bs-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.bs-grid { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(10, 1fr); }
+.bs-cell {
+  appearance: none; min-width: 0; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: inherit;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.bs-cell[aria-disabled="true"] { cursor: default; }
+.bs-cell.is-fire { cursor: crosshair; }
+.bs-cell.is-ship { cursor: grab; touch-action: none; }
+.bs-cell:focus-visible { outline: 3px solid var(--xo-accent); outline-offset: -3px; box-shadow: inset 0 0 0 5px rgba(255, 255, 255, .75); }
+@media (hover: hover) {
+  .bs-cell.is-fire:hover { background: rgba(31, 42, 51, .18); }
+}
+.bs-cell.is-fire:active { background: rgba(31, 42, 51, .3); }
+
+.bs-last { position: absolute; width: 10%; height: 10%; box-sizing: border-box; border: 3px solid #E8793A; border-radius: 4px; pointer-events: none; }
+.bs-last.is-new { animation: bs-ping .9s ease-out 2; }
+@keyframes bs-ping {
+  0% { transform: scale(2.4); opacity: 0; }
+  40% { transform: scale(1); opacity: 1; }
+  60% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* Placing */
+.bs-place-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+@media (min-width: 860px) {
+  .bs-place-layout { grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
+}
+.bs-side { display: flex; flex-direction: column; gap: .75rem; min-width: 0; }
+.bs-tray-title { color: var(--xo-muted); font-size: .85rem; font-weight: 600; }
+.bs-tray { display: flex; flex-direction: column; gap: .4rem; }
+.bs-tray-ship {
+  display: flex; align-items: center; gap: .7rem; min-height: 44px; padding: .3rem .6rem; border: 2px solid var(--xo-line); border-radius: 12px;
+  background: var(--xo-surface); color: var(--xo-ink); text-align: left; cursor: grab; touch-action: none;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.bs-tray-ship:focus-visible { outline: 3px solid var(--xo-accent); outline-offset: 2px; }
+.bs-tray-ship.is-selected { border-color: #E8793A; box-shadow: 0 0 0 3px rgba(232, 121, 58, .25); }
+.bs-tray-ship.is-placed .bs-tray-art, .bs-tray-ship.is-placed .bs-tray-name { opacity: .55; }
+.bs-tray-art { width: calc(var(--len) * 26px); height: 26px; flex-shrink: 0; border-radius: 5px; background: #BFDDEC; }
+.bs-tray-name { flex: 1 1 auto; min-width: 0; font-weight: 600; }
+.bs-tray-state { flex-shrink: 0; color: var(--xo-muted); font-size: 1.1rem; line-height: 1; }
+.bs-tray-ship.is-placed .bs-tray-state { color: var(--bs-success-text-emphasis, #198754); }
+.bs-tools { display: flex; gap: .5rem; }
+.bs-tools .btn { flex: 1 1 0; min-height: 48px; }
+.bs-ready { min-height: 52px; font-weight: 700; }
+
+/* Battle (and the finished game) */
+.bs-counters { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; }
+.bs-counters:empty { display: none; }
+.bs-shot { display: flex; justify-content: center; min-height: 2.6rem; margin: .6rem 0; }
+.bs-shot-pill { align-self: center; padding: .3rem .9rem; border-radius: 999px; background: var(--xo-chip); color: var(--xo-ink); font-weight: 700; font-size: .95rem; }
+.bs-shot-pill.is-hit { background: var(--bs-warning-bg-subtle, #fff3cd); color: var(--bs-warning-text-emphasis, #664d03); }
+.bs-shot-pill.is-sunk { background: #2E353D; color: #FFFFFF; }
+.bs-shot-pill.is-new { animation: bs-pill .5s ease-out; }
+@keyframes bs-pill {
+  0% { opacity: 0; transform: scale(.85); }
+  60% { opacity: 1; transform: scale(1.08); }
+  100% { transform: none; }
+}
+.bs-tabs { display: none; justify-content: center; gap: .5rem; margin-bottom: .75rem; }
+.bs-tabs .btn { flex: 1 1 0; min-height: 44px; font-weight: 600; }
+.bs-tabs .btn[aria-pressed="true"] { border-color: var(--xo-accent); background: color-mix(in srgb, var(--xo-accent) 14%, var(--xo-surface)); color: var(--xo-ink); }
+.bs-boards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; }
+.bs-panel { min-width: 0; }
+.bs-panel-title { margin: 0 0 .5rem; text-align: center; font-size: .95rem; font-weight: 700; }
+.bs-battle.is-wait .bs-tabs, .bs-battle.is-wait .bs-panel-enemy { display: none; }
+.bs-battle.is-wait .bs-boards { grid-template-columns: minmax(0, 1fr); max-width: 520px; margin: 0 auto; }
+@media (max-width: 859.98px) {
+  .bs-tabs { display: flex; }
+  .bs-boards { grid-template-columns: minmax(0, 1fr); }
+  .bs-boards[data-tab="enemy"] .bs-panel-mine, .bs-boards[data-tab="mine"] .bs-panel-enemy { display: none; }
+  .bs-panel-title { display: none; } /* the tabs say it */
+}
+.bs-battle.is-wait .bs-boards .bs-panel-mine { display: block; } /* waiting: only my fleet, whatever tab was chosen */

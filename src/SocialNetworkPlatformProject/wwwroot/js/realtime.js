@@ -3,6 +3,7 @@
 //   "realtime:notification"  detail = notification DTO
 //   "realtime:message"       detail = message DTO (cancelable: call preventDefault() if the page already shows it, to suppress the toast)
 //   "realtime:message-deleted"  detail = the message DTO after the sender took it back (isDeleted = true)
+//   "realtime:game-updated"  detail = the game (X-O or rock-paper-scissors) as this user sees it (games.html and game.html redraw from it)
 //   "realtime:reconnected"   the connection was lost and came back — reload anything that may have been missed
 
 (function () {
@@ -25,7 +26,9 @@
     CommentLiked: "yorumunu beğendi.",
     StoryLiked: "hikâyeni beğendi.",
     Mentioned: "seni etiketledi.",
-    PostShared: "gönderini paylaştı."
+    PostShared: "gönderini paylaştı.",
+    GameInviteReceived: "sana oyun teklif etti.",
+    GameInviteAccepted: "oyun davetini kabul etti."
   };
 
   function createConnection(url) {
@@ -130,6 +133,10 @@
 
   messages.connection.on("UserTyping", data =>
     document.dispatchEvent(new CustomEvent("realtime:typing", { detail: data })));
+
+  // An X-O game changed (invited, answered, a move, the end): detail = the game as this user sees it (same shape as GET /api/games/{id}).
+  messages.connection.on("GameUpdated", game =>
+    document.dispatchEvent(new CustomEvent("realtime:game-updated", { detail: game })));
 
   // Same call the REST endpoint does; falls back to it when the live connection is down so a send never just fails.
   window.realtime = {

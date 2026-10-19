@@ -91,6 +91,9 @@ public static class ServiceRegistration
         services.AddScoped<IEventInviteRepository, EventInviteRepository>();
         services.AddScoped<IEventCommentRepository, EventCommentRepository>();
 
+        // Games
+        services.AddScoped<IGameRepository, GameRepository>();
+
         // Login sessions and password checks (Identity-backed)
         services.AddScoped<PasswordVerifier>();
         services.AddSingleton<LoginThrottle>();
@@ -132,6 +135,7 @@ public static class ServiceRegistration
         services.AddScoped<IEventInviteService, EventInviteService>();
         services.AddScoped<IEventCommentService, EventCommentService>();
         services.AddScoped<ILiveUpdateService, LiveUpdateService>();
+        services.AddScoped<IGameService, GameService>();
 
         // Admin panel
         services.AddScoped<IAuditService, AuditService>();

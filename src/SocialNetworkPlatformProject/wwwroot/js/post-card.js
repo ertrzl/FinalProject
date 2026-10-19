@@ -95,7 +95,7 @@ function commentHtml(c) {
     <div class="d-flex gap-2 mb-3 ${c.parentCommentId ? "ms-5" : ""}" data-comment-id="${c.id}" data-reply-to="${replyTarget}">
       <img src="${c.authorAvatarUrl || DEFAULT_AVATAR}" class="avatar-xs flex-shrink-0" alt="">
       <div class="comment-bubble flex-grow-1">
-        <div class="fw-bold small c-name">${escapeHtml(c.authorName)}</div>
+        <div class="fw-bold small c-name"><a href="profile.html?id=${c.authorId}" class="text-body text-decoration-none">${escapeHtml(c.authorName)}</a></div>
         <div class="small">${richTextHtml(c.text, c.mentions)}</div>
         <div class="small text-muted mt-1 d-flex gap-3">
           <span>${timeAgo(c.createdAt)}</span>

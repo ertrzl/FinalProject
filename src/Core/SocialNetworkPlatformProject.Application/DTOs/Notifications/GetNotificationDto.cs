@@ -19,6 +19,7 @@ public class GetNotificationDto
     public Guid? OfferId { get; set; }
     public Guid? EventId { get; set; }
     public string? EventTitle { get; set; }
+    public Guid? GameId { get; set; } // game invitation notifications: the game the button opens
     public DateTime? EventStartsAt { get; set; } // UTC; lets "event starts soon" show when
     public decimal? Amount { get; set; }
     public Guid? ListingId { get; set; }

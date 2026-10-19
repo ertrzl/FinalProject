@@ -3,7 +3,7 @@
 //
 //   /           the search box
 //   g, then a   go to a page: a Ana Sayfa, k Keşfet, r Arkadaşlar, m Mesajlar, b Bildirimler, g Gruplar,
-//               e Etkinlikler, p Pazar, s Kaydedilenler, t Ayarlar   (the letters are the ones of the menu, js/navbar.js)
+//               e Etkinlikler, o Oyunlar, p Pazar, s Kaydedilenler, t Ayarlar   (the letters are the ones of the menu, js/navbar.js)
 //   n  (c)      write: the post box of the page, or the "create" button of a page (a group, an event, a listing)
 //   j / k       next / previous post of the list      Enter  open it
 //   l           like the post      r  answer (comments)      e  save it
@@ -13,7 +13,7 @@ if (getDesign() === "inbox") {
   const SHORTCUT_LIST = [
     ["/", "Ara"],
     ["g  a", "Ana Sayfa"], ["g  k", "Keşfet"], ["g  r", "Arkadaşlar"], ["g  m", "Mesajlar"], ["g  b", "Bildirimler"],
-    ["g  g", "Gruplar"], ["g  e", "Etkinlikler"], ["g  p", "Pazar"], ["g  s", "Kaydedilenler"], ["g  t", "Ayarlar"],
+    ["g  g", "Gruplar"], ["g  e", "Etkinlikler"], ["g  o", "Oyunlar"], ["g  p", "Pazar"], ["g  s", "Kaydedilenler"], ["g  t", "Ayarlar"],
     ["c", "Yaz / oluştur"], ["j  k", "Gönderiler arasında gez"], ["↵", "Gönderiyi aç"], ["l", "Beğen"], ["r", "Yanıtla"], ["e", "Kaydet"], ["?", "Bu liste"]
   ];
 

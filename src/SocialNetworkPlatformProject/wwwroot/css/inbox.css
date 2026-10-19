@@ -814,3 +814,15 @@ html[data-design="inbox"] .not-found-code { color: var(--accent); font-family: v
   html[data-design="inbox"] body > .container,
   html[data-design="inbox"] body > .container-fluid { max-width: 1280px !important; margin-left: auto !important; margin-right: auto !important; }
 }
+
+/* ---------- X-O games (games.html, game.html; the shared part is in style.css) ---------- */
+/* The white column has no padding of its own (its rows bring theirs), so the page adds it; O is teal here, X is the orange accent. */
+html[data-design="inbox"] .xo-page { --xo-o: var(--bs-info-text-emphasis); padding: 18px; }
+html[data-design="inbox"] .xo-hero, html[data-design="inbox"] .xo-row, html[data-design="inbox"] .xo-player { border-radius: 10px; }
+html[data-design="inbox"] .xo-hero { background: var(--surface-2); }
+html[data-design="inbox"] .xo-chip, html[data-design="inbox"] .xo-count { font-family: var(--mono); font-size: 13px; }
+html[data-design="inbox"] .xo-section-title { font-family: var(--mono); font-weight: 400; letter-spacing: 0.08em; color: var(--faint); }
+html[data-design="inbox"] .xo-board { border-radius: 12px; }
+html[data-design="inbox"] .xo-cell { border-radius: 8px; box-shadow: inset 0 0 0 1px var(--line); }
+html[data-design="inbox"] .xo-cell.is-win { box-shadow: inset 0 0 0 3px var(--accent); background: var(--accent-wash); }
+@media (max-width: 575.98px) { html[data-design="inbox"] .xo-page { padding: 14px; } }

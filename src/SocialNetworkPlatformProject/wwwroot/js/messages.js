@@ -79,7 +79,7 @@ function renderHeader(userId, name, avatar, online) {
     <button type="button" class="btn btn-link text-body p-0 d-md-none" onclick="showConversationList()" aria-label="Sohbetlere dön"><i class="bi bi-arrow-left fs-4"></i></button>
     <img src="${avatar || DEFAULT_AVATAR}" class="avatar-sm" alt="">
     <div>
-      <div class="fw-bold">${escapeHtml(name)}</div>
+      <div class="fw-bold"><a href="profile.html?id=${userId}" class="text-body text-decoration-none">${escapeHtml(name)}</a></div>
       <div class="text-muted small" id="presenceText" data-presence-user="${userId}" data-presence-mode="text">${online ? "Çevrimiçi" : "Çevrimdışı"}</div>
     </div>`;
 }

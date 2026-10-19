@@ -295,6 +295,9 @@ public class UserRepository : IUserRepository
         await _context.Set<MessageReaction>().Where(r => r.UserId == userId).ExecuteDeleteAsync(); // emojis left on other people's messages (their own messages go with the conversations)
         await _context.Set<Conversation>().Where(c => myConversationIds.Contains(c.Id)).ExecuteDeleteAsync();
 
+        // Games, invitations and finished ones alike: the opponent has nobody left to play or answer.
+        await _context.Set<Game>().Where(g => g.InviterId == userId || g.InviteeId == userId).ExecuteDeleteAsync();
+
         // Marketplace trail: reviews written by or about the user, their offers on other people's listings
         // (their own listings' offers go with the listings) and their favourites.
         await _context.Set<SellerRating>().Where(r => r.BuyerId == userId || r.SellerId == userId).ExecuteDeleteAsync();

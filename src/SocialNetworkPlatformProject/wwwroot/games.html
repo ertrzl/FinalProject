@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png?v=2" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2">
+<title>Oyunlar | Stoop</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/inbox.css">
+<script src="js/design.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/api.js"></script>
+</head>
+<body>
+
+<nav id="siteNav" data-active="games"></nav>
+
+<div class="container py-4" style="max-width: 980px;">
+<div class="page-split page-solo">
+<div class="page-main">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2 page-head">
+    <h1 class="h4 mb-0 fw-bold">Oyunlar</h1>
+  </div>
+
+  <div class="xo-page" id="xoPage">
+
+    <div class="xo-kinds" role="group" aria-label="Oyun seç">
+
+      <section class="xo-hero" aria-labelledby="xoTitle">
+        <div class="xo-logo" aria-hidden="true"><span class="x">X</span><span class="o">O</span></div>
+        <div class="xo-hero-text">
+          <h2 class="h5 fw-bold mb-1" id="xoTitle">X-O</h2>
+          <p class="text-muted mb-0">Bir arkadaşınla sırayla oyna. Hamleler anında karşı tarafa ulaşır.</p>
+        </div>
+        <button type="button" class="btn btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#pickFriendModal" data-game-kind="TicTacToe"><i class="bi bi-person-plus me-1"></i>Arkadaşını Davet Et</button>
+      </section>
+
+      <section class="xo-hero" aria-labelledby="rpsTitle">
+        <div class="xo-logo rps-logo" aria-hidden="true"><span>✊</span><span>✋</span><span>✌️</span></div>
+        <div class="xo-hero-text">
+          <h2 class="h5 fw-bold mb-1" id="rpsTitle">Taş-Kağıt-Makas</h2>
+          <p class="text-muted mb-0">Üç tur, gizli seçim: aynı anda seçin, sonra açılır.</p>
+        </div>
+        <button type="button" class="btn btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#pickFriendModal" data-game-kind="RockPaperScissors"><i class="bi bi-person-plus me-1"></i>Arkadaşını Davet Et</button>
+      </section>
+
+      <section class="xo-hero" aria-labelledby="bsTitle">
+        <div class="xo-logo bs-logo" aria-hidden="true">
+          <svg viewBox="0 0 120 120" width="56" height="56" focusable="false"><rect width="120" height="120" fill="#BFDDEC"/><path d="M40 0V120M80 0V120M0 40H120M0 80H120" stroke="#9CC4DA" stroke-width="1.5" fill="none"/><g transform="translate(0,0)"><path d="M8 8H96Q116 20 96 32H8Q2 20 8 8Z" fill="#5F6B78"/><circle cx="30" cy="20" r="7" fill="#8A96A3"/><line x1="30" y1="20" x2="46" y2="20" stroke="#2F3841" stroke-width="3"/><rect x="58" y="15" width="14" height="10" rx="2" fill="#3F4A56"/><line x1="10" y1="14" x2="10" y2="26" stroke="#E8793A" stroke-width="3"/></g><g fill="none" stroke="#FFFFFF" stroke-width="3"><circle cx="20" cy="60" r="12"/><circle cx="20" cy="60" r="5"/></g><g transform="translate(100,100) scale(1.1)"><polygon points="0,-15 5,-5 15,-4 8,3 10,14 0,9 -10,14 -8,3 -15,-4 -5,-5" fill="#D9442B"/><circle r="5" fill="#F5B13D"/></g></svg>
+        </div>
+        <div class="xo-hero-text">
+          <h2 class="h5 fw-bold mb-1" id="bsTitle">Amiral Battı</h2>
+          <p class="text-muted mb-0">Gemilerini diz, rakibin filosunu batır.</p>
+        </div>
+        <button type="button" class="btn btn-primary rounded-pill" data-bs-toggle="modal" data-bs-target="#pickFriendModal" data-game-kind="Battleship"><i class="bi bi-person-plus me-1"></i>Arkadaşını Davet Et</button>
+      </section>
+
+    </div>
+
+    <div class="xo-stats" role="group" aria-label="Oyun istatistiklerin">
+      <span class="xo-chip"><span>Kazandın</span> <b id="statWins">0</b></span>
+      <span class="xo-chip"><span>Kaybettin</span> <b id="statLosses">0</b></span>
+      <span class="xo-chip"><span>Berabere</span> <b id="statDraws">0</b></span>
+    </div>
+
+    <section class="xo-section" aria-labelledby="incomingTitle">
+      <h2 class="xo-section-title" id="incomingTitle">Gelen davetler <span class="xo-count" id="incomingCount">0</span></h2>
+      <div class="xo-list" id="incomingList"><div class="text-muted small">Yükleniyor...</div></div>
+    </section>
+
+    <section class="xo-section" aria-labelledby="sentTitle">
+      <h2 class="xo-section-title" id="sentTitle">Gönderdiğin davetler <span class="xo-count" id="sentCount">0</span></h2>
+      <div class="xo-list" id="sentList"></div>
+    </section>
+
+    <section class="xo-section" aria-labelledby="activeTitle">
+      <h2 class="xo-section-title" id="activeTitle">Devam eden oyunlar <span class="xo-count" id="activeCount">0</span></h2>
+      <div class="xo-list" id="activeList"></div>
+    </section>
+
+    <section class="xo-section" aria-labelledby="recentTitle">
+      <h2 class="xo-section-title" id="recentTitle">Son oyunlar</h2>
+      <div class="xo-list" id="recentList"></div>
+    </section>
+
+  </div>
+</div>
+</div>
+</div>
+
+<!-- Friend picker modal -->
+<div class="modal fade" id="pickFriendModal" tabindex="-1" aria-labelledby="pickFriendTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4 xo-modal">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="pickFriendTitle">Kimi davet edeceksin?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label fw-semibold small" for="pickFriendSearch">Arkadaşlarında ara</label>
+        <input type="text" id="pickFriendSearch" class="form-control mb-3" maxlength="100" autocomplete="off" placeholder="İsim yaz...">
+        <div class="xo-list xo-picker-list" id="pickFriendList"><div class="text-muted small">Yükleniyor...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<div id="chatDock" class="chat-dock">
+  <div class="chat-dock-bar" onclick="toggleChatDockList()">
+    <i class="bi bi-chat-dots-fill"></i> Sohbetler
+  </div>
+  <div class="chat-dock-list d-none" id="chatDockList"></div>
+</div>
+<div id="chatPopups" class="chat-popups"></div>
+
+<script src="js/navbar.js"></script>
+<script src="js/app.js"></script>
+<script src="js/shortcuts.js"></script>
+<script src="js/navbar-badge.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@8.0.7/dist/browser/signalr.min.js"></script>
+<script src="js/realtime.js"></script>
+<script src="js/navbar-search.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@1.21.3/index.js"></script>
+<script src="js/chat-data.js"></script>
+<script src="js/chat-composer.js"></script>
+<script src="js/chat-dock.js"></script>
+<script src="js/game-common.js"></script>
+<script src="js/games.js"></script>
+</body>
+</html>

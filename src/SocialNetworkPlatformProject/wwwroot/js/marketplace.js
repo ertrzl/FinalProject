@@ -927,7 +927,7 @@ function reviewHtml(r) {
 
 function reviewsHeaderHtml(summary) {
   if (!summary.count) {
-    return `<div class="text-center py-3"><div class="fw-bold">${escapeHtml(summary.sellerName)}</div><div class="text-muted small">Henüz değerlendirilmedi.</div></div>`;
+    return `<div class="text-center py-3"><div class="fw-bold"><a href="profile.html?id=${summary.sellerId}" class="text-body text-decoration-none">${escapeHtml(summary.sellerName)}</a></div><div class="text-muted small">Henüz değerlendirilmedi.</div></div>`;
   }
 
   const bars = [5, 4, 3, 2, 1].map(star => {

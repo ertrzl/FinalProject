@@ -15,6 +15,9 @@ public interface IUserRepository
     // The user's current security stamp; null when there is no such user.
     Task<string?> GetSecurityStampAsync(Guid id);
 
+    // The free-text place on the user's profile ("İstanbul, Türkiye"); null when empty or when there is no such user.
+    Task<string?> GetLocationAsync(Guid id);
+
     // What the user chose to be notified about; null when there is no such user.
     Task<NotificationPreferences?> GetNotificationPreferencesAsync(Guid id);
 

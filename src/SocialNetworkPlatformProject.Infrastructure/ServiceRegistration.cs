@@ -47,6 +47,9 @@ public static class ServiceRegistration
         // Timer-driven housekeeping: event reminders, waiting lists and expired stories.
         services.AddHostedService<MaintenanceBackgroundService>();
 
+        // Once at the start: the "@" tags of posts written before they were stored (profile "Etiketlendiklerim" tab).
+        services.AddHostedService<PostMentionBackfillService>();
+
         services.AddSignalR(options => options.AddFilter<SecurityStampHubFilter>());
         services.AddSingleton<IUserIdProvider, SubClaimUserIdProvider>();
         services.AddScoped<IRealTimeNotifier, SignalRNotifier>();

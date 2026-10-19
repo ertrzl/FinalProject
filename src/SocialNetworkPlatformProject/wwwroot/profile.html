@@ -52,18 +52,25 @@
         <h1 class="h4 mb-0" id="profileName">&nbsp;</h1>
         <p class="mb-0 small text-muted"><span id="profileHandle"></span> · <span id="profileFriendCount">0</span> arkadaş</p>
         <div class="small d-none" id="profileSellerRating"></div>
+        <!-- Somebody else's profile: the friends and groups you share, with a few small faces; opens the full list -->
+        <button type="button" class="profile-mutual d-none" id="profileMutual" onclick="openMutualList()"></button>
       </div>
     </div>
     <div id="profileActionArea">
+      <button class="btn btn-light btn-sm rounded-pill shadow-sm border mb-2 me-1" onclick="openShareProfile()"><i class="bi bi-qr-code me-1"></i>Profili Paylaş</button>
       <button class="btn btn-light btn-sm rounded-pill shadow-sm border mb-2" data-bs-toggle="modal" data-bs-target="#editProfileModal"><i class="bi bi-pencil-square me-1"></i>Profili Düzenle</button>
     </div>
   </div>
+
+  <!-- Story highlights: round covers (js/highlights.js); the row is hidden while there is nothing to show -->
+  <div class="profile-highlights d-none" id="highlightsRow" aria-label="Öne çıkanlar"></div>
 
   <ul class="nav nav-tabs mb-4 mt-4">
     <li class="nav-item"><button class="nav-link active fw-semibold" data-bs-toggle="tab" data-bs-target="#tab-posts">Gönderiler</button></li>
     <li class="nav-item"><button class="nav-link fw-semibold text-muted" data-bs-toggle="tab" data-bs-target="#tab-friends">Arkadaşlar</button></li>
     <li class="nav-item"><button class="nav-link fw-semibold text-muted" data-bs-toggle="tab" data-bs-target="#tab-about">Hakkında</button></li>
     <li class="nav-item"><button class="nav-link fw-semibold text-muted" data-bs-toggle="tab" data-bs-target="#tab-photos">Fotoğraflar</button></li>
+    <li class="nav-item"><button class="nav-link fw-semibold text-muted" data-bs-toggle="tab" data-bs-target="#tab-tagged">Etiketlendiklerim</button></li>
   </ul>
 
   <div class="tab-content">
@@ -138,6 +145,11 @@
       </div>
     </div>
 
+    <!-- Tagged tab: posts where this person was tagged with @ (filled when the tab is first opened) -->
+    <div class="tab-pane fade" id="tab-tagged">
+      <div id="taggedPostsList" class="tagged-posts"><div class="text-muted small">Yükleniyor...</div></div>
+    </div>
+
   </div>
 </div>
 
@@ -191,6 +203,74 @@
   </div>
 </div>
 
+<!-- Share profile modal: the short link, copy, and a QR code of it (PNG download) -->
+<div class="modal fade" id="shareProfileModal" tabindex="-1" aria-labelledby="shareProfileTitle">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="shareProfileTitle">Profili Paylaş</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body text-center">
+        <div class="share-qr-frame mx-auto mb-3"><canvas id="shareQrCanvas" width="256" height="256" role="img" aria-label="Profil bağlantısının QR kodu"></canvas></div>
+        <div class="input-group mb-3">
+          <input type="text" id="shareProfileLink" class="form-control" readonly aria-label="Profil bağlantısı" data-no-i18n onfocus="this.select()">
+          <button type="button" class="btn btn-primary" onclick="copyProfileLink()"><i class="bi bi-clipboard me-1"></i>Kopyala</button>
+        </div>
+        <button type="button" class="btn btn-light border rounded-pill px-4" onclick="downloadProfileQr()"><i class="bi bi-download me-1"></i>QR'ı indir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mutual friends and groups modal (somebody else's profile) -->
+<div class="modal fade" id="mutualModal" tabindex="-1" aria-labelledby="mutualTitle">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="mutualTitle">Ortak Bağlantılar</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body">
+        <div id="mutualFriendsSection">
+          <div class="fw-semibold small text-muted mb-2" id="mutualFriendsHeading"></div>
+          <div id="mutualFriendsList" class="mutual-list"></div>
+        </div>
+        <div id="mutualGroupsSection" class="mt-3">
+          <div class="fw-semibold small text-muted mb-2" id="mutualGroupsHeading"></div>
+          <div id="mutualGroupsList" class="mutual-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Manage a highlight (own profile): name, cover, remove stories, delete -->
+<div class="modal fade" id="manageHighlightModal" tabindex="-1" aria-labelledby="manageHighlightTitle">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="manageHighlightTitle">Öne Çıkanı Düzenle</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label fw-semibold small" for="manageHighlightName">Ad</label>
+        <input type="text" id="manageHighlightName" class="form-control mb-3" maxlength="30" autocomplete="off" data-no-i18n>
+        <div class="fw-semibold small mb-1">Kapak ve hikâyeler</div>
+        <div class="text-muted small mb-2">Kapak yapmak için bir hikâyeye dokun; kaldırmak için sağ üstündeki çarpıya dokun.</div>
+        <div id="manageHighlightItems" class="highlight-items"></div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-danger rounded-pill" onclick="deleteManagedHighlight()"><i class="bi bi-trash me-1"></i>Sil</button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>
+          <button type="button" id="manageHighlightSave" class="btn btn-primary rounded-pill" onclick="saveManagedHighlight()">Kaydet</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <div id="chatDock" class="chat-dock">
   <div class="chat-dock-bar" onclick="toggleChatDockList()">
@@ -216,6 +296,9 @@
 <script src="js/chat-composer.js"></script>
 <script src="js/chat-dock.js"></script>
 <script src="js/location-autocomplete.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="js/highlights.js"></script>
+<script src="js/profile-extras.js"></script>
 <script src="js/profile.js"></script>
 </body>
 </html>

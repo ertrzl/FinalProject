@@ -36,6 +36,10 @@ public interface IPostService
     // Only publicly visible posts can be shared (not group posts, not friends-only, not private accounts').
     Task<GetPostDto> ShareAsync(Guid currentUserId, Guid postId, PostShareDto dto);
 
+    // "Gönderide paylaş" on event.html: a new post of the user's that shows the event as a card. Only an event the user
+    // may see and that everybody may see (not a private one, not a group's). Tells the organizer.
+    Task<GetPostDto> ShareEventAsync(Guid currentUserId, Guid eventId, PostShareDto dto);
+
     // Returns true when the post is saved after the toggle.
     Task<bool> ToggleSaveAsync(Guid currentUserId, Guid postId);
 

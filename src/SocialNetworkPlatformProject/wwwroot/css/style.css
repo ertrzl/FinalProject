@@ -962,3 +962,143 @@ body { overflow-wrap: break-word; }
 @media (prefers-reduced-motion: reduce) {
   .story-viewer-inner.slide-from-right, .story-viewer-inner.slide-from-left { animation: none; }
 }
+
+/* ---- Marketplace: status / condition / "Öne Çıkan" badges, seller buttons, boosted cards ---- */
+.listing-badges {
+  position: absolute; top: .5rem; left: .5rem; z-index: 1;
+  display: flex; flex-direction: column; align-items: flex-start; gap: .25rem;
+  max-width: calc(100% - 3.75rem); /* the heart sits in the opposite corner */
+}
+.listing-badges:empty { display: none; }
+.listing-featured { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
+.icon-btn-44 { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+#listingsGrid [data-heart-id] { min-width: 44px; min-height: 44px; }
+.listing-status-group .btn { min-height: 44px; padding-inline: .25rem; font-size: .9rem; }
+#listingModalRenewBtn, #listingModalFeatureBtn, .listing-owner-line .btn { min-height: 44px; }
+#browseFilters .form-check { min-height: 44px; display: flex; align-items: center; gap: .5rem; padding-left: 0; }
+#browseFilters .form-check-input { float: none; margin: 0; flex: 0 0 auto; }
+/* ---- Profile extras: mutual friends, story highlights, share window with QR code, tagged-posts tab ---- */
+.min-w-0 { min-width: 0; }
+
+/* "12 ortak arkadaş" under the handle: a few small faces and the counts; opens the full list */
+.profile-mutual {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 32px; padding: 0; border: 0; background: none;
+  color: inherit; font-size: .875rem; text-align: left;
+}
+.profile-mutual:hover span:last-child { text-decoration: underline; }
+.profile-mutual-faces { display: inline-flex; flex-shrink: 0; }
+.profile-mutual-faces img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 2px solid var(--bs-body-bg); margin-left: -8px; background: var(--bs-tertiary-bg); }
+.profile-mutual-faces img:first-child { margin-left: 0; }
+@media (pointer: coarse) { .profile-mutual { min-height: 44px; } }
+
+/* Round covers under the header. Not a flex-wrap row of the header (inbox.css styles those): its own class. */
+.profile-highlights { display: flex; gap: 14px; margin: 18px 0 0; padding: 4px 8px 6px; overflow-x: auto; scrollbar-width: thin; }
+.highlight-tile { position: relative; flex: 0 0 auto; width: 76px; }
+.highlight-open {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; min-height: 44px; padding: 0;
+  border: 0; background: none; color: inherit;
+}
+.highlight-cover {
+  display: flex; align-items: center; justify-content: center; width: 66px; height: 66px; border-radius: 50%; overflow: hidden;
+  border: 3px solid var(--bs-body-bg); box-shadow: 0 0 0 2px var(--bs-primary); background: var(--bs-tertiary-bg); font-size: 24px; color: var(--bs-secondary-color);
+}
+.highlight-cover img, .highlight-cover video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.highlight-cover-new { box-shadow: 0 0 0 2px var(--bs-border-color); }
+.highlight-open:hover .highlight-cover { box-shadow: 0 0 0 3px var(--bs-primary); }
+.highlight-title { max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+/* The owner's pencil: a small badge on the cover with a finger-sized area around it */
+.highlight-edit {
+  position: absolute; top: -12px; right: -16px; width: 44px; height: 44px; padding: 0; border: 0; background: none;
+  display: flex; align-items: center; justify-content: center;
+}
+.highlight-edit i {
+  display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--bs-body-color); color: var(--bs-body-bg); font-size: 11px; border: 2px solid var(--bs-body-bg);
+}
+#hlVideo { object-fit: contain; background: #000; }
+
+/* Manage window: the stories of a highlight as small tiles (tap = cover, cross = remove) */
+.highlight-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+.highlight-thumb { position: relative; aspect-ratio: 9 / 14; border-radius: 12px; overflow: hidden; border: 2px solid transparent; background: var(--bs-tertiary-bg); }
+.highlight-thumb.selected { border-color: var(--bs-primary); }
+.highlight-thumb-pick { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: none; }
+.highlight-thumb-pick img, .highlight-thumb-pick video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.highlight-thumb-badge {
+  position: absolute; left: 6px; bottom: 6px; padding: 2px 8px; border-radius: 999px; background: var(--bs-primary); color: #fff;
+  font-size: 11px; font-weight: 600; pointer-events: none;
+}
+.highlight-thumb-remove {
+  position: absolute; top: 0; right: 0; width: 44px; height: 44px; padding: 0; border: 0; background: none; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+}
+.highlight-thumb-remove i {
+  display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%;
+  background: rgba(0, 0, 0, .65); font-size: 12px;
+}
+
+/* Profili Paylaş: the QR code sits on white (scanners need it), in the dark theme too */
+.share-qr-frame { width: fit-content; padding: 12px; border-radius: 16px; background: #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, .15); }
+.share-qr-frame canvas { display: block; width: min(256px, 62vw); height: auto; aspect-ratio: 1; image-rendering: pixelated; }
+
+/* Mutual friends and groups list */
+.mutual-row {
+  display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 8px; border-radius: 12px; color: inherit;
+}
+.mutual-row:hover { background: var(--bs-tertiary-bg); }
+.mutual-row img.avatar-sm { flex-shrink: 0; }
+.mutual-group-cover {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 10px;
+  object-fit: cover; background: var(--bs-tertiary-bg); color: var(--bs-secondary-color);
+}
+
+/* The tagged tab: one column of posts, like the wall */
+.tagged-posts { max-width: 720px; margin: 0 auto; }
+
+/* Design "inbox": the row of covers is a white strip in the profile column; the tagged posts are plain rows like the wall */
+html[data-design="inbox"] .profile-page > .profile-highlights { background: var(--surface); border-right: 1px solid var(--line); margin: 0; padding: 10px 18px 6px; }
+html[data-design="inbox"] .highlight-cover { border-color: var(--surface); box-shadow: 0 0 0 2px var(--accent); }
+html[data-design="inbox"] .highlight-open:hover .highlight-cover { box-shadow: 0 0 0 3px var(--accent); }
+html[data-design="inbox"] .highlight-cover-new { box-shadow: 0 0 0 2px var(--line-2); }
+html[data-design="inbox"] .highlight-edit i { border-color: var(--surface); }
+html[data-design="inbox"] .profile-mutual-faces img { border-color: var(--surface); }
+html[data-design="inbox"] .tagged-posts { max-width: none; }
+html[data-design="inbox"] .profile-page #taggedPostsList > .card {
+  border: 0 !important; border-bottom: 1px solid var(--line) !important; border-radius: 0 !important; background: transparent; box-shadow: none !important;
+  margin: 0 !important; padding: 14px 18px !important;
+}
+html[data-design="inbox"] .profile-page #taggedPostsList > .card:hover { background: var(--surface-2); }
+html[data-design="inbox"] #taggedPostsList > .text-muted { padding: 24px 18px; display: block; }
+/* ---- Events: map, photo album, attendance list, event card inside a post ---- */
+.event-map {
+  height: 260px; border-radius: 12px; overflow: hidden; background: var(--bs-tertiary-bg, #f1f3f5);
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  isolation: isolate; /* Leaflet's panes use z-index up to 1000: keep them inside the map, under the navbar and the dialogs */
+}
+#eventMapPicker.event-map { height: 240px; }
+/* Leaflet's zoom buttons are 26-30 px: a fingertip needs more */
+.event-map .leaflet-bar a, .event-map.leaflet-touch .leaflet-bar a { width: 44px; height: 44px; line-height: 44px; font-size: 22px; }
+.event-pin { background: none; border: 0; text-align: center; color: #dc3545; font-size: 36px; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35)); }
+.event-pin i { display: block; line-height: 36px; }
+[data-bs-theme="dark"] .event-map .leaflet-tile-pane { filter: brightness(0.8) contrast(1.1); } /* the light map tiles are glaring on a dark page */
+.event-map-btn, .ev-touch, #evActions .btn { min-height: 44px; }
+#evTabs .nav-link { min-height: 44px; display: flex; align-items: center; }
+
+.ev-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.ev-photo { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--bs-tertiary-bg, #f1f3f5); }
+.ev-photo > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ev-photo-by {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 8px 4px; font-size: 11px; color: #fff; pointer-events: none;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ev-photo-del { position: absolute; top: 0; right: 0; width: 44px; height: 44px; border: 0; background: none; color: #fff; display: flex; align-items: center; justify-content: center; }
+.ev-photo-del i { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: rgba(0, 0, 0, 0.55); }
+
+.ev-checkin-row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 4px 4px; border-bottom: 1px solid var(--bs-border-color, #dee2e6); cursor: pointer; }
+.ev-checkin-row:last-child { border-bottom: 0; }
+.ev-checkin-box { width: 26px; height: 26px; margin: 0; flex-shrink: 0; cursor: pointer; }
+.ev-checkin-box:disabled { cursor: not-allowed; }
+
+.shared-event { border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 14px; overflow: hidden; background: var(--bs-tertiary-bg, #f8f9fa); }
+.shared-event-cover { display: block; width: 100%; height: 150px; object-fit: cover; }
+.shared-event-body { padding: 12px; }
+.shared-event-btn { min-height: 44px; display: inline-flex; align-items: center; }

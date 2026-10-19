@@ -18,7 +18,6 @@ public class NotificationProfile : Profile
             .ForMember(dest => dest.EventTitle, opt => opt.Ignore())
             .ForMember(dest => dest.Reaction, opt => opt.Ignore())
             .ForMember(dest => dest.EventStartsAt, opt => opt.Ignore())
-            .ForMember(dest => dest.ListingId, opt => opt.Ignore())
             .ForMember(dest => dest.ListingTitle, opt => opt.Ignore());
     }
 }

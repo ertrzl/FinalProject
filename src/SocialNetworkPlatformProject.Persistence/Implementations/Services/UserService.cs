@@ -96,6 +96,21 @@ public class UserService : IUserService
         };
     }
 
+    public async Task<GetUserProfileDto> GetProfileByUserNameAsync(string userName, Guid currentUserId)
+    {
+        var found = await _users.GetSummariesByUserNamesAsync(new[] { userName.Trim() });
+        var user = found.Values.FirstOrDefault()
+            ?? throw new NotFoundException(Loc.T("user.notFound"));
+
+        return await GetProfileAsync(user.Id, currentUserId);
+    }
+
+    public async Task<string?> FindUserNameAsync(string userName)
+    {
+        var found = await _users.GetSummariesByUserNamesAsync(new[] { userName.Trim() });
+        return found.Values.FirstOrDefault()?.UserName;
+    }
+
     public async Task<GetUserProfileDto> UpdateProfileAsync(Guid currentUserId, PutUserProfileDto dto)
     {
         var user = await FindUserAsync(currentUserId);

@@ -34,10 +34,12 @@ public class PostService : IPostService
     private readonly IFriendService _friends;
     private readonly IPostAccessService _access;
     private readonly IMentionService _mentions;
+    private readonly IPostMentionService _storedMentions;
     private readonly INotificationService _notifications;
     private readonly IFileStorageService _files;
     private readonly ILiveUpdateService _live;
     private readonly IPostDtoBuilder _dtos;
+    private readonly IEventAccessService _eventAccess;
 
     public PostService(
         IPostRepository posts,
@@ -50,10 +52,12 @@ public class PostService : IPostService
         IFriendService friends,
         IPostAccessService access,
         IMentionService mentions,
+        IPostMentionService storedMentions,
         INotificationService notifications,
         IFileStorageService files,
         ILiveUpdateService live,
-        IPostDtoBuilder dtos)
+        IPostDtoBuilder dtos,
+        IEventAccessService eventAccess)
     {
         _posts = posts;
         _likes = likes;
@@ -65,10 +69,12 @@ public class PostService : IPostService
         _friends = friends;
         _access = access;
         _mentions = mentions;
+        _storedMentions = storedMentions;
         _notifications = notifications;
         _files = files;
         _live = live;
         _dtos = dtos;
+        _eventAccess = eventAccess;
     }
 
     public async Task<GetPostDto> CreateAsync(Guid currentUserId, PostPostDto dto)
@@ -101,6 +107,7 @@ public class PostService : IPostService
         await _posts.SaveChangesAsync();
 
         await _mentions.NotifyAsync(post, currentUserId, post.Text, previousText: null);
+        await _storedMentions.SyncAsync(post, post.Text);
         await _live.PostCreatedAsync(post);
         return (await _dtos.BuildAsync(new[] { post }, currentUserId))[0];
     }
@@ -117,8 +124,8 @@ public class PostService : IPostService
         if (text == null && post.Poll != null)
             throw new BadRequestException(Loc.T("post.pollQuestion"));
 
-        // A share may have no text of its own: it shows the original.
-        if (text == null && post.Media.Count == 0 && !post.IsShare)
+        // A share may have no text of its own: it shows the original (or the event).
+        if (text == null && post.Media.Count == 0 && !post.IsShare && post.SharedEventId == null)
             throw new BadRequestException(Loc.T("post.needContent"));
 
         var previousText = post.Text;
@@ -128,6 +135,7 @@ public class PostService : IPostService
         await _posts.SaveChangesAsync();
 
         await _mentions.NotifyAsync(post, currentUserId, text, previousText);
+        await _storedMentions.SyncAsync(post, text);
         await _live.PostUpdatedAsync(post);
         return (await _dtos.BuildAsync(new[] { post }, currentUserId))[0];
     }
@@ -289,6 +297,10 @@ public class PostService : IPostService
     {
         var shown = await GetViewablePostAsync(currentUserId, postId);
 
+        // A post that carries an event card is the event's own sharing; the card is not part of a normal share.
+        if (shown.SharedEventId != null)
+            throw new BadRequestException(Loc.T("event.sharedByOther"));
+
         // Sharing a share shares what it shows.
         Post? original = shown;
         if (shown.IsShare)
@@ -318,7 +330,40 @@ public class PostService : IPostService
         await _posts.SaveChangesAsync();
 
         await _mentions.NotifyAsync(share, currentUserId, share.Text, previousText: null);
+        await _storedMentions.SyncAsync(share, share.Text);
         await _notifications.CreateAsync(original.AuthorId, currentUserId, NotificationType.PostShared, postId: share.Id);
+        await _live.PostCreatedAsync(share);
+
+        return (await _dtos.BuildAsync(new[] { share }, currentUserId))[0];
+    }
+
+    public async Task<GetPostDto> ShareEventAsync(Guid currentUserId, Guid eventId, PostShareDto dto)
+    {
+        // An event the user cannot see is "not found", like everywhere else.
+        var ev = await _eventAccess.GetViewableAsync(currentUserId, eventId);
+
+        // The post lands on the user's own feed, where their friends (or everybody) read it; a private event or a
+        // group's would be shown to people the organizer never meant to tell about it.
+        if (ev.IsPrivate)
+            throw new BadRequestException(Loc.T("event.shareNotPrivate"));
+        if (ev.GroupId.HasValue)
+            throw new BadRequestException(Loc.T("event.shareNotGroup"));
+
+        var share = new Post
+        {
+            AuthorId = currentUserId,
+            Text = string.IsNullOrWhiteSpace(dto.Text) ? null : dto.Text.Trim(),
+            Privacy = ParsePrivacy(dto.Privacy),
+            SharedEventId = ev.Id
+        };
+
+        await _posts.AddAsync(share);
+        await SyncHashtagsAsync(share, share.Text);
+        await _posts.SaveChangesAsync();
+
+        await _mentions.NotifyAsync(share, currentUserId, share.Text, previousText: null);
+        // PostId is the new post, so the notification can open it; EventId lets the text name the event.
+        await _notifications.CreateAsync(ev.CreatedByUserId, currentUserId, NotificationType.EventShared, postId: share.Id, eventId: ev.Id);
         await _live.PostCreatedAsync(share);
 
         return (await _dtos.BuildAsync(new[] { share }, currentUserId))[0];

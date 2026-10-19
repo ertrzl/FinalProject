@@ -83,7 +83,53 @@ function renderEvent() {
 
   document.getElementById("evAnnouncementWrap").classList.toggle("d-none", !(ev.isOwner && !ev.isPast));
 
+  // The attendance list is the organizer's only (the server refuses everyone else too).
+  document.getElementById("evAttendanceTabItem").classList.toggle("d-none", !ev.isOwner);
+  if (!eventAlbum) setPhotoTabCount(ev.photoCount);
+
   renderEventActions();
+  renderEventMap();
+}
+
+// ---- Map: the pin of an in-person event, with a link to OpenStreetMap's route planner ----
+
+let eventMap = null;
+let eventMapMarker = null;
+let eventMapSpot = null; // "lat,lng" of the pin as last drawn: the page is redrawn on every status change and must not recentre the map each time
+
+async function renderEventMap() {
+  const ev = currentEvent;
+  const hasPin = !ev.isOnline && ev.latitude != null && ev.longitude != null;
+  document.getElementById("evMapCard").classList.toggle("d-none", !hasPin);
+  if (!hasPin) {
+    eventMapSpot = null;
+    return;
+  }
+
+  document.getElementById("evDirections").href = eventDirectionsUrl(ev.latitude, ev.longitude);
+
+  const spot = `${ev.latitude},${ev.longitude}`;
+  if (spot === eventMapSpot) return;
+
+  const box = document.getElementById("evMap");
+  try {
+    await loadLeaflet();
+  } catch (err) {
+    box.innerHTML = `<div class="text-muted small p-3">Harita yüklenemedi.</div>`;
+    return;
+  }
+
+  // A finger on the map would otherwise drag the map instead of scrolling the page: on a phone the page scrolls, the buttons zoom.
+  if (!eventMap) {
+    box.innerHTML = "";
+    eventMap = createEventMap(box, [ev.latitude, ev.longitude], 15, { dragging: !L.Browser.mobile });
+  }
+
+  eventMap.invalidateSize();
+  eventMap.setView([ev.latitude, ev.longitude], 15);
+  if (eventMapMarker) eventMapMarker.setLatLng([ev.latitude, ev.longitude]);
+  else eventMapMarker = L.marker([ev.latitude, ev.longitude], { icon: eventPinIcon(), keyboard: false }).addTo(eventMap);
+  eventMapSpot = spot;
 }
 
 async function answerInvite(accept) {
@@ -111,8 +157,11 @@ function renderEventActions() {
 
   const primary = eventPrimaryAction(ev);
 
+  // On a finished event the organizer's tick on the attendance list ("Yoklama") is what really says you were there.
   const statusButtons = ev.isPast
-    ? `<span class="btn btn-light disabled rounded-pill"><i class="bi bi-check2-circle me-1"></i>Sona erdi${going ? " · katıldın" : interested ? " · ilgileniyordun" : ""}</span>`
+    ? (ev.myCheckedIn
+      ? `<span class="btn btn-success-subtle text-success-emphasis disabled rounded-pill"><i class="bi bi-patch-check-fill me-1"></i>Katıldın</span>`
+      : `<span class="btn btn-light disabled rounded-pill"><i class="bi bi-check2-circle me-1"></i>Sona erdi${going ? " · katıldın" : interested ? " · ilgileniyordun" : ""}</span>`)
     : `<button class="btn ${primary.css} rounded-pill" onclick="setStatus('${primary.status}')">${primary.label}</button>
        <button class="btn ${interested ? "btn-outline-secondary interested" : "btn-outline-secondary"} rounded-pill" onclick="setStatus('Interested')">${interested ? "İlgileniyorsun" : "İlgileniyorum"}</button>`;
 
@@ -131,6 +180,11 @@ function renderEventActions() {
     ? `<button class="btn btn-light border rounded-pill" onclick="openInviteModal()"><i class="bi bi-person-plus me-1"></i>Davet Et</button>`
     : "";
 
+  // A post on your own feed with this event as a card. A private event or a group's is not for the feed (the server refuses it too).
+  const shareButton = !ev.isPrivate && !ev.groupId
+    ? `<button class="btn btn-light border rounded-pill" onclick="openEventShare()"><i class="bi bi-share me-1"></i>Gönderide paylaş</button>`
+    : "";
+
   // No point adding something that is already over to a calendar.
   const calendarMenu = ev.isPast ? "" : `
     <div class="dropdown">
@@ -147,6 +201,7 @@ function renderEventActions() {
     ${inviteButton}
     ${calendarMenu}
     <button class="btn btn-light border rounded-pill" onclick="copyEventLink()"><i class="bi bi-link-45deg me-1"></i>Bağlantıyı Kopyala</button>
+    ${shareButton}
     ${ownerButtons}`;
 
   loadGoogleCalendarLink();
@@ -368,4 +423,171 @@ async function deleteComment(commentId) {
   }
 }
 
-loadEvent();
+// ---- Fotoğraflar: the album. The organizer and the people who are going add pictures; the server decides who may do what ----
+
+let eventAlbum = null; // the album as the server last sent it (null until the tab was opened)
+
+function setPhotoTabCount(count) {
+  document.getElementById("evPhotosTab").textContent = `Fotoğraflar (${count || 0})`;
+}
+
+function photoTileHtml(photo, index, key) {
+  return `
+    <div class="ev-photo">
+      <img src="${escapeAttr(photo.url)}" class="photo-zoomable" loading="lazy" alt="" onclick="openPhotoViewer('${key}', ${index})">
+      <span class="ev-photo-by" data-no-i18n>${escapeHtml(photo.uploadedByName)}</span>
+      ${photo.canDelete ? `<button type="button" class="ev-photo-del" aria-label="Fotoğrafı sil" onclick="deleteEventPhoto('${photo.id}')"><i class="bi bi-trash"></i></button>` : ""}
+    </div>`;
+}
+
+function renderPhotos(album) {
+  eventAlbum = album;
+  setPhotoTabCount(album.totalCount);
+
+  // The button is there only while the server says this person may add more.
+  document.getElementById("evPhotoAddBtn").classList.toggle("d-none", !album.canUpload || album.myRemaining <= 0);
+
+  document.getElementById("evPhotoInfo").textContent = album.canUpload
+    ? `Sen ${album.myCount} / ${album.maxPerPerson} fotoğraf ekledin · Albümde ${album.totalCount} / ${album.maxPerEvent} fotoğraf var.`
+    : "Fotoğraf eklemek için etkinliğe katılıyor olmalısın.";
+
+  const grid = document.getElementById("evPhotoGrid");
+  if (album.items.length === 0) {
+    grid.innerHTML = `<div class="text-muted small">Henüz fotoğraf yok.</div>`;
+    return;
+  }
+
+  const key = registerPhotoSet(`event-${eventId}`, album.items.map(p => p.url));
+  grid.innerHTML = album.items.map((p, i) => photoTileHtml(p, i, key)).join("");
+}
+
+async function loadPhotos() {
+  try {
+    renderPhotos(await apiFetch(`/api/events/${eventId}/photos`));
+  } catch (err) {
+    document.getElementById("evPhotoGrid").innerHTML = `<div class="alert alert-danger small mb-0">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function uploadEventPhotos(input) {
+  const files = Array.from(input.files || []);
+  input.value = ""; // choosing the same file again must fire "change" again
+  if (files.length === 0) return;
+
+  const button = document.getElementById("evPhotoAddBtn");
+  button.disabled = true;
+  try {
+    const form = new FormData();
+    files.forEach(file => form.append("photos", file));
+    renderPhotos(await apiFetchForm(`/api/events/${eventId}/photos`, { method: "POST", body: form }));
+    toast(files.length === 1 ? "Fotoğraf eklendi." : "Fotoğraflar eklendi.");
+  } catch (err) {
+    toast(err.message || "Fotoğraflar eklenemedi.");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function deleteEventPhoto(photoId) {
+  if (!(await confirmDialog("Bu fotoğraf silinsin mi?"))) return;
+  try {
+    await apiFetch(`/api/events/${eventId}/photos/${photoId}`, { method: "DELETE" });
+    await loadPhotos();
+  } catch (err) {
+    toast(err.message || "Fotoğraf silinemedi.");
+  }
+}
+
+// ---- Yoklama: the organizer ticks the people who came ----
+
+function renderAttendance(attendance) {
+  document.getElementById("evCheckInCount").textContent = `${attendance.checkedInCount}/${attendance.goingCount} geldi`;
+
+  // The server says whether the list can still be changed; this only words it.
+  document.getElementById("evCheckInInfo").textContent = attendance.state === "NotYet"
+    ? "Yoklama etkinlik başlayınca açılır."
+    : attendance.state === "Closed"
+      ? "Yoklama süresi doldu, liste artık değiştirilemez."
+      : "Gelen kişileri işaretle. Etkinlik bittikten sonra 7 gün boyunca değiştirebilirsin.";
+
+  const list = document.getElementById("evCheckInList");
+  if (attendance.items.length === 0) {
+    list.innerHTML = `<div class="text-muted small">Henüz katılan yok.</div>`;
+    return;
+  }
+
+  list.innerHTML = attendance.items.map(person => `
+    <label class="ev-checkin-row" data-user-id="${person.userId}">
+      <img src="${escapeAttr(person.avatarUrl || DEFAULT_AVATAR)}" class="rounded-circle flex-shrink-0" style="width:36px;height:36px;object-fit:cover;" alt="">
+      <span class="flex-grow-1 fw-semibold small text-truncate" data-no-i18n>${escapeHtml(person.fullName)}</span>
+      <span class="small ${person.checkedIn ? "text-success fw-semibold" : "text-muted"}">Geldi</span>
+      <input type="checkbox" class="form-check-input ev-checkin-box" ${person.checkedIn ? "checked" : ""} ${attendance.isOpen ? "" : "disabled"} onchange="toggleCheckIn('${person.userId}', this)">
+    </label>`).join("");
+}
+
+async function loadAttendance() {
+  try {
+    renderAttendance(await apiFetch(`/api/events/${eventId}/attendance`));
+  } catch (err) {
+    document.getElementById("evCheckInList").innerHTML = `<div class="alert alert-danger small mb-0">${escapeHtml(err.message)}</div>`;
+  }
+}
+
+async function toggleCheckIn(userId, box) {
+  const wanted = box.checked;
+  box.disabled = true;
+  try {
+    renderAttendance(await apiFetch(`/api/events/${eventId}/attendance/${userId}`, { method: "PUT", body: { checkedIn: wanted } }));
+    document.querySelector(`.ev-checkin-row[data-user-id="${userId}"] input`)?.focus(); // the list was drawn again; the keyboard stays on the same person
+  } catch (err) {
+    box.checked = !wanted;
+    box.disabled = false;
+    toast(err.message || "Yoklama kaydedilemedi.");
+  }
+}
+
+// ---- Gönderide paylaş ----
+
+function openEventShare() {
+  document.getElementById("shareEventTitle").textContent = currentEvent.title;
+  document.getElementById("shareEventWhen").textContent = formatEventRange(currentEvent.startsAt, currentEvent.endsAt);
+  document.getElementById("shareEventText").value = "";
+  document.getElementById("shareEventPrivacy").value = "Public";
+  document.getElementById("shareEventError").classList.add("d-none");
+  bootstrap.Modal.getOrCreateInstance(document.getElementById("shareEventModal")).show();
+}
+
+async function submitEventShare() {
+  const error = document.getElementById("shareEventError");
+  const button = document.getElementById("shareEventSend");
+  button.disabled = true;
+  try {
+    const post = await apiFetch(`/api/events/${eventId}/share`, {
+      method: "POST",
+      body: {
+        text: document.getElementById("shareEventText").value,
+        privacy: document.getElementById("shareEventPrivacy").value
+      }
+    });
+    bootstrap.Modal.getInstance(document.getElementById("shareEventModal"))?.hide();
+    toast(`${i18n("event.sharedToast")} <a href="post.html?id=${post.id}" class="text-white fw-semibold">${i18n("event.sharedSee")}</a>`, { html: true });
+  } catch (err) {
+    error.textContent = err.message || "Paylaşılamadı.";
+    error.classList.remove("d-none");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+// Tabs load what they show when they are opened (and again each time, so the album and the list are current).
+document.getElementById("evPhotosTab").addEventListener("shown.bs.tab", loadPhotos);
+document.getElementById("evAttendanceTab").addEventListener("shown.bs.tab", loadAttendance);
+document.querySelector('[data-bs-target="#evPane-about"]').addEventListener("shown.bs.tab", () => eventMap?.invalidateSize());
+
+// A link ending in #photos (or #attendance) opens that tab.
+function openTabFromHash() {
+  const target = { "#photos": "evPhotosTab", "#attendance": "evAttendanceTab" }[window.location.hash];
+  if (target && !document.getElementById(target).closest(".d-none")) bootstrap.Tab.getOrCreateInstance(document.getElementById(target)).show();
+}
+
+loadEvent().then(openTabFromHash);

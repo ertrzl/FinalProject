@@ -725,6 +725,11 @@ html[data-design="inbox"] #listingsGrid .card > .p-2 > div:last-child:not(.text-
 html[data-design="inbox"] #listingsGrid .card > .btn { position: static !important; grid-column: 3; grid-row: 2; margin: 0 !important; justify-self: end; background: transparent; box-shadow: none !important; }
 html[data-design="inbox"] #listingsGrid .card > .badge { position: static !important; grid-column: 2; grid-row: 4; margin: 4px 0 0 !important; justify-self: start; }
 html[data-design="inbox"] #listingsGrid .badge.text-bg-warning { background: var(--accent-wash) !important; color: var(--accent-ink) !important; }
+/* Marketplace extras: the badges and the seller's "Yenile" line become cells of the row, like the heart and the old "Satıldı" badge. */
+html[data-design="inbox"] #listingsGrid .card > .listing-badges { position: static; grid-column: 2; grid-row: 4; flex-direction: row; flex-wrap: wrap; max-width: none; margin: 4px 0 0; }
+html[data-design="inbox"] #listingsGrid .card > .listing-owner-line { grid-column: 3; grid-row: 4; justify-self: end; align-self: end; max-width: 220px; padding: 0 !important; text-align: right; }
+html[data-design="inbox"] #listingsGrid .card > .listing-owner-line .btn { min-height: 44px; width: auto; }
+html[data-design="inbox"] #listingsGrid .card.listing-featured { outline: 0; box-shadow: inset 3px 0 0 var(--accent) !important; }
 
 /* =========================================================
    Settings: a column of sections, then one long white column of them

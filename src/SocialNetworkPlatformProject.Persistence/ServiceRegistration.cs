@@ -85,12 +85,14 @@ public static class ServiceRegistration
         services.AddScoped<ISellerRatingRepository, SellerRatingRepository>();
         services.AddScoped<IListingOfferRepository, ListingOfferRepository>();
         services.AddScoped<IListingOfferRoundRepository, ListingOfferRoundRepository>();
+        services.AddScoped<IListingBoostRepository, ListingBoostRepository>();
 
         // Events
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IEventAttendeeRepository, EventAttendeeRepository>();
         services.AddScoped<IEventInviteRepository, EventInviteRepository>();
         services.AddScoped<IEventCommentRepository, EventCommentRepository>();
+        services.AddScoped<IEventPhotoRepository, EventPhotoRepository>();
 
         // Games
         services.AddScoped<IGameRepository, GameRepository>();
@@ -135,6 +137,8 @@ public static class ServiceRegistration
         services.AddScoped<IEventMaintenanceService, EventMaintenanceService>();
         services.AddScoped<IEventInviteService, EventInviteService>();
         services.AddScoped<IEventCommentService, EventCommentService>();
+        services.AddScoped<IEventPhotoService, EventPhotoService>();
+        services.AddScoped<IEventCheckInService, EventCheckInService>();
         services.AddScoped<ILiveUpdateService, LiveUpdateService>();
         services.AddScoped<IGameService, GameService>();
 
@@ -142,6 +146,14 @@ public static class ServiceRegistration
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IReportService, ReportService>();
+
+        // Profile extras: story highlights, mutual friends and groups, "@" tags of posts
+        services.AddScoped<IStoryHighlightRepository, StoryHighlightRepository>();
+        services.AddScoped<IStoryHighlightItemRepository, StoryHighlightItemRepository>();
+        services.AddScoped<IPostMentionRepository, PostMentionRepository>();
+        services.AddScoped<IStoryHighlightService, StoryHighlightService>();
+        services.AddScoped<IMutualConnectionService, MutualConnectionService>();
+        services.AddScoped<IPostMentionService, PostMentionService>();
 
         // Who may open an uploaded file
         services.AddScoped<IUploadAccessService, UploadAccessService>();

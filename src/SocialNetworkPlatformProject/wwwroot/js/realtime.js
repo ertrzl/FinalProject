@@ -29,8 +29,10 @@
     StoryReshared: "etiketlendiğin hikâyeyi kendi hikâyesine ekledi.",
     Mentioned: "seni etiketledi.",
     PostShared: "gönderini paylaştı.",
+    EventShared: "etkinliğini gönderide paylaştı.",
     GameInviteReceived: "sana oyun teklif etti.",
-    GameInviteAccepted: "oyun davetini kabul etti."
+    GameInviteAccepted: "oyun davetini kabul etti.",
+    MarketplacePriceDropped: "kaydettiğin bir ilanın fiyatını düşürdü."
   };
 
   function createConnection(url) {

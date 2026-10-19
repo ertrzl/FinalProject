@@ -27,6 +27,7 @@ const NOTIF_ICON = {
   MarketplaceOfferWithdrawn: { badge: "bg-secondary", icon: "bi-arrow-counterclockwise" },
   MarketplaceOfferClosed: { badge: "bg-secondary", icon: "bi-lock-fill" },
   MarketplaceRatingReceived: { badge: "bg-warning", icon: "bi-star-fill" },
+  MarketplacePriceDropped: { badge: "bg-success", icon: "bi-graph-down-arrow" },
   EventUpdated: { badge: "bg-info", icon: "bi-calendar-event-fill" },
   EventCancelled: { badge: "bg-danger", icon: "bi-calendar-x-fill" },
   EventInviteReceived: { badge: "bg-info", icon: "bi-calendar-plus-fill" },
@@ -35,6 +36,7 @@ const NOTIF_ICON = {
   EventCommentAdded: { badge: "bg-info", icon: "bi-chat-left-text-fill" },
   EventWaitlistPromoted: { badge: "bg-success", icon: "bi-arrow-up-circle-fill" },
   EventReminder: { badge: "bg-warning", icon: "bi-alarm-fill" },
+  EventShared: { badge: "bg-primary", icon: "bi-share-fill" },
   GameInviteReceived: { badge: "bg-info", icon: "bi-controller" },
   GameInviteAccepted: { badge: "bg-success", icon: "bi-controller" },
   ContentRemoved: { badge: "bg-danger", icon: "bi-shield-exclamation" }
@@ -87,6 +89,7 @@ const NOTIF_TEXT = {
   MarketplaceOfferWithdrawn: n => i18n("notif.offerWithdrawn", notifPerson(n), offerListing(n)),
   MarketplaceOfferClosed: n => i18n("notif.offerClosed", offerListing(n)),
   MarketplaceRatingReceived: n => i18n("notif.ratingReceived", notifPerson(n), offerListing(n), starsHtml(n.amount)),
+  MarketplacePriceDropped: n => i18n("notif.priceDropped", offerListing(n), notifBold(offerMoney(n.previousAmount)), notifBold(offerMoney(n.amount))),
   EventUpdated: n => i18n("notif.eventUpdated", notifPerson(n), notifEventName(n)),
   EventCancelled: n => i18n("notif.eventCancelled", notifPerson(n), notifEventName(n)),
   EventInviteReceived: n => i18n("notif.eventInvite", notifPerson(n), notifEventName(n)),
@@ -94,6 +97,7 @@ const NOTIF_TEXT = {
   EventJoined: n => i18n("notif.eventJoined", notifPerson(n), notifEventName(n)),
   EventCommentAdded: n => i18n("notif.eventComment", notifPerson(n), notifEventName(n)),
   EventWaitlistPromoted: n => i18n("notif.eventWaitlist", notifEventName(n)),
+  EventShared: n => i18n("notif.eventShared", notifPerson(n), notifEventName(n)),
   GameInviteReceived: n => i18n("notif.gameInviteReceived", notifPerson(n)),
   GameInviteAccepted: n => i18n("notif.gameInviteAccepted", notifPerson(n)),
   // The admins are not named; the title of what was removed comes in the event-title field (the server's "subject").
@@ -123,10 +127,12 @@ function notificationHtml(n) {
     actions = `<a href="event.html?id=${n.eventId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Etkinliği Gör</a>`;
   } else if (["GameInviteReceived", "GameInviteAccepted"].includes(n.type) && n.gameId) {
     actions = `<a href="game.html?id=${n.gameId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Oyuna Git</a>`;
-  } else if (["PostLiked", "CommentAdded", "CommentReplied", "CommentLiked", "Mentioned", "PostShared"].includes(n.type) && n.postId) {
+  } else if (["PostLiked", "CommentAdded", "CommentReplied", "CommentLiked", "Mentioned", "PostShared", "EventShared"].includes(n.type) && n.postId) {
     actions = `<a href="post.html?id=${n.postId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Gönderiyi Gör</a>`;
   } else if (n.type === "StoryMentioned" || n.type === "StoryReshared") {
     actions = `<a href="home.html" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Hikâyelere Git</a>`;
+  } else if (n.type === "MarketplacePriceDropped" && n.listingId) {
+    actions = `<a href="marketplace.html?listing=${n.listingId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">İlana Git</a>`;
   } else if (n.type.startsWith("MarketplaceOffer")) {
     actions = `<a href="marketplace.html?view=offers" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Teklifleri Gör</a>`;
   } else if (n.type === "GroupInviteReceived" && !n.isRead) {

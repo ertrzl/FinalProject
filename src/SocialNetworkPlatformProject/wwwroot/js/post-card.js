@@ -43,6 +43,7 @@ function postCardHtml(post) {
       </div>
       ${post.text ? `<p class="mt-3 mb-2">${richTextHtml(post.text, post.mentions)}</p>` : ""}
       ${post.isShare ? sharedPostHtml(post) : ""}
+      ${post.isEventShare ? sharedEventHtml(post) : ""}
       ${postMediaHtml(post)}
       ${post.poll ? pollHtml(post) : ""}
       <div class="d-flex justify-content-between text-muted small py-2 border-bottom">
@@ -61,7 +62,7 @@ function postCardHtml(post) {
         <div class="dropdown flex-fill d-flex">
           <button class="btn btn-sm flex-fill text-muted fw-semibold" data-bs-toggle="dropdown"><i class="bi bi-share"></i> Paylaş</button>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><button class="dropdown-item" onclick="openShare('${post.id}')"><i class="bi bi-arrow-repeat me-2"></i>Gönderiyi paylaş</button></li>
+            ${post.isEventShare ? "" : `<li><button class="dropdown-item" onclick="openShare('${post.id}')"><i class="bi bi-arrow-repeat me-2"></i>Gönderiyi paylaş</button></li>`}
             <li><button class="dropdown-item" onclick="copyPostLink(this)"><i class="bi bi-link-45deg me-2"></i>Bağlantıyı kopyala</button></li>
           </ul>
         </div>
@@ -431,6 +432,29 @@ function sharedPostHtml(post) {
       </div>
       ${s.text ? `<p class="mb-2">${richTextHtml(s.text, s.mentions)}</p>` : ""}
       ${postMediaHtml(s)}
+    </div>`;
+}
+
+// The event card of a post that shares an event (event.html "Gönderide paylaş"). The server sends sharedEvent only when
+// the viewer may see the event; otherwise (deleted, turned private, hidden) there is only a note.
+function sharedEventHtml(post) {
+  const e = post.sharedEvent;
+  if (!e) {
+    return `<div class="shared-post text-muted small mb-2"><i class="bi bi-calendar-x me-1"></i>Etkinlik kaldırıldı</div>`;
+  }
+
+  const state = e.isOngoing ? `<span class="badge bg-success-subtle text-success-emphasis rounded-pill">Devam ediyor</span>`
+    : e.isPast ? `<span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill">Sona erdi</span>` : "";
+
+  return `
+    <div class="shared-event mb-2">
+      <a href="event.html?id=${e.id}"><img src="${escapeHtml(e.coverImageUrl || NO_PHOTO)}" class="shared-event-cover" alt=""></a>
+      <div class="shared-event-body">
+        <div class="text-danger fw-bold small"><i class="bi bi-calendar3 me-1"></i>${formatEventDate(e.startsAt)} ${state}</div>
+        <a href="event.html?id=${e.id}" class="fw-bold text-body text-decoration-none text-break d-block" data-no-i18n>${escapeHtml(e.title)}</a>
+        <div class="text-muted small text-break">${eventPlaceHtml(e)}</div>
+        <a href="event.html?id=${e.id}" class="btn btn-light border btn-sm rounded-pill mt-2 shared-event-btn">Etkinliği Gör</a>
+      </div>
     </div>`;
 }
 

@@ -27,11 +27,11 @@ public class EventAttendeeRepository : Repository<EventAttendee>, IEventAttendee
 
         var mine = await _dbSet.AsNoTracking()
             .Where(a => ids.Contains(a.EventId) && a.UserId == viewerId)
-            .Select(a => new { a.EventId, a.Status })
-            .ToDictionaryAsync(a => a.EventId, a => a.Status);
+            .Select(a => new { a.EventId, a.Status, CheckedIn = a.CheckedInAt != null })
+            .ToDictionaryAsync(a => a.EventId);
 
         // Where the viewer stands in a waiting line = how many people queued before them, plus one.
-        var waitingIds = mine.Where(m => m.Value == EventAttendeeStatus.Waitlisted).Select(m => m.Key).ToList();
+        var waitingIds = mine.Where(m => m.Value.Status == EventAttendeeStatus.Waitlisted).Select(m => m.Key).ToList();
         var ahead = waitingIds.Count == 0
             ? new Dictionary<Guid, int>()
             : await _dbSet.AsNoTracking()
@@ -46,14 +46,15 @@ public class EventAttendeeRepository : Repository<EventAttendee>, IEventAttendee
 
         return ids.ToDictionary(id => id, id =>
         {
-            EventAttendeeStatus? myStatus = mine.TryGetValue(id, out var status) ? status : null;
+            EventAttendeeStatus? myStatus = mine.TryGetValue(id, out var me) ? me.Status : null;
 
             return new EventAttendance(
                 CountOf(id, EventAttendeeStatus.Going),
                 CountOf(id, EventAttendeeStatus.Interested),
                 CountOf(id, EventAttendeeStatus.Waitlisted),
                 myStatus,
-                myStatus == EventAttendeeStatus.Waitlisted ? ahead.GetValueOrDefault(id) + 1 : 0);
+                myStatus == EventAttendeeStatus.Waitlisted ? ahead.GetValueOrDefault(id) + 1 : 0,
+                me?.CheckedIn ?? false);
         });
     }
 }

@@ -76,6 +76,14 @@ window.LOCALES.tr = {
   "story.tagRemove": "Etiketi kaldır",
   "story.age.minutes": "{0}dk",
   "story.age.hours": "{0}s",
+
+  // Profile extras (profile.html): mutual friends and groups
+  "profile.mutualFriends": "{0} ortak arkadaş",
+  "profile.mutualFriendsOne": "1 ortak arkadaş",
+  "profile.mutualGroups": "{0} ortak grup",
+  "profile.mutualGroupsOne": "1 ortak grup",
+  "profile.groupMembers": "{0} üye",
+  "profile.groupMembersOne": "1 üye",
   "notif.commentReplied": "{0} yorumuna yanıt verdi.",
   "notif.mentionedInComment": "{0} seni bir yorumda etiketledi.",
   "notif.mentionedInPost": "{0} seni bir gönderide etiketledi.",
@@ -100,12 +108,16 @@ window.LOCALES.tr = {
   "notif.eventComment": "{0}, {1} etkinliğine yorum yaptı.",
   "notif.eventWaitlist": "Bekleme listesindeydin: {0} etkinliğinde yer açıldı, artık katılıyorsun.",
   "notif.eventReminder": "{0} yaklaşıyor{1}.",
+  "notif.eventShared": "{0}, {1} etkinliğini gönderide paylaştı.",
+  "event.sharedToast": "Etkinlik gönderide paylaşıldı.",
+  "event.sharedSee": "Gönderiyi gör",
   "notif.untitled": "bir",
   "notif.anEvent": "Bir etkinlik",
   "notif.listing": "ilan",
   "notif.deletedListing": "silinmiş bir",
   "notif.gameInviteReceived": "{0} sana oyun teklif etti.",
   "notif.gameInviteAccepted": "{0} oyun davetini kabul etti.",
+  "notif.priceDropped": "{0} ilanının fiyatı {1}'den {2}'ye düştü.",
 
   // Games: X-O and rock-paper-scissors (game.html, games.html)
   "game.invitedYou": "{0} seni {1} oynamaya davet etti.",

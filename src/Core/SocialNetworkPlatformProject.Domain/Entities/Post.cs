@@ -16,6 +16,10 @@ public class Post : BaseEntity
     public Guid? SharedPostId { get; set; }
     public Post? SharedPost { get; set; }
 
+    // An event shared to the feed ("Gönderide paylaş" on event.html): this post shows the event as a card. A soft
+    // reference (no foreign key): when the event is deleted the post stays and its card says the event is gone.
+    public Guid? SharedEventId { get; set; }
+
     public Poll? Poll { get; set; }
 
     // Set when this post was made on a group's wall instead of the author's own feed.

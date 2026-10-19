@@ -455,6 +455,11 @@ public class GroupService : IGroupService
             .Select(e => new { e.Id, e.CoverImageUrl })
             .ToListAsync();
 
+        var eventPhotoFiles = await _events.GetAll(e => e.GroupId == group.Id, asNoTracking: true)
+            .SelectMany(e => e.Photos)
+            .Select(p => p.Url)
+            .ToListAsync();
+
         var wallPosts = _posts.GetAll(p => p.GroupId == group.Id, asNoTracking: true);
         var wallPostIds = await wallPosts.Select(p => p.Id).ToListAsync();
         var wallFiles = await wallPosts.SelectMany(p => p.Media).Select(m => m.Url).ToListAsync();
@@ -464,7 +469,7 @@ public class GroupService : IGroupService
 
         _files.Delete(group.CoverImageUrl);
 
-        foreach (var file in wallFiles)
+        foreach (var file in wallFiles.Concat(eventPhotoFiles))
             _files.Delete(file);
 
         await _notifications.DeleteByPostsAsync(wallPostIds);

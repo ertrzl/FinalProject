@@ -2,7 +2,7 @@ namespace SocialNetworkPlatformProject.Middlewares;
 
 // Browser-side hardening that costs nothing: no content-type guessing, no framing by other sites, a referrer that
 // does not leak page addresses, and a content security policy that only lets the page load what it actually uses
-// (our own files plus the CDN and map-search hosts the pages reference).
+// (our own files plus the CDN, map-search and map-tile hosts the pages reference).
 // 'unsafe-inline' stays for scripts and styles because the pages use inline handlers (onclick="...") — dropping it
 // would first need those moved into the .js files.
 public class SecurityHeadersMiddleware
@@ -12,7 +12,7 @@ public class SecurityHeadersMiddleware
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
         "font-src 'self' data: https://cdn.jsdelivr.net; " +
-        "img-src 'self' data: blob: https://*.mzstatic.com; " +
+        "img-src 'self' data: blob: https://*.mzstatic.com https://tile.openstreetmap.org; " +
         "media-src 'self' blob: https://*.itunes.apple.com https://*.mzstatic.com; " +
         "connect-src 'self' ws: wss: https://nominatim.openstreetmap.org https://cdn.jsdelivr.net; " +
         "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";

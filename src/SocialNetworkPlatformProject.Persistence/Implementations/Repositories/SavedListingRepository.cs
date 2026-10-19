@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 using SocialNetworkPlatformProject.Domain.Entities;
 using SocialNetworkPlatformProject.Persistence.Contexts;
@@ -9,5 +10,13 @@ public class SavedListingRepository : Repository<SavedListing>, ISavedListingRep
 {
     public SavedListingRepository(ApplicationDbContext context) : base(context)
     {
+    }
+
+    public async Task<List<Guid>> GetSaverIdsAsync(Guid listingId)
+    {
+        return await _dbSet.AsNoTracking()
+            .Where(s => s.ListingId == listingId)
+            .Select(s => s.UserId)
+            .ToListAsync();
     }
 }

@@ -17,9 +17,11 @@ public class UploadAccessService : IUploadAccessService
     private readonly IMessageRepository _messages;
     private readonly IConversationParticipantRepository _participants;
     private readonly IEventRepository _eventRows;
+    private readonly IEventPhotoRepository _eventPhotos;
     private readonly IPostAccessService _posts;
     private readonly IFriendService _friends;
     private readonly IEventAccessService _events;
+    private readonly IStoryHighlightService _highlights;
     private readonly IMemoryCache _cache;
 
     public UploadAccessService(
@@ -28,9 +30,11 @@ public class UploadAccessService : IUploadAccessService
         IMessageRepository messages,
         IConversationParticipantRepository participants,
         IEventRepository eventRows,
+        IEventPhotoRepository eventPhotos,
         IPostAccessService posts,
         IFriendService friends,
         IEventAccessService events,
+        IStoryHighlightService highlights,
         IMemoryCache cache)
     {
         _postRows = postRows;
@@ -38,9 +42,11 @@ public class UploadAccessService : IUploadAccessService
         _messages = messages;
         _participants = participants;
         _eventRows = eventRows;
+        _eventPhotos = eventPhotos;
         _posts = posts;
         _friends = friends;
         _events = events;
+        _highlights = highlights;
         _cache = cache;
     }
 
@@ -83,6 +89,10 @@ public class UploadAccessService : IUploadAccessService
                 return story.UserId == viewerId || await _friends.AreFriendsAsync(viewerId, story.UserId);
             }
 
+            // A story kept in a highlight: whoever may see that person's highlights (they outlive the story, so the story rule does not apply).
+            case "highlights":
+                return await _highlights.CanViewFileAsync(viewerId, url);
+
             // A photo of a chat: the two people of the chat.
             case "messages":
             {
@@ -101,22 +111,32 @@ public class UploadAccessService : IUploadAccessService
                 var eventId = await _eventRows.GetAll(e => e.CoverImageUrl == url, asNoTracking: true)
                     .Select(e => (Guid?)e.Id)
                     .FirstOrDefaultAsync();
-                if (eventId == null)
-                    return false;
+                return eventId != null && await CanViewEventAsync(viewerId, eventId.Value);
+            }
 
-                try
-                {
-                    await _events.GetViewableAsync(viewerId, eventId.Value);
-                    return true;
-                }
-                catch (NotFoundException)
-                {
-                    return false;
-                }
+            // A picture of an event's photo album: the same people who may see the event itself.
+            case "eventphotos":
+            {
+                var eventId = await _eventPhotos.FindEventIdByUrlAsync(url);
+                return eventId != null && await CanViewEventAsync(viewerId, eventId.Value);
             }
 
             default:
                 return false;
+        }
+    }
+
+    // A group or private event is not for everybody (and neither is anything that belongs to it).
+    private async Task<bool> CanViewEventAsync(Guid viewerId, Guid eventId)
+    {
+        try
+        {
+            await _events.GetViewableAsync(viewerId, eventId);
+            return true;
+        }
+        catch (NotFoundException)
+        {
+            return false;
         }
     }
 }

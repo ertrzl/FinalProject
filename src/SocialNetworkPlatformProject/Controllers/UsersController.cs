@@ -1,5 +1,8 @@
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SocialNetworkPlatformProject.Application.DTOs.Highlights;
+using SocialNetworkPlatformProject.Application.DTOs.Posts;
 using SocialNetworkPlatformProject.Application.DTOs.Users;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Extensions;
@@ -12,13 +15,61 @@ namespace SocialNetworkPlatformProject.Controllers;
 [Authorize]
 public class UsersController : ControllerBase
 {
+    // The short address /u/<username>: letters, digits, dots and underscores, as the register rules allow.
+    private static readonly Regex UserNamePattern = new("^[A-Za-z0-9._]{1,50}$", RegexOptions.Compiled);
+
     private readonly IUserService _users;
     private readonly IBlockService _blocks;
+    private readonly IStoryHighlightService _highlights;
+    private readonly IMutualConnectionService _mutual;
+    private readonly IPostMentionService _taggedPosts;
+    private readonly IWebHostEnvironment _environment;
 
-    public UsersController(IUserService users, IBlockService blocks)
+    public UsersController(
+        IUserService users,
+        IBlockService blocks,
+        IStoryHighlightService highlights,
+        IMutualConnectionService mutual,
+        IPostMentionService taggedPosts,
+        IWebHostEnvironment environment)
     {
         _users = users;
         _blocks = blocks;
+        _highlights = highlights;
+        _mutual = mutual;
+        _taggedPosts = taggedPosts;
+        _environment = environment;
+    }
+
+    // The short, shareable address of a profile (the QR code of "Profili Paylaş" points here). It leads to the profile page, or to the
+    // site's 404 page when nobody has that user name. No sign-in needed to ask: a visitor who is not signed in is sent to the sign-in
+    // page by the profile page itself.
+    [AllowAnonymous]
+    [HttpGet("/u/{userName}")]
+    public async Task<IActionResult> ShortAddress(string userName)
+    {
+        var stored = UserNamePattern.IsMatch(userName) ? await _users.FindUserNameAsync(userName) : null;
+        if (stored == null)
+            return await NotFoundPageAsync();
+
+        return LocalRedirect("/profile?u=" + Uri.EscapeDataString(stored));
+    }
+
+    // The site's own 404 page with the 404 status. (Program.cs fills an empty 404 with it too, but only for addresses without a dot,
+    // and a user name may have dots: /u/ali.veli.)
+    private async Task<IActionResult> NotFoundPageAsync()
+    {
+        var page = _environment.WebRootFileProvider.GetFileInfo("404.html");
+        if (!page.Exists || page.PhysicalPath == null)
+            return NotFound();
+
+        Response.Headers.CacheControl = "no-cache";
+        return new ContentResult
+        {
+            StatusCode = StatusCodes.Status404NotFound,
+            ContentType = "text/html; charset=utf-8",
+            Content = await System.IO.File.ReadAllTextAsync(page.PhysicalPath)
+        };
     }
 
     [HttpGet("blocked")]
@@ -51,6 +102,33 @@ public class UsersController : ControllerBase
     public async Task<ActionResult<GetUserProfileDto>> GetProfile(Guid id)
     {
         return await _users.GetProfileAsync(id, User.GetUserId());
+    }
+
+    [HttpGet("by-username/{userName}")]
+    public async Task<ActionResult<GetUserProfileDto>> GetProfileByUserName(string userName)
+    {
+        return await _users.GetProfileByUserNameAsync(userName, User.GetUserId());
+    }
+
+    // The round covers under the profile header.
+    [HttpGet("{id:guid}/highlights")]
+    public async Task<ActionResult<List<GetHighlightDto>>> GetHighlights(Guid id)
+    {
+        return await _highlights.GetForUserAsync(User.GetUserId(), id);
+    }
+
+    // "12 ortak arkadaş" and the groups both belong to.
+    [HttpGet("{id:guid}/mutual")]
+    public async Task<ActionResult<GetMutualConnectionsDto>> GetMutual(Guid id)
+    {
+        return await _mutual.GetAsync(User.GetUserId(), id);
+    }
+
+    // The profile's "Etiketlendiklerim" tab: posts this person is tagged in.
+    [HttpGet("{id:guid}/tagged-posts")]
+    public async Task<ActionResult<PagedResult<GetPostDto>>> GetTaggedPosts(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        return await _taggedPosts.GetTaggedPostsAsync(id, User.GetUserId(), page, pageSize);
     }
 
     [HttpPut("me/profile")]

@@ -341,9 +341,15 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<bool>("IsPrivate")
                         .HasColumnType("bit");
 
+                    b.Property<double?>("Latitude")
+                        .HasColumnType("float");
+
                     b.Property<string>("Location")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<double?>("Longitude")
+                        .HasColumnType("float");
 
                     b.Property<string>("OnlineLink")
                         .HasMaxLength(500)
@@ -372,13 +378,26 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.HasIndex("GroupId");
 
-                    b.ToTable("Events");
+                    b.ToTable("Events", t =>
+                        {
+                            t.HasCheckConstraint("CK_Events_Latitude", "[Latitude] IS NULL OR ([Latitude] >= -90 AND [Latitude] <= 90)");
+
+                            t.HasCheckConstraint("CK_Events_Longitude", "[Longitude] IS NULL OR ([Longitude] >= -180 AND [Longitude] <= 180)");
+
+                            t.HasCheckConstraint("CK_Events_Pin_BothOrNone", "([Latitude] IS NULL AND [Longitude] IS NULL) OR ([Latitude] IS NOT NULL AND [Longitude] IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.EventAttendee", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("CheckedInAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CheckedInByUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -460,6 +479,37 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .IsUnique();
 
                     b.ToTable("EventInvites");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.EventPhoto", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Url");
+
+                    b.HasIndex("EventId", "CreatedAt");
+
+                    b.HasIndex("EventId", "UploadedByUserId");
+
+                    b.ToTable("EventPhotos");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.FriendRequest", b =>
@@ -761,6 +811,25 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.ToTable("Hashtags");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.ListingBoost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SellerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SellerId", "CreatedAt");
+
+                    b.ToTable("ListingBoosts");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.ListingImage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -873,6 +942,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<int>("Condition")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -880,12 +952,23 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<DateTime>("ExpiresAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("DATEADD(day, 30, GETUTCDATE())");
+
+                    b.Property<DateTime?>("FeaturedUntil")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Location")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("RenewedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -909,6 +992,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.HasIndex("SellerId");
 
                     b.HasIndex("Status", "CreatedAt");
+
+                    b.HasIndex("Category", "Status", "ExpiresAt");
 
                     b.ToTable("MarketplaceListings");
                 });
@@ -1023,11 +1108,17 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("OfferId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("PostId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("PreviousAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("RecipientId")
                         .HasColumnType("uniqueidentifier");
@@ -1148,6 +1239,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<int>("Privacy")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("SharedEventId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("SharedPostId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1250,6 +1344,31 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.HasIndex("PostId", "SortOrder");
 
                     b.ToTable("PostMedia");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.PostMention", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("MentionedUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MentionedUserId");
+
+                    b.HasIndex("PostId", "MentionedUserId")
+                        .IsUnique();
+
+                    b.ToTable("PostMentions");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.RefreshToken", b =>
@@ -1507,6 +1626,85 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.HasIndex("UserId", "ExpiresAt");
 
                     b.ToTable("Stories");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryHighlight", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CoverItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("StoryHighlights");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryHighlightItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("HighlightId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("MediaType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MediaUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MusicArtist")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("MusicArtworkUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MusicTitle")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("MusicUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("SourceStoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("StoryCreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MediaUrl");
+
+                    b.HasIndex("HighlightId", "SourceStoryId")
+                        .IsUnique();
+
+                    b.ToTable("StoryHighlightItems");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryLike", b =>
@@ -1863,6 +2061,17 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Event");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.EventPhoto", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Event", "Event")
+                        .WithMany("Photos")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.GroupInvite", b =>
                 {
                     b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Group", "Group")
@@ -2042,6 +2251,17 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Post");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.PostMention", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Post", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.SavedListing", b =>
                 {
                     b.HasOne("SocialNetworkPlatformProject.Domain.Entities.MarketplaceListing", "Listing")
@@ -2062,6 +2282,17 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .IsRequired();
 
                     b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryHighlightItem", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.StoryHighlight", "Highlight")
+                        .WithMany("Items")
+                        .HasForeignKey("HighlightId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Highlight");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryLike", b =>
@@ -2118,6 +2349,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("Invites");
+
+                    b.Navigation("Photos");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Group", b =>
@@ -2162,6 +2395,11 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Poll");
 
                     b.Navigation("SavedBy");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryHighlight", b =>
+                {
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

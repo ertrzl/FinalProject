@@ -37,5 +37,7 @@ public enum NotificationType
     GameInviteReceived = 31,        // a friend invited you to a game (GameId); the friend is the actor
     GameInviteAccepted = 32,        // to the inviter: the friend accepted the game invitation (GameId)
     StoryMentioned = 33,            // a friend tagged you in a story (StoryId)
-    StoryReshared = 34              // to the owner: the tagged friend added the story to their own (StoryId is the original story)
+    StoryReshared = 34,             // to the owner: the tagged friend added the story to their own (StoryId is the original story)
+    MarketplacePriceDropped = 45,   // to everyone who saved a listing: its seller lowered the price (ListingId, Amount = new price, PreviousAmount = old one, Subject = title)
+    EventShared = 40                // to the organizer: someone shared the event to their feed (EventId; PostId is THEIR post, so the link can open it)
 }

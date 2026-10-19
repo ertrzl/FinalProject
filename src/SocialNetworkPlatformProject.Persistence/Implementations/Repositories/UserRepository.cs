@@ -76,6 +76,14 @@ public class UserRepository : IUserRepository
         return await _context.Users.AnyAsync(u => u.Id == id);
     }
 
+    public async Task<string?> GetLocationAsync(Guid id)
+    {
+        return await _context.Users.AsNoTracking()
+            .Where(u => u.Id == id)
+            .Select(u => u.Location)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<string?> GetSecurityStampAsync(Guid id)
     {
         return await _context.Users.AsNoTracking()
@@ -256,6 +264,8 @@ public class UserRepository : IUserRepository
         files.AddRange(await _context.Set<Message>().Where(m => myConversationIds.Contains(m.ConversationId) && m.MediaUrl != null).Select(m => m.MediaUrl!).ToListAsync());
         files.AddRange(await _context.Set<Group>().Where(g => groupIdsToDelete.Contains(g.Id) && g.CoverImageUrl != null).Select(g => g.CoverImageUrl!).ToListAsync());
         files.AddRange(await myEvents.Where(e => e.CoverImageUrl != null).Select(e => e.CoverImageUrl!).ToListAsync());
+        // The albums of the events that go, and the pictures the person added to other people's events.
+        files.AddRange(await _context.Set<EventPhoto>().Where(p => myEventIds.Contains(p.EventId) || p.UploadedByUserId == userId).Select(p => p.Url).ToListAsync());
 
         await _context.Set<Notification>()
             .Where(n => n.RecipientId == userId || n.ActorId == userId
@@ -293,6 +303,12 @@ public class UserRepository : IUserRepository
         await _context.Set<StoryTag>().Where(t => t.TaggedUserId == userId).ExecuteDeleteAsync();
         await _context.Set<Story>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
 
+        // Profile extras: the highlights keep copies of their own (their files go too; the items follow their highlight by cascade), and
+        // the person's tags in other people's posts (the tags on their own posts went with the posts).
+        files.AddRange(await _context.Set<StoryHighlightItem>().Where(i => i.Highlight!.UserId == userId).Select(i => i.MediaUrl).ToListAsync());
+        await _context.Set<StoryHighlight>().Where(h => h.UserId == userId).ExecuteDeleteAsync();
+        await _context.Set<PostMention>().Where(m => m.MentionedUserId == userId).ExecuteDeleteAsync();
+
         await _context.Set<MessageReaction>().Where(r => r.UserId == userId).ExecuteDeleteAsync(); // emojis left on other people's messages (their own messages go with the conversations)
         await _context.Set<Conversation>().Where(c => myConversationIds.Contains(c.Id)).ExecuteDeleteAsync();
 
@@ -304,10 +320,14 @@ public class UserRepository : IUserRepository
         await _context.Set<SellerRating>().Where(r => r.BuyerId == userId || r.SellerId == userId).ExecuteDeleteAsync();
         await _context.Set<ListingOffer>().Where(o => o.BuyerId == userId).ExecuteDeleteAsync();
         await _context.Set<SavedListing>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
+        await _context.Set<ListingBoost>().Where(b => b.SellerId == userId).ExecuteDeleteAsync();
         await _context.Set<MarketplaceListing>().Where(l => l.SellerId == userId).ExecuteDeleteAsync();
 
         await _context.Set<EventComment>().Where(c => c.AuthorId == userId).ExecuteDeleteAsync();
         await _context.Set<EventInvite>().Where(i => i.InvitedUserId == userId || i.InvitedByUserId == userId).ExecuteDeleteAsync();
+        await _context.Set<EventPhoto>().Where(p => p.UploadedByUserId == userId).ExecuteDeleteAsync();
+        await _context.Set<EventAttendee>().Where(a => a.CheckedInByUserId == userId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(a => a.CheckedInByUserId, (Guid?)null)); // the ticks they gave stay, only the name of who gave them goes
         await _context.Set<EventAttendee>().Where(a => a.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<Event>().Where(e => e.GroupId == null && e.CreatedByUserId == userId).ExecuteDeleteAsync();
 

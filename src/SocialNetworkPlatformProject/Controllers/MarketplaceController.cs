@@ -70,6 +70,24 @@ public class MarketplaceController : ControllerBase
         return await _marketplace.SetStatusAsync(User.GetUserId(), id, dto);
     }
 
+    [HttpGet("{id:guid}/similar")]
+    public async Task<ActionResult<List<GetMarketplaceListingDto>>> GetSimilar(Guid id)
+    {
+        return await _marketplace.GetSimilarAsync(User.GetUserId(), id);
+    }
+
+    [HttpPost("{id:guid}/renew")]
+    public async Task<ActionResult<GetMarketplaceListingDto>> Renew(Guid id)
+    {
+        return await _marketplace.RenewAsync(User.GetUserId(), id);
+    }
+
+    [HttpPost("{id:guid}/feature")]
+    public async Task<ActionResult<GetMarketplaceListingDto>> Feature(Guid id)
+    {
+        return await _marketplace.FeatureAsync(User.GetUserId(), id);
+    }
+
     [HttpPost("{id:guid}/save")]
     public async Task<ActionResult<bool>> ToggleSave(Guid id)
     {

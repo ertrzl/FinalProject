@@ -21,6 +21,8 @@ public class PostProfile : Profile
             .ForMember(dest => dest.MyReaction, opt => opt.Ignore())
             .ForMember(dest => dest.ShareCount, opt => opt.Ignore())
             .ForMember(dest => dest.SharedPost, opt => opt.Ignore())
+            .ForMember(dest => dest.IsEventShare, opt => opt.MapFrom(src => src.SharedEventId != null))
+            .ForMember(dest => dest.SharedEvent, opt => opt.Ignore())
             .ForMember(dest => dest.Poll, opt => opt.Ignore())
             .ForMember(dest => dest.CommentCount, opt => opt.Ignore())
             .ForMember(dest => dest.Hashtags, opt => opt.MapFrom(src => src.Hashtags.Select(h => h.Hashtag!.Name)))

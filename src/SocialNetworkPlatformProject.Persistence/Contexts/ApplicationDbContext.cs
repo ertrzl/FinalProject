@@ -39,6 +39,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<StoryLike> StoryLikes => Set<StoryLike>();
     public DbSet<StoryTag> StoryTags => Set<StoryTag>();
 
+    // Profile extras: story highlights, and who is tagged with @ in a post
+    public DbSet<StoryHighlight> StoryHighlights => Set<StoryHighlight>();
+    public DbSet<StoryHighlightItem> StoryHighlightItems => Set<StoryHighlightItem>();
+    public DbSet<PostMention> PostMentions => Set<PostMention>();
+
     // Messages + chat dock
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<ConversationParticipant> ConversationParticipants => Set<ConversationParticipant>();
@@ -58,12 +63,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<SellerRating> SellerRatings => Set<SellerRating>();
     public DbSet<ListingOffer> ListingOffers => Set<ListingOffer>();
     public DbSet<ListingOfferRound> ListingOfferRounds => Set<ListingOfferRound>();
+    public DbSet<ListingBoost> ListingBoosts => Set<ListingBoost>();
 
     // Events
     public DbSet<Event> Events => Set<Event>();
     public DbSet<EventAttendee> EventAttendees => Set<EventAttendee>();
     public DbSet<EventInvite> EventInvites => Set<EventInvite>();
     public DbSet<EventComment> EventComments => Set<EventComment>();
+    public DbSet<EventPhoto> EventPhotos => Set<EventPhoto>();
 
     // Games
     public DbSet<Game> Games => Set<Game>();

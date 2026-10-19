@@ -21,6 +21,15 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.Property(e => e.Description).HasMaxLength(TextLimits.EventDescription);
         builder.Property(e => e.OnlineLink).HasMaxLength(500);
 
+        // The map pin: both or neither, within the range of a globe. The validator says it first; this keeps the rows right
+        // whatever way they got there.
+        builder.ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_Events_Latitude", "[Latitude] IS NULL OR ([Latitude] >= -90 AND [Latitude] <= 90)");
+            t.HasCheckConstraint("CK_Events_Longitude", "[Longitude] IS NULL OR ([Longitude] >= -180 AND [Longitude] <= 180)");
+            t.HasCheckConstraint("CK_Events_Pin_BothOrNone", "([Latitude] IS NULL AND [Longitude] IS NULL) OR ([Latitude] IS NOT NULL AND [Longitude] IS NOT NULL)");
+        });
+
         // Who may open an event's cover is decided from the event that holds its address (UploadsController).
         builder.Property(e => e.CoverImageUrl).HasMaxLength(500);
         builder.HasIndex(e => e.CoverImageUrl).HasFilter("[CoverImageUrl] IS NOT NULL");

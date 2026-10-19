@@ -43,6 +43,34 @@ function isSold(item) {
   return item.status === "Sold";
 }
 
+function isReserved(item) {
+  return item.status === "Reserved";
+}
+
+// Shown as a badge on the cards and the detail; the codes are the API's, the words are only for display.
+const CONDITION_LABELS = { New: "Sıfır", LikeNew: "Sıfır gibi", Good: "İyi", Fair: "Orta" };
+
+// The status / condition / featured / expired badges of a listing, in the order they matter. The server decides
+// every one of these flags (item.isExpired, item.isFeatured, item.status); this only draws them.
+function listingBadgesHtml(item) {
+  const badges = [];
+  if (item.isFeatured) badges.push(`<span class="badge text-bg-primary"><i class="bi bi-stars me-1"></i>Öne Çıkan</span>`);
+  if (isSold(item)) badges.push(`<span class="badge text-bg-secondary">Satıldı</span>`);
+  else if (isReserved(item)) badges.push(`<span class="badge text-bg-warning">Rezerve</span>`);
+  if (item.isExpired) badges.push(`<span class="badge text-bg-danger">Süresi doldu</span>`);
+  if (CONDITION_LABELS[item.condition]) badges.push(`<span class="badge text-bg-light border">${CONDITION_LABELS[item.condition]}</span>`);
+  return badges.join("");
+}
+
+// A date from the server shown in the viewer's own time zone (display only).
+function limitDate(isoDate) {
+  return parseServerDate(isoDate).toLocaleString(localeTag(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function limitDay(isoDate) {
+  return parseServerDate(isoDate).toLocaleDateString(localeTag(), { day: "numeric", month: "long", year: "numeric" });
+}
+
 function isOwnListing(item) {
   const session = getSession();
   return !!session && item.sellerId === session.userId;
@@ -93,6 +121,8 @@ function resetFilterInputs() {
   document.getElementById("filterMinPrice").value = "";
   document.getElementById("filterMaxPrice").value = "";
   document.getElementById("filterLocation").value = "";
+  document.getElementById("filterCondition").value = "";
+  document.getElementById("filterIncludeSold").checked = false;
   document.getElementById("filterSort").value = "newest";
   activeCategory = ALL_CATEGORIES;
   renderCategories();
@@ -115,6 +145,9 @@ function buildBrowseParams(page) {
   if (minPrice !== "") params.set("minPrice", minPrice);
   if (maxPrice !== "") params.set("maxPrice", maxPrice);
   if (location) params.set("location", location);
+  const condition = document.getElementById("filterCondition").value;
+  if (condition) params.set("condition", condition);
+  if (document.getElementById("filterIncludeSold").checked) params.set("includeSold", "true");
   params.set("sort", document.getElementById("filterSort").value);
   return params;
 }
@@ -128,12 +161,24 @@ function heartButtonHtml(item) {
           </button>`;
 }
 
+// The "Yenile" line of the seller's own card: the button when the server says it can be used, otherwise when it opens.
+function cardRenewHtml(item) {
+  if (!isOwnListing(item)) return "";
+  if (item.canRenew) {
+    return `<div class="listing-owner-line px-2 pb-2"><button type="button" class="btn btn-warning btn-sm rounded-pill w-100" onclick="renewListing('${item.id}', event)"><i class="bi bi-arrow-repeat me-1"></i>Yenile</button></div>`;
+  }
+  if (item.nextRenewAt) {
+    return `<div class="listing-owner-line px-2 pb-2 small text-muted">Tekrar yenileyebileceğin zaman: ${limitDate(item.nextRenewAt)}</div>`;
+  }
+  return "";
+}
+
 function listingCardHtml(item) {
   const sold = isSold(item);
   return `
     <div class="col-6 col-md-4">
-      <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 position-relative ${sold ? "opacity-75" : ""}" role="button" onclick="openListing('${item.id}')">
-        ${sold ? `<span class="badge text-bg-secondary position-absolute top-0 start-0 m-2">Satıldı</span>` : ""}
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 position-relative ${sold || item.isExpired ? "opacity-75" : ""} ${item.isFeatured ? "listing-featured" : ""}" role="button" onclick="openListing('${item.id}')">
+        <div class="listing-badges">${listingBadgesHtml(item)}</div>
         ${heartButtonHtml(item)}
         <img src="${coverOf(item)}" class="w-100" style="height:140px;object-fit:cover;" alt="">
         <div class="p-2">
@@ -142,6 +187,7 @@ function listingCardHtml(item) {
           <div class="text-muted small text-truncate"><i class="bi bi-geo-alt"></i> ${escapeHtml(item.location || "Belirtilmedi")}</div>
           ${item.sellerRatingCount > 0 ? `<div class="small"><i class="bi bi-star-fill rating-star"></i> <b>${item.sellerRatingAverage.toFixed(1)}</b> <span class="text-muted">(${item.sellerRatingCount})</span></div>` : ""}
         </div>
+        ${cardRenewHtml(item)}
       </div>
     </div>`;
 }
@@ -276,7 +322,44 @@ function renderModalHeart(item) {
   btn.querySelector("i").className = "bi " + (item.isSavedByCurrentUser ? "bi-heart-fill text-danger" : "bi-heart");
 }
 
-function openListing(id) {
+// The parts of the detail that depend on what the viewer may do right now (message, offer, owner buttons). They are drawn
+// from the cached card first and again when the fresh copy arrives, because the server alone knows e.g. whether the
+// seller can be messaged, and what the seller's renew / boost limits are.
+function renderModalDynamic(item) {
+  const mine = isOwnListing(item);
+
+  document.getElementById("listingModalBadges").innerHTML = listingBadgesHtml(item);
+  renderModalHeart(item);
+
+  // The server says whether this person can be written to (blocks, private accounts); a sold or expired listing has no reason to ask.
+  const messageLink = document.getElementById("listingModalMessageLink");
+  messageLink.classList.toggle("d-none", mine || isSold(item) || item.isExpired || !item.canMessageSeller);
+  messageLink.href = `messages.html?userId=${item.sellerId}`;
+
+  document.getElementById("listingModalReportBtn").classList.toggle("d-none", mine);
+
+  const ownerActions = document.getElementById("listingOwnerActions");
+  ownerActions.classList.toggle("d-none", !mine);
+  ownerActions.classList.toggle("d-flex", mine);
+  if (mine) renderOwnerActions(item);
+
+  renderModalOfferButtons(item, mine);
+}
+
+// Asks for the listing again and updates the cached copy in place (same object, so the grid cards see it too).
+async function refreshOpenListing(id) {
+  try {
+    const fresh = await apiFetch(`/api/marketplace/${id}`);
+    const item = listingIndex.get(id);
+    if (!item) return;
+    Object.assign(item, fresh);
+    if (selectedListing && selectedListing.id === id) renderModalDynamic(item);
+  } catch (err) {
+    // The cached copy stays on the screen; the buttons that need the server's answer simply stay hidden.
+  }
+}
+
+function openListing(id, { fresh = false } = {}) {
   const item = listingIndex.get(id);
   if (!item) return;
   selectedListing = item;
@@ -284,8 +367,6 @@ function openListing(id) {
   document.getElementById("listingModalTitle").textContent = item.title;
   renderCarousel(item);
   document.getElementById("listingModalPrice").textContent = priceLabel(item.price);
-  document.getElementById("listingModalSoldBadge").classList.toggle("d-none", !isSold(item));
-  renderModalHeart(item);
   document.getElementById("listingModalMeta").innerHTML = `<i class="bi bi-geo-alt"></i> ${escapeHtml(item.location || "Belirtilmedi")} · ${escapeHtml(item.category)}`;
   document.getElementById("listingModalDescription").textContent = item.description || "";
   document.getElementById("listingModalSellerAvatar").src = item.sellerAvatarUrl || DEFAULT_AVATAR;
@@ -295,23 +376,47 @@ function openListing(id) {
     ? `${starsHtml(item.sellerRatingAverage)} <b>${item.sellerRatingAverage.toFixed(1)}</b> <span class="text-muted">(${item.sellerRatingCount} değerlendirme)</span>`
     : `<span class="text-muted">Henüz değerlendirilmedi</span>`;
 
-  const mine = isOwnListing(item);
-  const messageLink = document.getElementById("listingModalMessageLink");
-  messageLink.classList.toggle("d-none", mine || isSold(item));
-  messageLink.href = `messages.html?userId=${item.sellerId}`;
-
-  document.getElementById("listingModalReportBtn").classList.toggle("d-none", mine);
-
-  const ownerActions = document.getElementById("listingOwnerActions");
-  ownerActions.classList.toggle("d-none", !mine);
-  ownerActions.classList.toggle("d-flex", mine);
-  document.getElementById("listingModalStatusBtn").innerHTML = isSold(item)
-    ? `<i class="bi bi-arrow-counterclockwise me-1"></i>Tekrar Satışa Çıkar`
-    : `<i class="bi bi-check2-circle me-1"></i>Satıldı Olarak İşaretle`;
-
-  renderModalOfferButtons(item, mine);
+  renderModalDynamic(item);
   loadSellerOtherListings(item);
+  loadSimilarListings(item);
   bootstrap.Modal.getOrCreateInstance(document.getElementById("listingModal")).show();
+
+  // The cached copy may be old (the status, the limits, whether the seller can be messaged): ask once more.
+  if (!fresh) refreshOpenListing(id);
+}
+
+// The seller's controls: which status is the current one, how long the listing stays up, and "Yenile" / "Öne Çıkar"
+// with the reason (and the time) when the server says they are closed right now.
+function renderOwnerActions(item) {
+  for (const [status, id, active] of [["Active", "statusBtnActive", "btn-success"], ["Reserved", "statusBtnReserved", "btn-warning"], ["Sold", "statusBtnSold", "btn-secondary"]]) {
+    const btn = document.getElementById(id);
+    const current = item.status === status;
+    btn.classList.toggle(active, current);
+    btn.classList.toggle(active.replace("btn-", "btn-outline-"), !current);
+    btn.setAttribute("aria-pressed", String(current));
+  }
+
+  document.getElementById("listingOwnerExpiry").textContent = isSold(item)
+    ? ""
+    : item.isExpired
+      ? `Süresi doldu: ${limitDay(item.expiresAt)}`
+      : `Yayında kalma süresi: ${limitDay(item.expiresAt)}`;
+
+  const renewBtn = document.getElementById("listingModalRenewBtn");
+  const renewNote = document.getElementById("listingModalRenewNote");
+  renewBtn.classList.toggle("d-none", !item.canRenew);
+  renewNote.classList.toggle("d-none", !item.nextRenewAt);
+  renewNote.textContent = item.nextRenewAt ? `Tekrar yenileyebileceğin zaman: ${limitDate(item.nextRenewAt)}` : "";
+
+  const featureBtn = document.getElementById("listingModalFeatureBtn");
+  const featureNote = document.getElementById("listingModalFeatureNote");
+  const featureShown = item.canFeature || !!item.nextFeatureAt;
+  featureBtn.classList.toggle("d-none", !featureShown);
+  featureBtn.disabled = !item.canFeature;
+  featureNote.classList.toggle("d-none", !item.nextFeatureAt && !item.isFeatured);
+  featureNote.textContent = item.isFeatured
+    ? `Öne çıkarıldı: ${limitDate(item.featuredUntil)} tarihine kadar listenin başında.`
+    : item.nextFeatureAt ? `Bir sonraki öne çıkarma hakkın: ${limitDate(item.nextFeatureAt)}` : "";
 }
 
 // The report box is not a Bootstrap modal, so it opens right over the listing.
@@ -323,11 +428,23 @@ function renderModalOfferButtons(item, mine) {
   const offerBtn = document.getElementById("listingModalOfferBtn");
   const ownerBtn = document.getElementById("listingModalOwnerOffersBtn");
 
-  const canBuy = !mine && !isSold(item);
-  offerBtn.classList.toggle("d-none", !canBuy);
+  // A new offer needs a listing that is on sale (Active, inside its 30 days). A reserved one takes no new offers but keeps
+  // the negotiation already running, so that buyer still sees "Teklifini Gör". The server enforces all of this.
+  const canOffer = !mine && item.status === "Active" && !item.isExpired;
+  const canViewOffer = !mine && !isSold(item) && !!item.myOpenOfferId;
+  offerBtn.classList.toggle("d-none", !(canOffer || canViewOffer));
   offerBtn.innerHTML = item.myOpenOfferId
     ? `<i class="bi bi-tag me-1"></i>Teklifini Gör`
     : `<i class="bi bi-tag me-1"></i>Teklif Ver`;
+
+  const notice = document.getElementById("listingModalNotice");
+  const noticeText = mine ? ""
+    : isSold(item) ? "Bu ilan satıldı."
+    : item.isExpired ? "Bu ilanın süresi doldu."
+    : isReserved(item) && !item.myOpenOfferId ? "Bu ilan rezerve edildi, şu an yeni teklif alınmıyor."
+    : "";
+  notice.textContent = noticeText;
+  notice.classList.toggle("d-none", !noticeText);
 
   const pending = mine && item.openOfferCount > 0;
   ownerBtn.classList.toggle("d-none", !pending);
@@ -340,20 +457,9 @@ function onOfferButton() {
   else openOfferModal({ kind: "new", id: selectedListing.id, title: selectedListing.title, asking: selectedListing.price });
 }
 
-async function loadSellerOtherListings(item) {
-  const section = document.getElementById("sellerOtherSection");
-  const list = document.getElementById("sellerOtherList");
-  section.classList.add("d-none");
-  list.innerHTML = "";
-
-  try {
-    const result = await apiFetch(`/api/marketplace?sellerId=${item.sellerId}&pageSize=7`);
-    if (!selectedListing || selectedListing.id !== item.id) return; // another listing was opened meanwhile
-    const others = result.items.filter(l => l.id !== item.id).slice(0, 6);
-    if (!others.length) return;
-
-    remember(others);
-    list.innerHTML = others.map(o => `
+// The small cards under the detail ("Bu satıcının diğer ilanları", "Benzer ilanlar"): the same markup for both.
+function miniCardHtml(o) {
+  return `
       <div class="col-4 col-md-2">
         <div class="card border-0 shadow-sm rounded-3 overflow-hidden h-100" role="button" onclick="openListing('${o.id}')">
           <img src="${coverOf(o)}" class="w-100" style="height:70px;object-fit:cover;" alt="">
@@ -362,11 +468,39 @@ async function loadSellerOtherListings(item) {
             <div class="text-truncate" style="font-size:.75rem;">${escapeHtml(o.title)}</div>
           </div>
         </div>
-      </div>`).join("");
+      </div>`;
+}
+
+// Fills one of the two extra sections of the detail with the listings `fetchItems()` returns; hidden when there are none.
+async function loadExtraSection(item, sectionId, listId, fetchItems) {
+  const section = document.getElementById(sectionId);
+  const list = document.getElementById(listId);
+  section.classList.add("d-none");
+  list.innerHTML = "";
+
+  try {
+    const items = await fetchItems();
+    if (!selectedListing || selectedListing.id !== item.id) return; // another listing was opened meanwhile
+    if (!items.length) return;
+
+    remember(items);
+    list.innerHTML = items.map(miniCardHtml).join("");
     section.classList.remove("d-none");
   } catch (err) {
     // The extra section is a nicety; the listing itself is already shown.
   }
+}
+
+function loadSellerOtherListings(item) {
+  return loadExtraSection(item, "sellerOtherSection", "sellerOtherList", async () => {
+    const result = await apiFetch(`/api/marketplace?sellerId=${item.sellerId}&pageSize=7`);
+    return result.items.filter(l => l.id !== item.id).slice(0, 6);
+  });
+}
+
+// Same category, closest price: the server picks them (and leaves out the seller's own, mine and blocked people's).
+function loadSimilarListings(item) {
+  return loadExtraSection(item, "similarSection", "similarList", () => apiFetch(`/api/marketplace/${item.id}/similar`));
 }
 
 function closeListingModal() {
@@ -386,17 +520,59 @@ async function deleteListing() {
   }
 }
 
-async function toggleListingSold() {
-  if (!selectedListing) return;
-  const status = isSold(selectedListing) ? "Active" : "Sold";
+const STATUS_TOAST = {
+  Active: "İlan tekrar satışa çıktı.",
+  Reserved: "İlan rezerve edildi.",
+  Sold: "İlan satıldı olarak işaretlendi."
+};
+
+async function setListingStatus(status) {
+  if (!selectedListing || selectedListing.status === status) return;
   try {
     await apiFetch(`/api/marketplace/${selectedListing.id}/status`, { method: "PUT", body: { status } });
     closeListingModal();
-    toast(status === "Sold" ? "İlan satıldı olarak işaretlendi." : "İlan tekrar satışa çıktı.");
+    toast(STATUS_TOAST[status]);
     await renderListings();
   } catch (err) {
     toast(err.message || "Durum değiştirilemedi.");
   }
+}
+
+// "Yenile": another 30 days. Used from the seller's card (the id and the click are passed) and from the detail.
+async function renewListing(id, event) {
+  if (event) event.stopPropagation();
+  const listingId = id || (selectedListing && selectedListing.id);
+  if (!listingId) return;
+
+  try {
+    const renewed = await apiFetch(`/api/marketplace/${listingId}/renew`, { method: "POST" });
+    toast("İlanın yenilendi, 30 gün daha yayında.");
+    await afterOwnerAction(renewed);
+  } catch (err) {
+    toast(err.message || "İlan yenilenemedi.");
+  }
+}
+
+// "Öne Çıkar": first in the grid for a day. A weekly right, so it asks first.
+async function featureListing() {
+  if (!selectedListing) return;
+  if (!(await confirmDialog("Bu ilan 24 saat boyunca listenin en başında görünecek. Bu hakkı haftada bir kez kullanabilirsin. Devam edilsin mi?", { confirmText: "Öne Çıkar", danger: false }))) return;
+
+  try {
+    const featured = await apiFetch(`/api/marketplace/${selectedListing.id}/feature`, { method: "POST" });
+    toast("İlanın 24 saat boyunca öne çıkarıldı.");
+    await afterOwnerAction(featured);
+  } catch (err) {
+    toast(err.message || "İlan öne çıkarılamadı.");
+  }
+}
+
+// The server returned the listing as it is now: keep the cached copy in step, then redraw the list and the open detail.
+async function afterOwnerAction(updated) {
+  const cached = listingIndex.get(updated.id);
+  if (cached) Object.assign(cached, updated);
+  if (selectedListing && selectedListing.id === updated.id) renderModalDynamic(selectedListing);
+  await renderListings();
 }
 
 // ---- Sell / edit form (one modal for both) ----
@@ -455,6 +631,7 @@ function resetSellForm() {
   document.getElementById("sellTitle").value = "";
   document.getElementById("sellPrice").value = "";
   document.getElementById("sellCategory").selectedIndex = 0;
+  document.getElementById("sellCondition").value = "";
   document.getElementById("sellLocation").value = "";
   document.getElementById("sellDescription").value = "";
   document.getElementById("sellImageInput").value = "";
@@ -474,6 +651,7 @@ function openEditListing() {
   document.getElementById("sellTitle").value = item.title;
   document.getElementById("sellPrice").value = item.price;
   document.getElementById("sellCategory").value = item.category;
+  document.getElementById("sellCondition").value = item.condition;
   document.getElementById("sellLocation").value = item.location || "";
   document.getElementById("sellDescription").value = item.description || "";
   renderSellPhotos();
@@ -496,6 +674,15 @@ async function submitListing() {
 
   const errorBox = document.getElementById("sellError");
   errorBox.classList.add("d-none");
+
+  // The server checks it too; this only saves a round trip for an empty choice.
+  const conditionSelect = document.getElementById("sellCondition");
+  if (!conditionSelect.value) {
+    errorBox.textContent = "Ürünün durumunu seç: Sıfır, Sıfır gibi, İyi ya da Orta.";
+    errorBox.classList.remove("d-none");
+    return;
+  }
+
   const submitBtn = document.getElementById("sellSubmitBtn");
   submitBtn.disabled = true;
 
@@ -506,6 +693,7 @@ async function submitListing() {
     formData.append("title", title);
     formData.append("price", document.getElementById("sellPrice").value || "0");
     formData.append("category", document.getElementById("sellCategory").value);
+    formData.append("condition", conditionSelect.value);
     formData.append("location", document.getElementById("sellLocation").value.trim());
     formData.append("description", document.getElementById("sellDescription").value.trim());
     pendingPhotos.forEach(p => formData.append("images", p.file));
@@ -672,7 +860,7 @@ function goToOffers(side) {
 async function openListingById(id) {
   try {
     remember([await apiFetch(`/api/marketplace/${id}`)]); // always fresh: status / offer hints may have moved on
-    openListing(id);
+    openListing(id, { fresh: true });
   } catch (err) {
     toast("İlan bulunamadı ya da kaldırılmış olabilir.");
   }

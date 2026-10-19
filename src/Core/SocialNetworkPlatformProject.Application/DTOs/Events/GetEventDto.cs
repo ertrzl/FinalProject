@@ -9,6 +9,10 @@ public class GetEventDto
     public string? Location { get; set; }
     public string? CoverImageUrl { get; set; }
 
+    // The pin on the map; both null when the organizer did not set one (and always null for an online event).
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+
     // Both UTC (serialized with a "Z"); the browser shows them in the viewer's time zone.
     public DateTime StartsAt { get; set; }
     public DateTime EndsAt { get; set; }
@@ -41,4 +45,8 @@ public class GetEventDto
     public int InterestedCount { get; set; }
     public string CurrentUserStatus { get; set; } = "None"; // "None" / "Going" / "Interested"
     public string? InvitedByName { get; set; } // single-event responses: who invited the current user (pending invite)
+
+    // The organizer ticked the viewer on the attendance list ("Yoklama"): past events then say "Katıldın".
+    public bool MyCheckedIn { get; set; }
+    public int PhotoCount { get; set; } // single-event responses only: the pictures in the album
 }

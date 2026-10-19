@@ -1293,6 +1293,31 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.ToTable("PostMedia");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.PostMention", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("MentionedUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MentionedUserId");
+
+                    b.HasIndex("PostId", "MentionedUserId")
+                        .IsUnique();
+
+                    b.ToTable("PostMentions");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1548,6 +1573,85 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.HasIndex("UserId", "ExpiresAt");
 
                     b.ToTable("Stories");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryHighlight", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CoverItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("StoryHighlights");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryHighlightItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("HighlightId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("MediaType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MediaUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MusicArtist")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("MusicArtworkUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MusicTitle")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("MusicUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("SourceStoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("StoryCreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MediaUrl");
+
+                    b.HasIndex("HighlightId", "SourceStoryId")
+                        .IsUnique();
+
+                    b.ToTable("StoryHighlightItems");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryLike", b =>
@@ -2083,6 +2187,17 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Post");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.PostMention", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Post", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.SavedListing", b =>
                 {
                     b.HasOne("SocialNetworkPlatformProject.Domain.Entities.MarketplaceListing", "Listing")
@@ -2103,6 +2218,17 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .IsRequired();
 
                     b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryHighlightItem", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.StoryHighlight", "Highlight")
+                        .WithMany("Items")
+                        .HasForeignKey("HighlightId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Highlight");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryLike", b =>
@@ -2203,6 +2329,11 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Poll");
 
                     b.Navigation("SavedBy");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryHighlight", b =>
+                {
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

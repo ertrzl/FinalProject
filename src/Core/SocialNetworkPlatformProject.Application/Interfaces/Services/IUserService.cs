@@ -6,6 +6,12 @@ public interface IUserService
 {
     Task<GetUserProfileDto> GetProfileAsync(Guid userId, Guid currentUserId);
 
+    // The profile of the person with this user name (any letter case): the short address /u/<username> opens it. Unknown name = not found.
+    Task<GetUserProfileDto> GetProfileByUserNameAsync(string userName, Guid currentUserId);
+
+    // The user name as it is stored (right letter case) when somebody has it; null otherwise. Needs no sign-in: it only tells whether a short address leads somewhere.
+    Task<string?> FindUserNameAsync(string userName);
+
     Task<GetUserProfileDto> UpdateProfileAsync(Guid currentUserId, PutUserProfileDto dto);
 
     Task UpdatePrivacyAsync(Guid currentUserId, PutPrivacySettingsDto dto);

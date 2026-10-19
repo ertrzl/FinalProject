@@ -142,6 +142,7 @@ function showStory(groupIndex, storyIndex) {
   const isMine = story.userId === getSession().userId;
   document.getElementById("storyViewersBtn").classList.toggle("d-none", !isMine);
   document.getElementById("storyDeleteBtn").classList.toggle("d-none", !isMine);
+  document.getElementById("storyHighlightBtn").classList.toggle("d-none", !isMine);
   document.getElementById("storyViewCount").textContent = story.viewCount;
   document.getElementById("storyLikeCount").textContent = story.likeCount;
   document.getElementById("storyReplyBar").classList.toggle("d-none", isMine);
@@ -504,6 +505,87 @@ async function deleteCurrentStory() {
 
   closeStory();
   toast("Hikâyen silindi.");
+}
+
+// ---- Your own story: keep it on your profile (highlights) ----
+// The button next to the bin opens a small window: the highlights you already have (tap one to add this story) and a name for a new
+// one. The server copies the story's file, so the highlight stays after the 24 hours are over; the highlights are shown on the profile
+// page (js/highlights.js). The button is added here, next to the bin, so home.html needs no change.
+(function addHighlightButton() {
+  document.getElementById("storyDeleteBtn")?.insertAdjacentHTML("beforebegin",
+    `<button type="button" id="storyHighlightBtn" class="btn btn-sm btn-dark rounded-pill d-none" title="Öne çıkanlara ekle" aria-label="Öne çıkanlara ekle" onclick="openAddToHighlight()">` +
+    `<i class="bi bi-stars"></i><span class="d-none d-md-inline ms-1">Öne çıkanlara ekle</span></button>`);
+})();
+
+async function openAddToHighlight() {
+  const story = currentStoryItem();
+  if (story.userId !== getSession().userId) return;
+
+  pauseStory();
+  let highlights;
+  try {
+    highlights = await apiFetch(`/api/highlights/mine?storyId=${story.id}`);
+  } catch (err) {
+    toast(err.message || "Öne çıkanlar yüklenemedi.");
+    resumeStory();
+    return;
+  }
+
+  const row = h => `
+    <button type="button" class="story-tag-row ${h.containsStory ? "picked" : ""}" data-highlight="${h.id}" ${h.containsStory ? 'aria-disabled="true"' : ""}>
+      ${h.coverUrl && h.coverMediaType !== "Video"
+        ? `<img src="${escapeHtml(h.coverUrl)}" class="avatar-xs" alt="">`
+        : `<span class="avatar-xs d-inline-flex align-items-center justify-content-center bg-body-secondary"><i class="bi bi-collection-play"></i></span>`}
+      <span class="flex-grow-1 text-truncate" data-no-i18n>${escapeHtml(h.title)}</span>
+      <i class="bi ${h.containsStory ? "bi-check-circle-fill text-success" : "bi-plus-circle text-muted"}"></i>
+    </button>`;
+
+  openSiteDialog(`
+    <div class="fw-bold mb-3">Öne çıkanlara ekle</div>
+    ${highlights.length ? `<div class="mb-3" style="max-height:240px;overflow-y:auto">${highlights.map(row).join("")}</div>` : ""}
+    <label class="form-label small fw-semibold" for="newHighlightName">Yeni öne çıkan</label>
+    <div class="input-group mb-4">
+      <input type="text" id="newHighlightName" class="form-control" maxlength="30" autocomplete="off" placeholder="Öne çıkan adı">
+      <button type="button" class="btn btn-primary" data-answer="create">Oluştur</button>
+    </div>
+    <div class="d-flex justify-content-end"><button type="button" class="btn btn-light rounded-pill px-4" data-answer="close">Kapat</button></div>`,
+    (box, close) => {
+      const finish = () => { close(); resumeStory(); };
+      let busy = false;
+
+      // The arrow keys belong to this window while it is open (they would go to the next story behind it otherwise).
+      box.addEventListener("keydown", event => { if (event.key.startsWith("Arrow")) event.stopPropagation(); });
+
+      // One request at a time; the window closes when the story is in.
+      const send = async (request, doneText) => {
+        if (busy) return;
+        busy = true;
+        try {
+          await request();
+          toast(doneText);
+          finish();
+        } catch (err) {
+          busy = false;
+          toast(err.message || "Öne çıkanlara eklenemedi.");
+        }
+      };
+
+      box.querySelectorAll("[data-highlight]").forEach(button => button.addEventListener("click", () => {
+        if (button.getAttribute("aria-disabled") === "true") return;
+        send(() => apiFetch(`/api/highlights/${button.dataset.highlight}/items`, { method: "POST", body: { storyId: story.id } }),
+          "Öne çıkanlara eklendi.");
+      }));
+
+      const create = () => send(
+        () => apiFetch("/api/highlights", { method: "POST", body: { title: box.querySelector("#newHighlightName").value.trim(), storyId: story.id } }),
+        "Yeni öne çıkan oluşturuldu.");
+      box.querySelector('[data-answer="create"]').addEventListener("click", create);
+      box.querySelector("#newHighlightName").addEventListener("keydown", event => {
+        if (event.key === "Enter") { event.preventDefault(); create(); }
+      });
+      box.querySelector('[data-answer="close"]').addEventListener("click", finish);
+      box.addEventListener("dismiss", finish);
+    });
 }
 
 // ---- The song of a story (viewer) ----

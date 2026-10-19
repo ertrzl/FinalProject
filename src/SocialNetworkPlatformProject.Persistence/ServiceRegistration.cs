@@ -144,6 +144,14 @@ public static class ServiceRegistration
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IReportService, ReportService>();
 
+        // Profile extras: story highlights, mutual friends and groups, "@" tags of posts
+        services.AddScoped<IStoryHighlightRepository, StoryHighlightRepository>();
+        services.AddScoped<IStoryHighlightItemRepository, StoryHighlightItemRepository>();
+        services.AddScoped<IPostMentionRepository, PostMentionRepository>();
+        services.AddScoped<IStoryHighlightService, StoryHighlightService>();
+        services.AddScoped<IMutualConnectionService, MutualConnectionService>();
+        services.AddScoped<IPostMentionService, PostMentionService>();
+
         // Who may open an uploaded file
         services.AddScoped<IUploadAccessService, UploadAccessService>();
 

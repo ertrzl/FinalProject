@@ -188,6 +188,15 @@
   "story.likeOwn": "You can't like your own story.",
   "story.viewersOwner":"Only the owner of a story can see who watched it.",
 
+  "highlight.notFound": "Highlight not found.",
+  "highlight.ownOnly": "You can only change your own highlights.",
+  "highlight.already": "This story is already in that highlight.",
+  "highlight.tooMany": "You can have at most {0} highlights.",
+  "highlight.itemsFull": "A highlight holds at most {0} stories.",
+  "highlight.coverInvalid": "The cover must be a story of this highlight.",
+  "highlight.itemNotFound": "That story is not in this highlight.",
+  "val.highlight.title": "Give the highlight a name (up to {0} characters).",
+
   "game.self": "You can't play against yourself.",
   "game.friendsOnly": "You can only play with your friends.",
   "game.cannot": "You can't play a game with this person.",

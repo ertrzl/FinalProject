@@ -20,6 +20,7 @@ public class UploadAccessService : IUploadAccessService
     private readonly IPostAccessService _posts;
     private readonly IFriendService _friends;
     private readonly IEventAccessService _events;
+    private readonly IStoryHighlightService _highlights;
     private readonly IMemoryCache _cache;
 
     public UploadAccessService(
@@ -31,6 +32,7 @@ public class UploadAccessService : IUploadAccessService
         IPostAccessService posts,
         IFriendService friends,
         IEventAccessService events,
+        IStoryHighlightService highlights,
         IMemoryCache cache)
     {
         _postRows = postRows;
@@ -41,6 +43,7 @@ public class UploadAccessService : IUploadAccessService
         _posts = posts;
         _friends = friends;
         _events = events;
+        _highlights = highlights;
         _cache = cache;
     }
 
@@ -82,6 +85,10 @@ public class UploadAccessService : IUploadAccessService
 
                 return story.UserId == viewerId || await _friends.AreFriendsAsync(viewerId, story.UserId);
             }
+
+            // A story kept in a highlight: whoever may see that person's highlights (they outlive the story, so the story rule does not apply).
+            case "highlights":
+                return await _highlights.CanViewFileAsync(viewerId, url);
 
             // A photo of a chat: the two people of the chat.
             case "messages":

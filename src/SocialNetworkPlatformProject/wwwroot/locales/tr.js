@@ -76,6 +76,14 @@ window.LOCALES.tr = {
   "story.tagRemove": "Etiketi kaldır",
   "story.age.minutes": "{0}dk",
   "story.age.hours": "{0}s",
+
+  // Profile extras (profile.html): mutual friends and groups
+  "profile.mutualFriends": "{0} ortak arkadaş",
+  "profile.mutualFriendsOne": "1 ortak arkadaş",
+  "profile.mutualGroups": "{0} ortak grup",
+  "profile.mutualGroupsOne": "1 ortak grup",
+  "profile.groupMembers": "{0} üye",
+  "profile.groupMembersOne": "1 üye",
   "notif.commentReplied": "{0} yorumuna yanıt verdi.",
   "notif.mentionedInComment": "{0} seni bir yorumda etiketledi.",
   "notif.mentionedInPost": "{0} seni bir gönderide etiketledi.",

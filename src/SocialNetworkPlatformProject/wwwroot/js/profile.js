@@ -2,7 +2,11 @@
 
 const session = requireAuth();
 const params = new URLSearchParams(window.location.search);
-const profileUserId = params.get("id") || session.userId;
+
+// The page is opened by id (profile.html?id=...), by the short address /u/<username> (the server sends it here as ?u=<username>), or
+// with neither for your own profile. With only a user name the id is known once the profile has been loaded.
+const profileUserName = params.get("u");
+let profileUserId = params.get("id") || (profileUserName ? null : session.userId);
 
 let currentProfile = null;
 let loadedPosts = [];
@@ -33,7 +37,10 @@ async function loadSellerRatingBadge(userId) {
 
 async function loadProfile() {
   try {
-    currentProfile = await apiFetch(`/api/users/${profileUserId}`);
+    currentProfile = await apiFetch(profileUserId
+      ? `/api/users/${profileUserId}`
+      : `/api/users/by-username/${encodeURIComponent(profileUserName)}`);
+    profileUserId = currentProfile.id;
   } catch (err) {
     document.querySelector(".container").innerHTML = `<div class="alert alert-danger mt-4">${escapeHtml(err.message)}</div>`;
     return;
@@ -87,6 +94,9 @@ async function loadProfile() {
   loadFriendsSummary();
   loadPosts();
   loadPhotosFromPosts();
+  loadMutual(p);
+  loadHighlights(p);
+  showTaggedTabIfOpen();
 }
 
 async function renderOtherProfileActions(p) {
@@ -100,8 +110,9 @@ async function renderOtherProfileActions(p) {
     return;
   }
 
-  // The "..." menu next to the buttons: the block item.
+  // "Profili Paylaş" and the "..." menu next to the buttons: the block item.
   const moreMenu = `
+    <button class="btn btn-light btn-sm rounded-pill shadow-sm border mb-2 ms-1" onclick="openShareProfile()"><i class="bi bi-qr-code me-1"></i>Profili Paylaş</button>
     <div class="dropdown d-inline-block mb-2 ms-1">
       <button class="btn btn-light btn-sm rounded-circle shadow-sm border" data-bs-toggle="dropdown" title="${i18n("block.more")}"><i class="bi bi-three-dots"></i></button>
       <ul class="dropdown-menu dropdown-menu-end">

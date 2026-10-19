@@ -39,6 +39,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<StoryLike> StoryLikes => Set<StoryLike>();
     public DbSet<StoryTag> StoryTags => Set<StoryTag>();
 
+    // Profile extras: story highlights, and who is tagged with @ in a post
+    public DbSet<StoryHighlight> StoryHighlights => Set<StoryHighlight>();
+    public DbSet<StoryHighlightItem> StoryHighlightItems => Set<StoryHighlightItem>();
+    public DbSet<PostMention> PostMentions => Set<PostMention>();
+
     // Messages + chat dock
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<ConversationParticipant> ConversationParticipants => Set<ConversationParticipant>();

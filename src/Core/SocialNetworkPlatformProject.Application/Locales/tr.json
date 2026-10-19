@@ -188,6 +188,15 @@
   "story.likeOwn": "Kendi hikâyeni beğenemezsin.",
   "story.viewersOwner":"Hikâyeyi kimin izlediğini sadece hikâyenin sahibi görebilir.",
 
+  "highlight.notFound": "Öne çıkan bulunamadı.",
+  "highlight.ownOnly": "Sadece kendi öne çıkanlarını değiştirebilirsin.",
+  "highlight.already": "Bu hikâye zaten bu öne çıkanda.",
+  "highlight.tooMany": "En fazla {0} öne çıkanın olabilir.",
+  "highlight.itemsFull": "Bir öne çıkana en fazla {0} hikâye eklenebilir.",
+  "highlight.coverInvalid": "Kapak, bu öne çıkandaki bir hikâye olmalı.",
+  "highlight.itemNotFound": "Bu hikâye öne çıkanda bulunamadı.",
+  "val.highlight.title": "Öne çıkana bir ad ver (en fazla {0} karakter).",
+
   "game.self": "Kendinle oyun oynayamazsın.",
   "game.friendsOnly": "Sadece arkadaşlarınla oyun oynayabilirsin.",
   "game.cannot": "Bu kişiyle oyun oynayamazsın.",

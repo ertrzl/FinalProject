@@ -34,6 +34,7 @@ public class PostService : IPostService
     private readonly IFriendService _friends;
     private readonly IPostAccessService _access;
     private readonly IMentionService _mentions;
+    private readonly IPostMentionService _storedMentions;
     private readonly INotificationService _notifications;
     private readonly IFileStorageService _files;
     private readonly ILiveUpdateService _live;
@@ -50,6 +51,7 @@ public class PostService : IPostService
         IFriendService friends,
         IPostAccessService access,
         IMentionService mentions,
+        IPostMentionService storedMentions,
         INotificationService notifications,
         IFileStorageService files,
         ILiveUpdateService live,
@@ -65,6 +67,7 @@ public class PostService : IPostService
         _friends = friends;
         _access = access;
         _mentions = mentions;
+        _storedMentions = storedMentions;
         _notifications = notifications;
         _files = files;
         _live = live;
@@ -101,6 +104,7 @@ public class PostService : IPostService
         await _posts.SaveChangesAsync();
 
         await _mentions.NotifyAsync(post, currentUserId, post.Text, previousText: null);
+        await _storedMentions.SyncAsync(post, post.Text);
         await _live.PostCreatedAsync(post);
         return (await _dtos.BuildAsync(new[] { post }, currentUserId))[0];
     }
@@ -128,6 +132,7 @@ public class PostService : IPostService
         await _posts.SaveChangesAsync();
 
         await _mentions.NotifyAsync(post, currentUserId, text, previousText);
+        await _storedMentions.SyncAsync(post, text);
         await _live.PostUpdatedAsync(post);
         return (await _dtos.BuildAsync(new[] { post }, currentUserId))[0];
     }
@@ -318,6 +323,7 @@ public class PostService : IPostService
         await _posts.SaveChangesAsync();
 
         await _mentions.NotifyAsync(share, currentUserId, share.Text, previousText: null);
+        await _storedMentions.SyncAsync(share, share.Text);
         await _notifications.CreateAsync(original.AuthorId, currentUserId, NotificationType.PostShared, postId: share.Id);
         await _live.PostCreatedAsync(share);
 

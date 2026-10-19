@@ -301,6 +301,12 @@ public class UserRepository : IUserRepository
         await _context.Set<StoryTag>().Where(t => t.TaggedUserId == userId).ExecuteDeleteAsync();
         await _context.Set<Story>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
 
+        // Profile extras: the highlights keep copies of their own (their files go too; the items follow their highlight by cascade), and
+        // the person's tags in other people's posts (the tags on their own posts went with the posts).
+        files.AddRange(await _context.Set<StoryHighlightItem>().Where(i => i.Highlight!.UserId == userId).Select(i => i.MediaUrl).ToListAsync());
+        await _context.Set<StoryHighlight>().Where(h => h.UserId == userId).ExecuteDeleteAsync();
+        await _context.Set<PostMention>().Where(m => m.MentionedUserId == userId).ExecuteDeleteAsync();
+
         await _context.Set<MessageReaction>().Where(r => r.UserId == userId).ExecuteDeleteAsync(); // emojis left on other people's messages (their own messages go with the conversations)
         await _context.Set<Conversation>().Where(c => myConversationIds.Contains(c.Id)).ExecuteDeleteAsync();
 

@@ -35,5 +35,7 @@ public enum NotificationType
     ContentRemoved = 29,            // an admin removed something of yours (post, comment, listing, event, group); Subject carries its title. The admin is not named
     StoryLiked = 30,                // someone liked your story (StoryId tells the likes of different stories apart; the story itself may be gone by then)
     GameInviteReceived = 31,        // a friend invited you to a game (GameId); the friend is the actor
-    GameInviteAccepted = 32         // to the inviter: the friend accepted the game invitation (GameId)
+    GameInviteAccepted = 32,        // to the inviter: the friend accepted the game invitation (GameId)
+    StoryMentioned = 33,            // a friend tagged you in a story (StoryId)
+    StoryReshared = 34              // to the owner: the tagged friend added the story to their own (StoryId is the original story)
 }

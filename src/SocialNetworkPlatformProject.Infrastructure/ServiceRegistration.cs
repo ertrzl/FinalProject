@@ -23,6 +23,7 @@ public static class ServiceRegistration
 
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        services.AddHttpClient<IMusicSearchService, ItunesMusicSearchService>(client => client.Timeout = TimeSpan.FromSeconds(8));
 
         services.AddMemoryCache();
         services.AddSingleton<HubConnectionRegistry>();

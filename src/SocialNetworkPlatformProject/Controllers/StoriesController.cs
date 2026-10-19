@@ -20,6 +20,12 @@ public class StoriesController : ControllerBase
         _stories = stories;
     }
 
+    [HttpPost("{id:guid}/reshare")]
+    public async Task<ActionResult<GetStoryDto>> Reshare(Guid id)
+    {
+        return await _stories.ReshareAsync(User.GetUserId(), id);
+    }
+
     [HttpGet]
     public async Task<ActionResult<List<GetStoryDto>>> GetActive()
     {

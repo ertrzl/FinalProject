@@ -290,6 +290,7 @@ public class UserRepository : IUserRepository
         // The user's own stories take their view and like rows with them (cascade); the ones they left on others' stories don't.
         await _context.Set<StoryView>().Where(v => v.ViewerId == userId).ExecuteDeleteAsync();
         await _context.Set<StoryLike>().Where(l => l.UserId == userId).ExecuteDeleteAsync();
+        await _context.Set<StoryTag>().Where(t => t.TaggedUserId == userId).ExecuteDeleteAsync();
         await _context.Set<Story>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
 
         await _context.Set<MessageReaction>().Where(r => r.UserId == userId).ExecuteDeleteAsync(); // emojis left on other people's messages (their own messages go with the conversations)

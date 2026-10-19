@@ -25,6 +25,8 @@
     CommentAdded: "gönderine yorum yaptı.",
     CommentLiked: "yorumunu beğendi.",
     StoryLiked: "hikâyeni beğendi.",
+    StoryMentioned: "seni bir hikâyede etiketledi.",
+    StoryReshared: "etiketlendiğin hikâyeyi kendi hikâyesine ekledi.",
     Mentioned: "seni etiketledi.",
     PostShared: "gönderini paylaştı.",
     GameInviteReceived: "sana oyun teklif etti.",

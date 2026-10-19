@@ -11,6 +11,9 @@ public interface IStoryService
     // watched ones, newest first within each group.
     Task<List<GetStoryDto>> GetActiveStoriesAsync(Guid currentUserId);
 
+    // The tagged friend adds somebody's story to their own ("Hikayene ekle"): a copy that lives its own 24 hours and names the original owner.
+    Task<GetStoryDto> ReshareAsync(Guid currentUserId, Guid storyId);
+
     Task DeleteAsync(Guid currentUserId, Guid storyId);
 
     // The user has watched this story. Counted once per person; your own stories are not counted; a story the user

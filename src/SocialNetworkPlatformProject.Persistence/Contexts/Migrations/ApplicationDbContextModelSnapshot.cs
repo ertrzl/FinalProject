@@ -1475,6 +1475,28 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("MusicArtist")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("MusicArtworkUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("MusicTitle")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("MusicUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("ResharedFromStoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ResharedFromUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
@@ -1508,6 +1530,31 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .IsUnique();
 
                     b.ToTable("StoryLikes");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryTag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("StoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TaggedUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TaggedUserId");
+
+                    b.HasIndex("StoryId", "TaggedUserId")
+                        .IsUnique();
+
+                    b.ToTable("StoryTags");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryView", b =>
@@ -2018,6 +2065,17 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryLike", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Story", "Story")
+                        .WithMany()
+                        .HasForeignKey("StoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Story");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.StoryTag", b =>
                 {
                     b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Story", "Story")
                         .WithMany()

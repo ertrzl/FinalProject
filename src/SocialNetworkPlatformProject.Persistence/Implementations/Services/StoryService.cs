@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using SocialNetworkPlatformProject.Application.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Common;
 using SocialNetworkPlatformProject.Application.DTOs.Stories;
 using SocialNetworkPlatformProject.Application.Exceptions;
@@ -14,10 +15,12 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 public class StoryService : IStoryService
 {
     private const int MaxViewersListed = 200;
+    private const int MaxTags = 5;
 
     private readonly IStoryRepository _stories;
     private readonly IStoryViewRepository _views;
     private readonly IStoryLikeRepository _likes;
+    private readonly IStoryTagRepository _tags;
     private readonly IUserRepository _users;
     private readonly IFriendService _friends;
     private readonly INotificationService _notifications;
@@ -28,6 +31,7 @@ public class StoryService : IStoryService
         IStoryRepository stories,
         IStoryViewRepository views,
         IStoryLikeRepository likes,
+        IStoryTagRepository tags,
         IUserRepository users,
         IFriendService friends,
         INotificationService notifications,
@@ -37,6 +41,7 @@ public class StoryService : IStoryService
         _stories = stories;
         _views = views;
         _likes = likes;
+        _tags = tags;
         _users = users;
         _friends = friends;
         _notifications = notifications;
@@ -46,6 +51,24 @@ public class StoryService : IStoryService
 
     public async Task<GetStoryDto> CreateAsync(Guid currentUserId, PostStoryDto dto)
     {
+        // A song comes with its title and one of Apple's preview links, nothing else.
+        var hasMusic = !string.IsNullOrWhiteSpace(dto.MusicUrl);
+        if (hasMusic && (string.IsNullOrWhiteSpace(dto.MusicTitle) || dto.MusicTitle.Length > 150 || (dto.MusicArtist?.Length ?? 0) > 150
+            || !MusicLinks.IsAllowedAudio(dto.MusicUrl) || (!string.IsNullOrWhiteSpace(dto.MusicArtworkUrl) && !MusicLinks.IsAllowedCover(dto.MusicArtworkUrl))))
+            throw new BadRequestException(Loc.T("story.musicInvalid"));
+
+        // The friends to tag: not more than MaxTags, not yourself, every one of them a friend.
+        var taggedIds = dto.TaggedUserIds.Distinct().ToList();
+        if (taggedIds.Count > MaxTags)
+            throw new BadRequestException(Loc.T("story.tagsTooMany"));
+        if (taggedIds.Contains(currentUserId))
+            throw new BadRequestException(Loc.T("story.tagSelf"));
+        foreach (var taggedId in taggedIds)
+        {
+            if (!await _friends.AreFriendsAsync(currentUserId, taggedId))
+                throw new ForbiddenException(Loc.T("story.tagFriendsOnly"));
+        }
+
         var isVideo = dto.Media.ContentType.StartsWith("video/", StringComparison.OrdinalIgnoreCase);
         var mediaUrl = isVideo
             ? await _files.SaveVideoAsync(dto.Media, "stories")
@@ -55,12 +78,61 @@ public class StoryService : IStoryService
         {
             UserId = currentUserId,
             MediaUrl = mediaUrl,
-            MediaType = isVideo ? StoryMediaType.Video : StoryMediaType.Image
+            MediaType = isVideo ? StoryMediaType.Video : StoryMediaType.Image,
+            MusicTitle = hasMusic ? dto.MusicTitle!.Trim() : null,
+            MusicArtist = hasMusic ? dto.MusicArtist?.Trim() : null,
+            MusicUrl = hasMusic ? dto.MusicUrl : null,
+            MusicArtworkUrl = hasMusic && !string.IsNullOrWhiteSpace(dto.MusicArtworkUrl) ? dto.MusicArtworkUrl : null
         };
         await _stories.AddAsync(story);
         await _stories.SaveChangesAsync();
 
+        foreach (var taggedId in taggedIds)
+            await _tags.AddAsync(new StoryTag { StoryId = story.Id, TaggedUserId = taggedId });
+        if (taggedIds.Count > 0)
+            await _tags.SaveChangesAsync();
+
+        foreach (var taggedId in taggedIds)
+            await _notifications.CreateAsync(taggedId, currentUserId, NotificationType.StoryMentioned, storyId: story.Id);
+
         return (await BuildDtosAsync(new[] { story }, currentUserId))[0];
+    }
+
+    public async Task<GetStoryDto> ReshareAsync(Guid currentUserId, Guid storyId)
+    {
+        var original = await _stories.GetByIdAsync(storyId);
+        if (original == null || original.ExpiresAt <= DateTime.UtcNow)
+            throw new NotFoundException(Loc.T("story.notFound"));
+
+        if (original.UserId == currentUserId)
+            throw new BadRequestException(Loc.T("story.reshareOwn"));
+
+        // Only a person the owner tagged may add it: the tag is the owner's permission to share the story on.
+        if (!await _tags.AnyAsync(t => t.StoryId == storyId && t.TaggedUserId == currentUserId))
+            throw new ForbiddenException(Loc.T("story.reshareNotTagged"));
+
+        if (await _stories.AnyAsync(s => s.UserId == currentUserId && s.ResharedFromStoryId == storyId))
+            throw new BadRequestException(Loc.T("story.reshareAlready"));
+
+        // A copy of the picture or video, so it stays when the owner deletes theirs; the song comes along.
+        var copy = new Story
+        {
+            UserId = currentUserId,
+            MediaUrl = await _files.CopyAsync(original.MediaUrl, "stories"),
+            MediaType = original.MediaType,
+            MusicTitle = original.MusicTitle,
+            MusicArtist = original.MusicArtist,
+            MusicUrl = original.MusicUrl,
+            MusicArtworkUrl = original.MusicArtworkUrl,
+            ResharedFromStoryId = original.Id,
+            ResharedFromUserId = original.UserId
+        };
+        await _stories.AddAsync(copy);
+        await _stories.SaveChangesAsync();
+
+        await _notifications.CreateAsync(original.UserId, currentUserId, NotificationType.StoryReshared, storyId: original.Id);
+
+        return (await BuildDtosAsync(new[] { copy }, currentUserId))[0];
     }
 
     public async Task<List<GetStoryDto>> GetActiveStoriesAsync(Guid currentUserId)
@@ -195,7 +267,17 @@ public class StoryService : IStoryService
     private async Task<List<GetStoryDto>> BuildDtosAsync(IEnumerable<Story> stories, Guid currentUserId)
     {
         var list = stories.ToList();
-        var users = await _users.GetSummariesAsync(list.Select(s => s.UserId));
+        var storyIds = list.Select(s => s.Id).ToList();
+        var tagIds = await _tags.GetTaggedUserIdsAsync(storyIds);
+        var taggedMeIds = await _tags.GetStoryIdsTaggingAsync(currentUserId, storyIds);
+        var myCopyOf = (await _stories.GetAll(s => s.UserId == currentUserId && s.ResharedFromStoryId != null && storyIds.Contains(s.ResharedFromStoryId.Value), asNoTracking: true)
+            .Select(s => s.ResharedFromStoryId!.Value).ToListAsync()).ToHashSet();
+
+        var personIds = list.Select(s => s.UserId)
+            .Concat(tagIds.Values.SelectMany(ids => ids))
+            .Concat(list.Where(s => s.ResharedFromUserId != null).Select(s => s.ResharedFromUserId!.Value))
+            .Distinct().ToList();
+        var users = await _users.GetSummariesAsync(personIds);
 
         // Batched queries for the whole list: view and like counts of my own stories, and which of the others I
         // watched and liked.
@@ -219,6 +301,15 @@ public class StoryService : IStoryService
             dtos[i].IsViewed = viewedIds.Contains(list[i].Id);
             dtos[i].LikeCount = likeCounts.GetValueOrDefault(list[i].Id);
             dtos[i].IsLiked = likedIds.Contains(list[i].Id);
+
+            // A tagged person whose account is gone is left out.
+            dtos[i].Tags = tagIds.GetValueOrDefault(list[i].Id, new List<Guid>())
+                .Where(users.ContainsKey)
+                .Select(id => new GetStoryPersonDto { UserId = id, Name = users[id].FullName, AvatarUrl = users[id].AvatarUrl })
+                .ToList();
+            if (list[i].ResharedFromUserId is { } fromId && users.TryGetValue(fromId, out var from))
+                dtos[i].ResharedFrom = new GetStoryPersonDto { UserId = fromId, Name = from.FullName, AvatarUrl = from.AvatarUrl };
+            dtos[i].CanReshare = list[i].UserId != currentUserId && taggedMeIds.Contains(list[i].Id) && !myCopyOf.Contains(list[i].Id);
         }
 
         return dtos;

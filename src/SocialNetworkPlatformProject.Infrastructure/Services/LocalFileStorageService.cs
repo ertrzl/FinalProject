@@ -218,6 +218,26 @@ public class LocalFileStorageService : IFileStorageService
         return result;
     }
 
+    public async Task<string> CopyAsync(string url, string folder)
+    {
+        var uploadsRoot = Path.GetFullPath(Path.Combine(_webRootPath, UploadsFolder)) + Path.DirectorySeparatorChar;
+        var source = Path.GetFullPath(Path.Combine(_webRootPath, url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
+
+        // Only a file of this store can be copied (a crafted URL must not reach other files).
+        if (!source.StartsWith(uploadsRoot, StringComparison.OrdinalIgnoreCase) || !File.Exists(source))
+            throw new BadRequestException(Loc.T("file.empty"));
+
+        var directory = Path.Combine(_webRootPath, UploadsFolder, folder);
+        Directory.CreateDirectory(directory);
+
+        var fileName = $"{Guid.NewGuid():N}{Path.GetExtension(source).ToLowerInvariant()}";
+        await using (var from = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read))
+        await using (var to = new FileStream(Path.Combine(directory, fileName), FileMode.Create))
+            await from.CopyToAsync(to);
+
+        return $"/{UploadsFolder}/{folder}/{fileName}";
+    }
+
     public void Delete(string? url)
     {
         if (string.IsNullOrWhiteSpace(url) || !url.StartsWith($"/{UploadsFolder}/", StringComparison.Ordinal))

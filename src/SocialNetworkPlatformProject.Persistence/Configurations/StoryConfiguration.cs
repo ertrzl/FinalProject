@@ -14,5 +14,10 @@ public class StoryConfiguration : IEntityTypeConfiguration<Story>
         // Who may open a story's file is decided from the story that holds its address (UploadsController).
         builder.Property(s => s.MediaUrl).HasMaxLength(500);
         builder.HasIndex(s => s.MediaUrl);
+
+        builder.Property(s => s.MusicTitle).HasMaxLength(150);
+        builder.Property(s => s.MusicArtist).HasMaxLength(150);
+        builder.Property(s => s.MusicUrl).HasMaxLength(500);
+        builder.Property(s => s.MusicArtworkUrl).HasMaxLength(500);
     }
 }

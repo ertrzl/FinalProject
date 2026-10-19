@@ -519,6 +519,119 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.ToTable("Friendships");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Game", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Board")
+                        .IsRequired()
+                        .HasMaxLength(9)
+                        .HasColumnType("nvarchar(9)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("InviteeBoard")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("InviteeChoice")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("InviteeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("InviteeShots")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("InviterBoard")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("InviterChoice")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("InviterId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("InviterShots")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("LastShotById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("LastShotCell")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("LastShotResult")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Outcome")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PairKey")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<Guid?>("PlayerOId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PlayerXId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Rounds")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Turn")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("nvarchar(1)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("WinnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InviteeId");
+
+                    b.HasIndex("InviterId");
+
+                    b.HasIndex("PairKey")
+                        .IsUnique()
+                        .HasFilter("[Status] IN (0, 1)");
+
+                    b.ToTable("Games");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Group", b =>
                 {
                     b.Property<Guid>("Id")
@@ -899,6 +1012,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("FriendRequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("GameId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("GroupId")

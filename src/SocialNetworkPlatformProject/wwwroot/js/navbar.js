@@ -1,7 +1,7 @@
 // The menu of every signed-in page, in one place: a new link is added here once, and the phone layout is fixed once.
 //
 // A page only has   <nav id="siteNav" data-active="home"></nav>   where the menu goes, and loads this file before app.js.
-// data-active names the section the page belongs to: home, explore, friends, notifications, messages, groups, marketplace, events
+// data-active names the section the page belongs to: home, explore, friends, notifications, messages, groups, marketplace, events, games
 // (the main links) or profile, saved, settings (the account links); leave it empty on any other page.
 //
 // The menu is drawn for the chosen design (js/design.js):
@@ -19,7 +19,8 @@ const MAIN_LINKS = [
   { key: "messages", href: "messages.html", icon: "bi-chat-dots-fill", label: "Mesajlar", badge: "message-badge-count" },
   { key: "groups", href: "groups.html", icon: "bi-diagram-3-fill", label: "Gruplar" },
   { key: "marketplace", href: "marketplace.html", icon: "bi-shop", label: "Marketplace" },
-  { key: "events", href: "events.html", icon: "bi-calendar-event", label: "Etkinlikler" }
+  { key: "events", href: "events.html", icon: "bi-calendar-event", label: "Etkinlikler" },
+  { key: "games", href: "games.html", icon: "bi-controller", label: "Oyunlar" }
 ];
 
 const ACCOUNT_LINKS = [
@@ -46,7 +47,7 @@ const PHONE_BAR_KEYS = ["home", "friends", "notifications", "messages"];
 const SIDE_LINKS = [
   { key: "home", shortcut: "a" }, { key: "explore", shortcut: "k" }, { key: "friends", shortcut: "r" },
   { key: "messages", shortcut: "m" }, { key: "notifications", shortcut: "b" }, { key: "groups", shortcut: "g" },
-  { key: "events", shortcut: "e" }, { key: "marketplace", shortcut: "p" }, { key: "saved", shortcut: "s" }, { key: "settings", shortcut: "t" }
+  { key: "events", shortcut: "e" }, { key: "games", shortcut: "o" }, { key: "marketplace", shortcut: "p" }, { key: "saved", shortcut: "s" }, { key: "settings", shortcut: "t" }
 ];
 
 // The width where the menu turns into the phone layout: inbox has a column on the left from "lg", classic a top menu from "md".
@@ -115,6 +116,7 @@ const SIDE_ICONS = {
   notifications: ["bi-bell", "bi-bell-fill"],
   groups: ["bi-diagram-3", "bi-diagram-3-fill"],
   events: ["bi-calendar-event", "bi-calendar-event-fill"],
+  games: ["bi-controller", "bi-controller"], // Bootstrap Icons has no filled controller
   marketplace: ["bi-bag", "bi-bag-fill"],
   saved: ["bi-bookmark", "bi-bookmark-fill"],
   settings: ["bi-gear", "bi-gear-fill"],

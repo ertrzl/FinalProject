@@ -63,7 +63,8 @@ public class NotificationService : INotificationService
 
     public async Task CreateAsync(Guid recipientId, Guid actorId, NotificationType type,
         Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null, Guid? groupId = null,
-        Guid? offerId = null, decimal? amount = null, Guid? eventId = null, string? subject = null, Guid? storyId = null)
+        Guid? offerId = null, decimal? amount = null, Guid? eventId = null, string? subject = null, Guid? storyId = null,
+        Guid? gameId = null)
     {
         // Nobody is notified about their own action, except reminders, which have no real actor (the organizer is
         // named as one so the notification has an origin, and the organizer gets reminded of their own event too).
@@ -85,7 +86,7 @@ public class NotificationService : INotificationService
             var alreadyExists = await _notifications.AnyAsync(n =>
                 n.RecipientId == recipientId && n.ActorId == actorId && n.Type == type &&
                 n.PostId == postId && n.CommentId == commentId && n.FriendRequestId == friendRequestId && n.GroupId == groupId &&
-                n.EventId == eventId && n.StoryId == storyId);
+                n.EventId == eventId && n.StoryId == storyId && n.GameId == gameId);
             if (alreadyExists)
                 return;
         }
@@ -102,6 +103,7 @@ public class NotificationService : INotificationService
             OfferId = offerId,
             EventId = eventId,
             StoryId = storyId,
+            GameId = gameId,
             Subject = subject,
             Amount = amount
         };

@@ -33,6 +33,8 @@ const NOTIF_ICON = {
   EventCommentAdded: { badge: "bg-info", icon: "bi-chat-left-text-fill" },
   EventWaitlistPromoted: { badge: "bg-success", icon: "bi-arrow-up-circle-fill" },
   EventReminder: { badge: "bg-warning", icon: "bi-alarm-fill" },
+  GameInviteReceived: { badge: "bg-info", icon: "bi-controller" },
+  GameInviteAccepted: { badge: "bg-success", icon: "bi-controller" },
   ContentRemoved: { badge: "bg-danger", icon: "bi-shield-exclamation" }
 };
 
@@ -49,41 +51,47 @@ function offerListing(n) {
 // The sentences are templates in the language files (the word order differs between languages): {0} is the person,
 // {1}... the group / listing / event and money, already made safe and in bold.
 const notifBold = text => `<b>${escapeHtml(text)}</b>`;
+// The person in a sentence is a link to their profile (the click does not count as a click on the whole notification).
+const notifPerson = n => n.actorId
+  ? `<a href="profile.html?id=${n.actorId}" class="fw-bold text-body text-decoration-none" onclick="event.stopPropagation()">${escapeHtml(n.actorName)}</a>`
+  : notifBold(n.actorName);
 const notifEventName = n => notifBold(n.eventTitle || i18n("notif.untitled"));
 const notifGroupName = n => notifBold(n.groupName || "");
 
 const NOTIF_TEXT = {
-  FriendRequestReceived: n => i18n("notif.friendRequestReceived", notifBold(n.actorName)),
-  FriendRequestAccepted: n => i18n("notif.friendRequestAccepted", notifBold(n.actorName)),
+  FriendRequestReceived: n => i18n("notif.friendRequestReceived", notifPerson(n)),
+  FriendRequestAccepted: n => i18n("notif.friendRequestAccepted", notifPerson(n)),
   PostLiked: n => n.reaction && n.reaction !== "Like" && REACTIONS[n.reaction]
-    ? i18n("notif.postReacted", notifBold(n.actorName), REACTIONS[n.reaction].emoji)
-    : i18n("notif.postLiked", notifBold(n.actorName)),
-  PostShared: n => i18n("notif.postShared", notifBold(n.actorName)),
-  CommentAdded: n => i18n("notif.commentAdded", notifBold(n.actorName)),
-  CommentLiked: n => i18n("notif.commentLiked", notifBold(n.actorName)),
-  StoryLiked: n => i18n("notif.storyLiked", notifBold(n.actorName)),
-  CommentReplied: n => i18n("notif.commentReplied", notifBold(n.actorName)),
-  Mentioned: n => i18n(n.commentId ? "notif.mentionedInComment" : "notif.mentionedInPost", notifBold(n.actorName)),
-  GroupJoinRequestReceived: n => i18n("notif.groupJoinRequest", notifBold(n.actorName), notifGroupName(n)),
-  GroupInviteReceived: n => i18n("notif.groupInvite", notifBold(n.actorName), notifGroupName(n)),
-  GroupMemberRemoved: n => i18n("notif.groupRemoved", notifBold(n.actorName), notifGroupName(n)),
-  GroupRoleChanged: n => i18n("notif.groupRole", notifBold(n.actorName), notifGroupName(n)),
-  GroupJoinRequestApproved: n => i18n("notif.groupApproved", notifBold(n.actorName), notifGroupName(n)),
-  GroupJoinRequestRejected: n => i18n("notif.groupRejected", notifBold(n.actorName), notifGroupName(n)),
-  MarketplaceOfferReceived: n => i18n("notif.offerReceived", notifBold(n.actorName), offerListing(n), notifBold(offerMoney(n.amount))),
-  MarketplaceOfferCountered: n => i18n("notif.offerCountered", notifBold(n.actorName), offerListing(n), notifBold(offerMoney(n.amount))),
-  MarketplaceOfferAccepted: n => i18n("notif.offerAccepted", notifBold(n.actorName), offerListing(n), notifBold(offerMoney(n.amount))),
-  MarketplaceOfferRejected: n => i18n("notif.offerRejected", notifBold(n.actorName), offerListing(n)),
-  MarketplaceOfferWithdrawn: n => i18n("notif.offerWithdrawn", notifBold(n.actorName), offerListing(n)),
+    ? i18n("notif.postReacted", notifPerson(n), REACTIONS[n.reaction].emoji)
+    : i18n("notif.postLiked", notifPerson(n)),
+  PostShared: n => i18n("notif.postShared", notifPerson(n)),
+  CommentAdded: n => i18n("notif.commentAdded", notifPerson(n)),
+  CommentLiked: n => i18n("notif.commentLiked", notifPerson(n)),
+  StoryLiked: n => i18n("notif.storyLiked", notifPerson(n)),
+  CommentReplied: n => i18n("notif.commentReplied", notifPerson(n)),
+  Mentioned: n => i18n(n.commentId ? "notif.mentionedInComment" : "notif.mentionedInPost", notifPerson(n)),
+  GroupJoinRequestReceived: n => i18n("notif.groupJoinRequest", notifPerson(n), notifGroupName(n)),
+  GroupInviteReceived: n => i18n("notif.groupInvite", notifPerson(n), notifGroupName(n)),
+  GroupMemberRemoved: n => i18n("notif.groupRemoved", notifPerson(n), notifGroupName(n)),
+  GroupRoleChanged: n => i18n("notif.groupRole", notifPerson(n), notifGroupName(n)),
+  GroupJoinRequestApproved: n => i18n("notif.groupApproved", notifPerson(n), notifGroupName(n)),
+  GroupJoinRequestRejected: n => i18n("notif.groupRejected", notifPerson(n), notifGroupName(n)),
+  MarketplaceOfferReceived: n => i18n("notif.offerReceived", notifPerson(n), offerListing(n), notifBold(offerMoney(n.amount))),
+  MarketplaceOfferCountered: n => i18n("notif.offerCountered", notifPerson(n), offerListing(n), notifBold(offerMoney(n.amount))),
+  MarketplaceOfferAccepted: n => i18n("notif.offerAccepted", notifPerson(n), offerListing(n), notifBold(offerMoney(n.amount))),
+  MarketplaceOfferRejected: n => i18n("notif.offerRejected", notifPerson(n), offerListing(n)),
+  MarketplaceOfferWithdrawn: n => i18n("notif.offerWithdrawn", notifPerson(n), offerListing(n)),
   MarketplaceOfferClosed: n => i18n("notif.offerClosed", offerListing(n)),
-  MarketplaceRatingReceived: n => i18n("notif.ratingReceived", notifBold(n.actorName), offerListing(n), starsHtml(n.amount)),
-  EventUpdated: n => i18n("notif.eventUpdated", notifBold(n.actorName), notifEventName(n)),
-  EventCancelled: n => i18n("notif.eventCancelled", notifBold(n.actorName), notifEventName(n)),
-  EventInviteReceived: n => i18n("notif.eventInvite", notifBold(n.actorName), notifEventName(n)),
-  EventAnnouncement: n => i18n("notif.eventAnnouncement", notifBold(n.actorName), notifEventName(n)),
-  EventJoined: n => i18n("notif.eventJoined", notifBold(n.actorName), notifEventName(n)),
-  EventCommentAdded: n => i18n("notif.eventComment", notifBold(n.actorName), notifEventName(n)),
+  MarketplaceRatingReceived: n => i18n("notif.ratingReceived", notifPerson(n), offerListing(n), starsHtml(n.amount)),
+  EventUpdated: n => i18n("notif.eventUpdated", notifPerson(n), notifEventName(n)),
+  EventCancelled: n => i18n("notif.eventCancelled", notifPerson(n), notifEventName(n)),
+  EventInviteReceived: n => i18n("notif.eventInvite", notifPerson(n), notifEventName(n)),
+  EventAnnouncement: n => i18n("notif.eventAnnouncement", notifPerson(n), notifEventName(n)),
+  EventJoined: n => i18n("notif.eventJoined", notifPerson(n), notifEventName(n)),
+  EventCommentAdded: n => i18n("notif.eventComment", notifPerson(n), notifEventName(n)),
   EventWaitlistPromoted: n => i18n("notif.eventWaitlist", notifEventName(n)),
+  GameInviteReceived: n => i18n("notif.gameInviteReceived", notifPerson(n)),
+  GameInviteAccepted: n => i18n("notif.gameInviteAccepted", notifPerson(n)),
   // The admins are not named; the title of what was removed comes in the event-title field (the server's "subject").
   ContentRemoved: n => i18n("notif.contentRemoved", notifBold(n.eventTitle || i18n("notif.photoOrPoll"))),
   EventReminder: n => i18n("notif.eventReminder", notifBold(n.eventTitle || i18n("notif.anEvent")), n.eventStartsAt ? `: ${formatEventDate(n.eventStartsAt)}` : "")
@@ -109,6 +117,8 @@ function notificationHtml(n) {
     actions = `<a href="marketplace.html?sellerReviews=${getSession().userId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Değerlendirmeleri Gör</a>`;
   } else if (["EventUpdated", "EventInviteReceived", "EventAnnouncement", "EventJoined", "EventCommentAdded", "EventWaitlistPromoted", "EventReminder"].includes(n.type)) {
     actions = `<a href="event.html?id=${n.eventId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Etkinliği Gör</a>`;
+  } else if (["GameInviteReceived", "GameInviteAccepted"].includes(n.type) && n.gameId) {
+    actions = `<a href="game.html?id=${n.gameId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Oyuna Git</a>`;
   } else if (["PostLiked", "CommentAdded", "CommentReplied", "CommentLiked", "Mentioned", "PostShared"].includes(n.type) && n.postId) {
     actions = `<a href="post.html?id=${n.postId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Gönderiyi Gör</a>`;
   } else if (n.type.startsWith("MarketplaceOffer")) {
@@ -120,12 +130,26 @@ function notificationHtml(n) {
        </div>`;
   }
 
+  // Opening the page marks everything read, so a request that was not answered right then shows a way to the place where it can be.
+  if (!actions) {
+    const toFriends = n.type === "FriendRequestReceived";
+    const toGroup = n.type === "GroupJoinRequestReceived" && n.groupId;
+    const toGroups = n.type === "GroupInviteReceived";
+    if (toFriends || toGroup || toGroups) {
+      const href = toFriends ? "friends.html" : toGroup ? `group.html?id=${n.groupId}` : "groups.html";
+      const label = toFriends ? "Arkadaşlar" : toGroup ? "Gruba Git" : "Gruplar";
+      actions = `<a href="${href}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">${label}</a>`;
+    }
+  }
+
   return `
     <div class="d-flex align-items-start gap-3 p-3 rounded-3 ${unreadClass} mb-2" data-notification-id="${n.id}" data-created="${n.createdAt}" onclick="markRead('${n.id}')">
       <div class="position-relative flex-shrink-0">
         ${n.type === "ContentRemoved"
           ? `<span class="avatar-sm notif-system-avatar"><i class="bi bi-shield-check"></i></span>`
-          : `<img src="${n.actorAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt="">`}
+          : n.actorId
+            ? `<a href="profile.html?id=${n.actorId}" onclick="event.stopPropagation()"><img src="${n.actorAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt=""></a>`
+            : `<img src="${n.actorAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt="">`}
         <span class="notif-icon-badge ${iconInfo.badge}"><i class="bi ${iconInfo.icon}"></i></span>
       </div>
       <div class="flex-grow-1">
@@ -166,8 +190,21 @@ const notificationsPager = createPager({
   render: notificationHtml,
   shown: n => !!document.querySelector(`[data-notification-id="${n.id}"]`),
   emptyHtml: `<div class="text-center text-muted small py-4">Henüz bildirim yok.</div>`,
-  onLoaded: labelNotificationDays
+  onLoaded: onNotificationsLoaded
 });
+
+// Going to the notifications is reading them: the first time the list is on the screen everything is marked read, so the
+// number on the bell is gone at once. The rows keep their "new" look until the page is left, so it is still clear what is new.
+let openedMarkedRead = false;
+function onNotificationsLoaded() {
+  labelNotificationDays();
+  if (openedMarkedRead) return;
+  openedMarkedRead = true;
+  if (!document.querySelector(".notif-unread")) return;
+  apiFetch("/api/notifications/read-all", { method: "POST" })
+    .then(() => window.refreshNotificationBadge?.())
+    .catch(() => { /* a background convenience; the single clicks still mark rows read */ });
+}
 
 function loadNotifications() {
   return notificationsPager.reload();
@@ -244,6 +281,7 @@ document.addEventListener("realtime:notification", e => {
   if (!list.querySelector("[data-notification-id]")) list.innerHTML = "";
   list.insertAdjacentHTML("afterbegin", notificationHtml(n));
   labelNotificationDays();
+  markRead(n.id); // the page is open in front of the person: it is read the moment it arrives
 });
 
 document.addEventListener("realtime:reconnected", loadNotifications);

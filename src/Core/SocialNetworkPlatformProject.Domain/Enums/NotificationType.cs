@@ -33,5 +33,7 @@ public enum NotificationType
     Mentioned = 27,                 // someone tagged you with @username in a post (PostId) or a comment (CommentId too)
     PostShared = 28,                // someone shared your post: PostId is THEIR post (the share), so the link opens it
     ContentRemoved = 29,            // an admin removed something of yours (post, comment, listing, event, group); Subject carries its title. The admin is not named
-    StoryLiked = 30                 // someone liked your story (StoryId tells the likes of different stories apart; the story itself may be gone by then)
+    StoryLiked = 30,                // someone liked your story (StoryId tells the likes of different stories apart; the story itself may be gone by then)
+    GameInviteReceived = 31,        // a friend invited you to a game (GameId); the friend is the actor
+    GameInviteAccepted = 32         // to the inviter: the friend accepted the game invitation (GameId)
 }

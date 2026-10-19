@@ -9,6 +9,8 @@ const NOTIF_ICON = {
   CommentAdded: { badge: "bg-primary", icon: "bi-chat-fill" },
   CommentLiked: { badge: "bg-danger", icon: "bi-heart-fill" },
   StoryLiked: { badge: "bg-danger", icon: "bi-heart-fill" },
+  StoryMentioned: { badge: "bg-primary", icon: "bi-at" },
+  StoryReshared: { badge: "bg-primary", icon: "bi-arrow-repeat" },
   CommentReplied: { badge: "bg-primary", icon: "bi-reply-fill" },
   Mentioned: { badge: "bg-primary", icon: "bi-at" },
   PostShared: { badge: "bg-primary", icon: "bi-arrow-repeat" },
@@ -68,6 +70,8 @@ const NOTIF_TEXT = {
   CommentAdded: n => i18n("notif.commentAdded", notifPerson(n)),
   CommentLiked: n => i18n("notif.commentLiked", notifPerson(n)),
   StoryLiked: n => i18n("notif.storyLiked", notifPerson(n)),
+  StoryMentioned: n => i18n("notif.storyMentioned", notifPerson(n)),
+  StoryReshared: n => i18n("notif.storyReshared", notifPerson(n)),
   CommentReplied: n => i18n("notif.commentReplied", notifPerson(n)),
   Mentioned: n => i18n(n.commentId ? "notif.mentionedInComment" : "notif.mentionedInPost", notifPerson(n)),
   GroupJoinRequestReceived: n => i18n("notif.groupJoinRequest", notifPerson(n), notifGroupName(n)),
@@ -121,6 +125,8 @@ function notificationHtml(n) {
     actions = `<a href="game.html?id=${n.gameId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Oyuna Git</a>`;
   } else if (["PostLiked", "CommentAdded", "CommentReplied", "CommentLiked", "Mentioned", "PostShared"].includes(n.type) && n.postId) {
     actions = `<a href="post.html?id=${n.postId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Gönderiyi Gör</a>`;
+  } else if (n.type === "StoryMentioned" || n.type === "StoryReshared") {
+    actions = `<a href="home.html" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Hikâyelere Git</a>`;
   } else if (n.type.startsWith("MarketplaceOffer")) {
     actions = `<a href="marketplace.html?view=offers" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Teklifleri Gör</a>`;
   } else if (n.type === "GroupInviteReceived" && !n.isRead) {

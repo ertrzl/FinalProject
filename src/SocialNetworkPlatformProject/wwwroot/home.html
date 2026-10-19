@@ -55,7 +55,11 @@
 
       <!-- Story viewer (fullscreen) -->
       <div class="story-viewer d-none" id="storyViewer">
-        <div class="story-viewer-inner">
+       <div class="story-stage">
+        <!-- Wide screens: the previous person's story on the left, the next person's on the right (dimmed; click one to go there) -->
+        <div class="story-side story-side-prev" id="storySidePrev" role="button" tabindex="0" aria-label="Önceki kişinin hikâyesi" onclick="goStoryGroup(-1)"></div>
+        <button type="button" class="story-arrow" id="storyArrowPrev" aria-label="Önceki hikâye" onclick="prevStory()"><i class="bi bi-chevron-left"></i></button>
+        <div class="story-viewer-inner" id="storyViewerInner">
           <div class="story-viewer-bars" id="storyBars"></div>
           <div class="story-viewer-header">
             <img id="storyViewerAvatar" class="avatar-xs" src="" alt="">
@@ -70,6 +74,18 @@
           </div>
           <img id="storyViewerImage" class="story-viewer-image" src="" alt="">
           <video id="storyViewerVideo" class="story-viewer-image d-none" muted playsinline></video>
+          <audio id="storyMusic" preload="auto" loop></audio>
+          <!-- Under the header, each only when there is one: whose story this was (a reshared story), the song (title, artist, mute button) and the tagged people -->
+          <div class="story-info-stack" id="storyInfoStack">
+            <a class="story-chip d-none" id="storyResharedChip" data-no-i18n></a>
+            <div class="story-music-chip d-none" id="storyMusicChip">
+              <img id="storyMusicArt" class="story-music-art d-none" src="" alt="">
+              <i class="bi bi-music-note-beamed" id="storyMusicIcon"></i>
+              <span class="story-music-text" id="storyMusicText"></span>
+              <button type="button" class="story-music-mute" id="storyMusicMute" aria-label="Sesi kapat" onclick="toggleStoryMusicMute()"><i class="bi bi-volume-up-fill"></i></button>
+            </div>
+            <div class="story-tags-row d-none" id="storyTagsRow" data-no-i18n></div>
+          </div>
           <div class="story-loading d-none" id="storyLoading"><div class="spinner-border text-light" role="status" aria-label="Yükleniyor"></div></div>
           <div class="story-viewer-nav">
             <div class="story-nav-zone" onclick="prevStory()"></div>
@@ -84,6 +100,8 @@
             </div>
             <button type="button" id="storyLikeBtn" class="story-like-btn" aria-label="Beğen" onclick="toggleStoryLike()"><i class="bi bi-heart"></i></button>
           </form>
+          <!-- Only for a tagged person: put this story on your own story -->
+          <button type="button" class="story-reshare-btn d-none" id="storyReshareBtn" onclick="reshareCurrentStory()"><i class="bi bi-plus-circle-fill me-2"></i>Hikayene ekle</button>
           <div class="story-viewers-panel d-none" id="storyViewersPanel">
             <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom border-secondary">
               <span class="fw-bold small"><i class="bi bi-eye me-1"></i>Görüntüleyenler</span>
@@ -92,6 +110,9 @@
             <div id="storyViewersList" class="story-viewers-list"></div>
           </div>
         </div>
+        <button type="button" class="story-arrow" id="storyArrowNext" aria-label="Sonraki hikâye" onclick="nextStory()"><i class="bi bi-chevron-right"></i></button>
+        <div class="story-side story-side-next" id="storySideNext" role="button" tabindex="0" aria-label="Sonraki kişinin hikâyesi" onclick="goStoryGroup(1)"></div>
+       </div>
       </div>
 
       <!-- Add story modal -->
@@ -111,6 +132,26 @@
                 <i class="bi bi-camera me-1"></i>Fotoğraf veya Video Seç
                 <input type="file" id="addStoryFileInput" class="d-none" accept="image/*,video/*" onchange="previewNewStory(this)">
               </label>
+              <div class="mt-3 text-start">
+                <div class="d-flex flex-wrap gap-2">
+                  <button type="button" class="btn btn-light border rounded-pill btn-sm" id="addStoryMusicBtn" onclick="toggleStoryMusicSearch()"><i class="bi bi-music-note-beamed me-1"></i>Müzik ekle</button>
+                  <button type="button" class="btn btn-light border rounded-pill btn-sm" id="addStoryTagBtn" onclick="toggleStoryTagPicker()"><i class="bi bi-at me-1"></i>Birini etiketle</button>
+                </div>
+                <div class="story-music-picked d-none" id="addStoryMusicChosen">
+                  <i class="bi bi-music-note-beamed"></i>
+                  <span class="flex-grow-1 text-truncate" id="addStoryMusicChosenText"></span>
+                  <button type="button" class="btn-close btn-sm" aria-label="Müziği kaldır" onclick="removeStoryMusic()"></button>
+                </div>
+                <div class="d-none mt-2" id="addStoryMusicPanel">
+                  <input type="search" id="addStoryMusicInput" class="form-control" maxlength="80" autocomplete="off" placeholder="Şarkı veya sanatçı ara..." aria-label="Şarkı veya sanatçı ara" oninput="searchStoryMusicSoon()">
+                  <div class="story-music-results" id="addStoryMusicResults"></div>
+                </div>
+                <div class="story-tag-chosen d-none" id="addStoryTagChosen" data-no-i18n></div>
+                <div class="d-none mt-2" id="addStoryTagPanel">
+                  <input type="search" id="addStoryTagInput" class="form-control" maxlength="80" autocomplete="off" placeholder="Arkadaşlarında ara..." aria-label="Arkadaşlarında ara" oninput="drawStoryTagList()">
+                  <div class="story-music-results" id="addStoryTagList" data-no-i18n></div>
+                </div>
+              </div>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>

@@ -11,5 +11,8 @@ public interface IFileStorageService
     // Same as SaveImageAsync but for short video clips (stories); larger size limit, different allowed types.
     Task<string> SaveVideoAsync(IFormFile file, string folder);
 
+    // Makes a copy of an uploaded file (url from this store) in another folder and returns the copy's URL, so a copy can outlive the original.
+    Task<string> CopyAsync(string url, string folder);
+
     void Delete(string? url);
 }

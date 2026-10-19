@@ -64,6 +64,7 @@ public static class ServiceRegistration
         services.AddScoped<IStoryRepository, StoryRepository>();
         services.AddScoped<IStoryViewRepository, StoryViewRepository>();
         services.AddScoped<IStoryLikeRepository, StoryLikeRepository>();
+        services.AddScoped<IStoryTagRepository, StoryTagRepository>();
 
         // Messages
         services.AddScoped<IConversationRepository, ConversationRepository>();

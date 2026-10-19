@@ -853,3 +853,112 @@ body { overflow-wrap: break-word; }
   .bs-panel-title { display: none; } /* the tabs say it */
 }
 .bs-battle.is-wait .bs-boards .bs-panel-mine { display: block; } /* waiting: only my fleet, whatever tab was chosen */
+
+/* ---- Music on stories: the chip in the viewer, and the song picker in the add-story window ---- */
+.story-music-chip {
+  position: absolute; top: 62px; left: 12px; right: 12px; z-index: 3;
+  display: flex; align-items: center; gap: 8px; width: fit-content; max-width: calc(100% - 24px);
+  padding: 5px 6px 5px 10px; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 13px;
+}
+.story-music-art { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+.story-music-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.story-music-mute {
+  flex-shrink: 0; width: 44px; height: 44px; margin: -10px -6px -10px 0; border: 0; border-radius: 50%;
+  background: transparent; color: #fff; display: inline-flex; align-items: center; justify-content: center;
+}
+.story-music-picked {
+  display: flex; align-items: center; gap: 8px; margin-top: 4px; padding: 6px 10px;
+  border: 1px solid var(--bs-border-color); border-radius: 999px; font-size: 14px;
+}
+.story-music-results { max-height: 230px; overflow-y: auto; margin-top: 6px; border: 1px solid var(--bs-border-color); border-radius: 10px; }
+.story-music-results:empty { display: none; }
+.story-music-row { display: flex; align-items: center; gap: 4px; padding: 2px 4px; }
+.story-music-row + .story-music-row { border-top: 1px solid var(--bs-border-color); }
+.story-music-play { flex-shrink: 0; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: inherit; font-size: 22px; }
+.story-music-pick {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 6px 4px; border: 0;
+  background: transparent; color: inherit; text-align: left; font-size: 14px; line-height: 1.25;
+}
+.story-music-pick img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
+.story-music-pick:hover, .story-music-play:hover { background: var(--bs-tertiary-bg); }
+
+/* ---- Story tags and "add to your story": chips under the viewer header, the tag picker in the add-story window ---- */
+.story-info-stack {
+  position: absolute; top: 62px; left: 12px; right: 12px; z-index: 3;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; pointer-events: none;
+}
+.story-info-stack > * { pointer-events: auto; }
+.story-info-stack .story-music-chip { position: static; max-width: 100%; }
+.story-chip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 28px;
+  padding: 3px 10px 3px 4px; border-radius: 999px; background: rgba(0, 0, 0, .55); color: #fff;
+  font-size: 13px; text-decoration: none;
+}
+.story-chip:hover { color: #fff; background: rgba(0, 0, 0, .7); }
+.story-chip-avatar { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.story-chip-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.story-tags-row { display: flex; flex-wrap: wrap; gap: 6px; max-width: 100%; }
+.story-tags-row .story-chip { padding-left: 10px; }
+.story-reshare-btn {
+  position: absolute; left: 50%; bottom: 80px; transform: translateX(-50%); z-index: 3;
+  display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 22px;
+  border: 0; border-radius: 999px; background: #4a6cf7; color: #fff; font-weight: 600; font-size: 15px; white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .4);
+}
+.story-reshare-btn:disabled { opacity: .6; }
+.story-tag-chosen { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.story-tag-pill {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 2px 2px 2px 6px;
+  border: 1px solid var(--bs-border-color); border-radius: 999px; font-size: 14px;
+}
+.story-tag-remove {
+  flex-shrink: 0; width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent; color: inherit;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 12px;
+}
+.story-tag-remove:hover { background: var(--bs-tertiary-bg); }
+.story-tag-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 4px 10px;
+  border: 0; background: transparent; color: inherit; text-align: left; font-size: 14px;
+}
+.story-tag-row + .story-tag-row { border-top: 1px solid var(--bs-border-color); }
+.story-tag-row:hover, .story-tag-row.picked { background: var(--bs-tertiary-bg); }
+
+/* ---- Story viewer on wide screens: the story in the middle, the previous person's on the left and the next person's on the right ---- */
+.story-stage { position: relative; display: flex; align-items: center; justify-content: center; gap: 0; width: 100%; height: 100%; max-height: 100vh; }
+.story-side, .story-arrow { display: none; }
+@media (min-width: 992px) {
+  .story-viewer { background: rgba(12, 12, 16, .95); }
+  .story-stage { gap: 14px; }
+  .story-viewer-inner {
+    flex: 0 0 auto; height: min(calc(100vh - 40px), 860px); max-height: none; width: auto; aspect-ratio: 9 / 16; max-width: 100%;
+    border-radius: 12px; overflow: hidden;
+  }
+  .story-side {
+    display: block; position: relative; flex: 0 0 auto; width: 150px; height: min(52vh, 440px); border-radius: 12px; overflow: hidden;
+    background: #202026; cursor: pointer; opacity: .5; transition: opacity .2s, transform .2s; margin: 0 6px;
+  }
+  .story-side:hover, .story-side:focus-visible { opacity: .85; transform: scale(1.03); outline: none; }
+  .story-side.empty { visibility: hidden; pointer-events: none; }
+  .story-side > img, .story-side > video { width: 100%; height: 100%; object-fit: cover; display: block; filter: brightness(.7); }
+  .story-side-who {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; padding-bottom: 12px !important;
+    color: #fff; font-size: 12px; text-align: center; padding: 0 8px; background: linear-gradient(to top, rgba(0,0,0,.6), rgba(0,0,0,0) 45%);
+  }
+  .story-side-name { font-weight: 600; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .story-side-age { opacity: .8; }
+  .story-arrow {
+    display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 44px; height: 44px; border: 0; border-radius: 50%;
+    background: rgba(255, 255, 255, .85); color: #111; font-size: 18px;
+  }
+  .story-arrow:hover { background: #fff; }
+  .story-arrow.invisible { visibility: hidden; }
+  .story-viewer-image { border-radius: 0; }
+}
+/* A different person's story slides in from the side it was on. */
+@keyframes storySlideFromRight { from { transform: translateX(70px); opacity: .35; } to { transform: none; opacity: 1; } }
+@keyframes storySlideFromLeft { from { transform: translateX(-70px); opacity: .35; } to { transform: none; opacity: 1; } }
+.story-viewer-inner.slide-from-right { animation: storySlideFromRight .28s ease-out; }
+.story-viewer-inner.slide-from-left { animation: storySlideFromLeft .28s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .story-viewer-inner.slide-from-right, .story-viewer-inner.slide-from-left { animation: none; }
+}

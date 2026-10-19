@@ -87,7 +87,7 @@ function inviteCardHtml(invite) {
         <img src="${invite.groupCoverImageUrl || NO_PHOTO}" class="w-100" style="height:120px;object-fit:cover;" alt="">
         <div class="p-3">
           <div class="fw-bold">${escapeHtml(invite.groupName)}</div>
-          <div class="text-muted small mb-3"><b>${escapeHtml(invite.invitedByName)}</b> <span>seni davet etti</span></div>
+          <div class="text-muted small mb-3"><a href="profile.html?id=${invite.invitedByUserId}" class="fw-bold text-body text-decoration-none">${escapeHtml(invite.invitedByName)}</a> <span>seni davet etti</span></div>
           <div class="d-flex gap-2">
             <button class="btn btn-primary flex-fill rounded-pill" onclick="respondToInvite('${invite.groupId}', true, this)">Kabul Et</button>
             <button class="btn btn-light border flex-fill rounded-pill" onclick="respondToInvite('${invite.groupId}', false, this)">Reddet</button>

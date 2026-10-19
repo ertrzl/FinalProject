@@ -150,7 +150,7 @@ function inviteCardHtml(invite) {
           <div class="text-danger fw-bold small mb-1"><i class="bi bi-calendar3 me-1"></i>${formatEventRange(invite.startsAt, invite.endsAt)}</div>
           <div class="fw-bold fs-6"><a href="event.html?id=${invite.eventId}" class="text-body text-decoration-none">${escapeHtml(invite.title)}</a></div>
           <div class="text-muted small mb-1">${eventPlaceHtml(invite)}${invite.groupName ? ` · <i class="bi bi-people-fill me-1"></i>${escapeHtml(invite.groupName)}` : ""}</div>
-          <div class="text-muted small mb-3"><b>${escapeHtml(invite.invitedByName)}</b> <span>seni davet etti</span> · <span>${timeAgo(invite.invitedAt)}</span></div>
+          <div class="text-muted small mb-3"><a href="profile.html?id=${invite.invitedByUserId}" class="fw-bold text-body text-decoration-none">${escapeHtml(invite.invitedByName)}</a> <span>seni davet etti</span> · <span>${timeAgo(invite.invitedAt)}</span></div>
           <div class="d-flex gap-2">
             <button class="btn btn-primary btn-sm rounded-pill flex-fill" onclick="respondToEventInvite('${invite.eventId}', true, this)">Katılıyorum</button>
             <button class="btn btn-light border btn-sm rounded-pill flex-fill" onclick="respondToEventInvite('${invite.eventId}', false, this)">Reddet</button>

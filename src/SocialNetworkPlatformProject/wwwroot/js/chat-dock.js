@@ -79,7 +79,7 @@ function buildPopupShell(id) {
         <span class="position-absolute bottom-0 end-0 bg-success border border-1 border-white rounded-circle ${conv.isOtherUserOnline ? "" : "d-none"}" style="width:9px;height:9px;" data-presence-user="${conv.otherUserId}"></span>
       </div>
       <div class="flex-grow-1 overflow-hidden">
-        <div class="fw-bold small text-truncate">${escapeHtml(conv.otherUserName)}</div>
+        <div class="fw-bold small text-truncate"><a href="profile.html?id=${conv.otherUserId}" class="text-white text-decoration-none">${escapeHtml(conv.otherUserName)}</a></div>
         <div class="chat-typing d-none" style="font-size:11px;opacity:.85;">yazıyor...</div>
       </div>
       <button type="button" class="btn-close btn-close-white btn-sm" onclick="closeChatPopup('${id}')"></button>

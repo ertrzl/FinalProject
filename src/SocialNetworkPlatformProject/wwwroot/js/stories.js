@@ -128,7 +128,9 @@ function showStory(groupIndex, storyIndex) {
   const group = currentGroupItem();
   const story = currentStoryItem();
   document.getElementById("storyViewerAvatar").src = group.userAvatarUrl || DEFAULT_AVATAR;
-  document.getElementById("storyViewerName").textContent = group.userName;
+  const storyViewerName = document.getElementById("storyViewerName");
+  storyViewerName.textContent = group.userName;
+  storyViewerName.href = `profile.html?id=${group.userId}`;
   document.getElementById("storyViewerAge").textContent = storyAgeText(story.createdAt);
 
   // Own story: the eye counter (who watched), the heart count and delete. Somebody else's: the heart and the

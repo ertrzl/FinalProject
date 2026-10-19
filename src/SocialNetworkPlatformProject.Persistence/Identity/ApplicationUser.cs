@@ -27,8 +27,8 @@ public class ApplicationUser : IdentityUser<Guid>
     public bool ShowOnlineStatus { get; set; } = true;
 
     // Whether other people can see this user's friend list on the profile (the friend count is always shown).
-    // Off by default: the list is the owner's own until they open it.
-    public bool ShowFriendsList { get; set; } = false;
+    // On by default (people expect to find friends of friends); the owner can close it in settings.
+    public bool ShowFriendsList { get; set; } = true;
 
     // settings.html "Bildirim Tercihleri": which kinds of notification are created for this user at all
     // (see NotificationPreferences for which notification types belong to which switch).

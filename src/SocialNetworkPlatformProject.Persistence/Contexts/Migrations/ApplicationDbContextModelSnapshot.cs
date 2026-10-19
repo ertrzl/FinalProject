@@ -761,6 +761,25 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.ToTable("Hashtags");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.ListingBoost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SellerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SellerId", "CreatedAt");
+
+                    b.ToTable("ListingBoosts");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.ListingImage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -873,6 +892,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<int>("Condition")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -880,12 +902,23 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<DateTime>("ExpiresAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("DATEADD(day, 30, GETUTCDATE())");
+
+                    b.Property<DateTime?>("FeaturedUntil")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Location")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("RenewedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -909,6 +942,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.HasIndex("SellerId");
 
                     b.HasIndex("Status", "CreatedAt");
+
+                    b.HasIndex("Category", "Status", "ExpiresAt");
 
                     b.ToTable("MarketplaceListings");
                 });
@@ -1023,11 +1058,17 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("OfferId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("PostId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("PreviousAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("RecipientId")
                         .HasColumnType("uniqueidentifier");

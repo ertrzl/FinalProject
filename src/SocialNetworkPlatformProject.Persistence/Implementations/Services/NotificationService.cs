@@ -24,6 +24,7 @@ public class NotificationService : INotificationService
         NotificationType.MarketplaceOfferWithdrawn,
         NotificationType.MarketplaceOfferClosed,
         NotificationType.MarketplaceRatingReceived,
+        NotificationType.MarketplacePriceDropped,
         NotificationType.EventUpdated,
         NotificationType.EventCancelled,
         NotificationType.EventInviteReceived,
@@ -64,7 +65,7 @@ public class NotificationService : INotificationService
     public async Task CreateAsync(Guid recipientId, Guid actorId, NotificationType type,
         Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null, Guid? groupId = null,
         Guid? offerId = null, decimal? amount = null, Guid? eventId = null, string? subject = null, Guid? storyId = null,
-        Guid? gameId = null)
+        Guid? gameId = null, Guid? listingId = null, decimal? previousAmount = null)
     {
         // Nobody is notified about their own action, except reminders, which have no real actor (the organizer is
         // named as one so the notification has an origin, and the organizer gets reminded of their own event too).
@@ -104,8 +105,10 @@ public class NotificationService : INotificationService
             EventId = eventId,
             StoryId = storyId,
             GameId = gameId,
+            ListingId = listingId,
             Subject = subject,
-            Amount = amount
+            Amount = amount,
+            PreviousAmount = previousAmount
         };
 
         await _notifications.AddAsync(notification);
@@ -134,6 +137,8 @@ public class NotificationService : INotificationService
         // The subject holds a title for event notifications and the emoji's name for a reaction to a post.
         if (subject != null && type == NotificationType.PostLiked)
             dto.Reaction = subject;
+        else if (subject != null && type == NotificationType.MarketplacePriceDropped)
+            dto.ListingTitle = subject;
         else if (subject != null)
             dto.EventTitle = subject;
 
@@ -209,6 +214,8 @@ public class NotificationService : INotificationService
 
             if (items[i].Subject != null && items[i].Type == NotificationType.PostLiked)
                 dtos[i].Reaction = items[i].Subject;
+            else if (items[i].Subject != null && items[i].Type == NotificationType.MarketplacePriceDropped)
+                dtos[i].ListingTitle = items[i].Subject;
             else if (items[i].Subject != null)
                 dtos[i].EventTitle = items[i].Subject;
 
@@ -287,6 +294,18 @@ public class NotificationService : INotificationService
     public async Task DeleteByGroupAsync(Guid groupId)
     {
         var related = await _notifications.GetAll(n => n.GroupId == groupId).ToListAsync();
+        if (related.Count == 0)
+            return;
+
+        foreach (var notification in related)
+            _notifications.Delete(notification);
+
+        await _notifications.SaveChangesAsync();
+    }
+
+    public async Task DeleteByListingAsync(Guid listingId)
+    {
+        var related = await _notifications.GetAll(n => n.ListingId == listingId).ToListAsync();
         if (related.Count == 0)
             return;
 

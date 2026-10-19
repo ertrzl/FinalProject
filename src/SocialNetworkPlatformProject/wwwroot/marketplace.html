@@ -47,11 +47,26 @@
           <div class="fw-bold small text-muted mb-2">KONUM</div>
           <input type="text" id="filterLocation" class="form-control form-control-sm mb-3" placeholder="Şehir..." oninput="onFilterInput()" onchange="onFilterInput()">
 
+          <div class="fw-bold small text-muted mb-2">ÜRÜN DURUMU</div>
+          <select id="filterCondition" class="form-select form-select-sm mb-3" onchange="renderListings()">
+            <option value="">Hepsi</option>
+            <option value="New">Sıfır</option>
+            <option value="LikeNew">Sıfır gibi</option>
+            <option value="Good">İyi</option>
+            <option value="Fair">Orta</option>
+          </select>
+
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="filterIncludeSold" onchange="renderListings()">
+            <label class="form-check-label small" for="filterIncludeSold">Satılanları da göster</label>
+          </div>
+
           <div class="fw-bold small text-muted mb-2">SIRALAMA</div>
           <select id="filterSort" class="form-select form-select-sm mb-3" onchange="renderListings()">
             <option value="newest">En yeni</option>
             <option value="price_asc">Fiyat: artan</option>
             <option value="price_desc">Fiyat: azalan</option>
+            <option value="nearby">Bana yakın</option>
           </select>
 
           <button type="button" class="btn btn-sm btn-light w-100 rounded-pill" onclick="clearFilters()">Filtreleri Temizle</button>
@@ -119,6 +134,16 @@
           </div>
         </div>
         <div class="mb-3">
+          <label class="form-label fw-semibold small" for="sellCondition">Ürün Durumu</label>
+          <select id="sellCondition" class="form-select">
+            <option value="">Durum seç...</option>
+            <option value="New">Sıfır</option>
+            <option value="LikeNew">Sıfır gibi</option>
+            <option value="Good">İyi</option>
+            <option value="Fair">Orta</option>
+          </select>
+        </div>
+        <div class="mb-3">
           <label class="form-label fw-semibold small" for="sellLocation">Konum</label>
           <input type="text" id="sellLocation" class="form-control" placeholder="İstanbul, Türkiye">
         </div>
@@ -155,10 +180,10 @@
           <div class="col-md-6">
             <div class="d-flex align-items-center gap-2 mb-2">
               <div class="fs-4 fw-bold text-primary" id="listingModalPrice"></div>
-              <span class="badge text-bg-secondary d-none" id="listingModalSoldBadge">Satıldı</span>
-              <button type="button" class="btn btn-sm btn-light border rounded-circle ms-auto" onclick="copyListingLink()" title="Bağlantıyı kopyala"><i class="bi bi-link-45deg"></i></button>
-              <button type="button" id="listingModalSaveBtn" class="btn btn-sm btn-light border rounded-circle d-none" onclick="toggleSave(selectedListing.id, event)" title="Kaydet"><i class="bi bi-heart"></i></button>
+              <button type="button" class="btn btn-sm btn-light border rounded-circle ms-auto icon-btn-44" onclick="copyListingLink()" title="Bağlantıyı kopyala"><i class="bi bi-link-45deg"></i></button>
+              <button type="button" id="listingModalSaveBtn" class="btn btn-sm btn-light border rounded-circle icon-btn-44 d-none" onclick="toggleSave(selectedListing.id, event)" title="Kaydet"><i class="bi bi-heart"></i></button>
             </div>
+            <div class="d-flex flex-wrap gap-1 mb-2" id="listingModalBadges"></div>
             <div class="text-muted small mb-3" id="listingModalMeta"></div>
             <p id="listingModalDescription"></p>
             <hr>
@@ -170,13 +195,23 @@
               </div>
             </a>
             <div id="listingModalSellerRating" class="small mb-3" role="button" onclick="openSellerReviews(selectedListing.sellerId)"></div>
+            <div id="listingModalNotice" class="alert alert-secondary small py-2 mb-2 d-none"></div>
             <button type="button" id="listingModalOfferBtn" class="btn btn-success rounded-pill w-100 mb-2 d-none" onclick="onOfferButton()"></button>
             <button type="button" id="listingModalOwnerOffersBtn" class="btn btn-warning rounded-pill w-100 mb-2 d-none" onclick="goToOffers('received')"></button>
-            <a id="listingModalMessageLink" href="#" class="btn btn-primary rounded-pill w-100 mb-2"><i class="bi bi-chat-dots-fill me-1"></i>Satıcıya Mesaj Gönder</a>
+            <a id="listingModalMessageLink" href="#" class="btn btn-primary rounded-pill w-100 mb-2 d-none"><i class="bi bi-chat-dots-fill me-1"></i>Satıcıya Mesaj Gönder</a>
             <button type="button" id="listingModalReportBtn" class="btn btn-link btn-sm text-muted w-100 mb-2 d-none" onclick="reportListing()"><i class="bi bi-flag me-1"></i>Şikâyet et</button>
             <div id="listingOwnerActions" class="d-none flex-column gap-2">
+              <div class="small text-muted" id="listingOwnerExpiry"></div>
+              <div class="btn-group listing-status-group w-100" role="group" aria-label="İlan durumu">
+                <button type="button" id="statusBtnActive" class="btn btn-outline-success" onclick="setListingStatus('Active')">Satışta</button>
+                <button type="button" id="statusBtnReserved" class="btn btn-outline-warning" onclick="setListingStatus('Reserved')">Rezerve</button>
+                <button type="button" id="statusBtnSold" class="btn btn-outline-secondary" onclick="setListingStatus('Sold')">Satıldı</button>
+              </div>
+              <button type="button" id="listingModalRenewBtn" class="btn btn-warning rounded-pill w-100 d-none" onclick="renewListing()"><i class="bi bi-arrow-repeat me-1"></i>Yenile</button>
+              <div class="small text-muted d-none" id="listingModalRenewNote"></div>
+              <button type="button" id="listingModalFeatureBtn" class="btn btn-outline-primary rounded-pill w-100 d-none" onclick="featureListing()"><i class="bi bi-stars me-1"></i>Öne Çıkar</button>
+              <div class="small text-muted d-none" id="listingModalFeatureNote"></div>
               <button type="button" class="btn btn-light border rounded-pill w-100" onclick="openEditListing()"><i class="bi bi-pencil me-1"></i>Düzenle</button>
-              <button type="button" id="listingModalStatusBtn" class="btn btn-outline-success rounded-pill w-100" onclick="toggleListingSold()"></button>
               <button type="button" class="btn btn-outline-danger rounded-pill w-100" onclick="deleteListing()">İlanı Kaldır</button>
             </div>
           </div>
@@ -184,6 +219,10 @@
         <div id="sellerOtherSection" class="d-none mt-4 pt-3 border-top">
           <div class="fw-bold small text-muted mb-2">BU SATICININ DİĞER İLANLARI</div>
           <div class="row g-2" id="sellerOtherList"></div>
+        </div>
+        <div id="similarSection" class="d-none mt-4 pt-3 border-top">
+          <div class="fw-bold small text-muted mb-2">BENZER İLANLAR</div>
+          <div class="row g-2" id="similarList"></div>
         </div>
       </div>
     </div>

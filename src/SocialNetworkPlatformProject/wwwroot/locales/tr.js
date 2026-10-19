@@ -106,6 +106,7 @@ window.LOCALES.tr = {
   "notif.deletedListing": "silinmiş bir",
   "notif.gameInviteReceived": "{0} sana oyun teklif etti.",
   "notif.gameInviteAccepted": "{0} oyun davetini kabul etti.",
+  "notif.priceDropped": "{0} ilanının fiyatı {1}'den {2}'ye düştü.",
 
   // Games: X-O and rock-paper-scissors (game.html, games.html)
   "game.invitedYou": "{0} seni {1} oynamaya davet etti.",

@@ -13,6 +13,12 @@ public class MarketplaceListing : BaseEntity
     public string? Location { get; set; }
     public string? Description { get; set; }
     public ListingStatus Status { get; set; } = ListingStatus.Active;
+    public ListingCondition Condition { get; set; } = ListingCondition.Good;
+
+    // A listing lives 30 days; after that it is hidden from the public lists until its seller renews it.
+    public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddDays(30);
+    public DateTime? RenewedAt { get; set; } // last "Yenile", for the once-a-day limit
+    public DateTime? FeaturedUntil { get; set; } // "Öne Çıkar": shown first in the grid until this moment
 
     // Concurrency token: two people changing the same listing at once (e.g. two accepted offers) can't both win.
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();

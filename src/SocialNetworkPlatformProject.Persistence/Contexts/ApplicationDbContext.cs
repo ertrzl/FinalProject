@@ -58,6 +58,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<SellerRating> SellerRatings => Set<SellerRating>();
     public DbSet<ListingOffer> ListingOffers => Set<ListingOffer>();
     public DbSet<ListingOfferRound> ListingOfferRounds => Set<ListingOfferRound>();
+    public DbSet<ListingBoost> ListingBoosts => Set<ListingBoost>();
 
     // Events
     public DbSet<Event> Events => Set<Event>();

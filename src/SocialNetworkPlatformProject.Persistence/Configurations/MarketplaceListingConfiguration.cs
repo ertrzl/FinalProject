@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SocialNetworkPlatformProject.Domain.Entities;
+using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Persistence.Configurations;
 
@@ -21,5 +22,13 @@ public class MarketplaceListingConfiguration : IEntityTypeConfiguration<Marketpl
         // The public grid always filters on Status and sorts newest-first; "İlanlarım" filters on SellerId.
         builder.HasIndex(m => new { m.Status, m.CreatedAt });
         builder.HasIndex(m => m.SellerId);
+
+        // "Similar listings" looks inside one category and leaves out the expired ones.
+        builder.HasIndex(m => new { m.Category, m.Status, m.ExpiresAt });
+
+
+        // The service always sets ExpiresAt itself; this only gives listings that existed before the field a month from
+        // the migration (the migration may refine it per row, e.g. created + 30 days but at least a week from now).
+        builder.Property(m => m.ExpiresAt).HasDefaultValueSql("DATEADD(day, 30, GETUTCDATE())");
     }
 }

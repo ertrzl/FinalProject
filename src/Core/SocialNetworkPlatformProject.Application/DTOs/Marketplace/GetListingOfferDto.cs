@@ -9,7 +9,7 @@ public class GetListingOfferDto
     public string ListingTitle { get; set; } = string.Empty;
     public string? ListingImageUrl { get; set; }
     public decimal ListingPrice { get; set; } // the asking price
-    public string ListingStatus { get; set; } = string.Empty; // "Active" / "Sold"
+    public string ListingStatus { get; set; } = string.Empty; // "Active" / "Reserved" / "Sold"
 
     public Guid BuyerId { get; set; }
     public string BuyerName { get; set; } = string.Empty;

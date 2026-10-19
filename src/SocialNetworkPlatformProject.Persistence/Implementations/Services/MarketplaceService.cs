@@ -20,8 +20,12 @@ public class MarketplaceService : IMarketplaceService
     private readonly IListingImageRepository _images;
     private readonly ISavedListingRepository _saved;
     private readonly IListingOfferRepository _offers;
+    private readonly IListingBoostRepository _boosts;
     private readonly ISellerRatingRepository _ratings;
     private readonly IOfferService _offerService;
+    private readonly INotificationService _notifications;
+    private readonly IMessageService _messages;
+    private readonly IBlockService _blocks;
     private readonly IUserRepository _users;
     private readonly IFileStorageService _files;
     private readonly IMapper _mapper;
@@ -31,8 +35,12 @@ public class MarketplaceService : IMarketplaceService
         IListingImageRepository images,
         ISavedListingRepository saved,
         IListingOfferRepository offers,
+        IListingBoostRepository boosts,
         ISellerRatingRepository ratings,
         IOfferService offerService,
+        INotificationService notifications,
+        IMessageService messages,
+        IBlockService blocks,
         IUserRepository users,
         IFileStorageService files,
         IMapper mapper)
@@ -41,8 +49,12 @@ public class MarketplaceService : IMarketplaceService
         _images = images;
         _saved = saved;
         _offers = offers;
+        _boosts = boosts;
         _ratings = ratings;
         _offerService = offerService;
+        _notifications = notifications;
+        _messages = messages;
+        _blocks = blocks;
         _users = users;
         _files = files;
         _mapper = mapper;
@@ -56,8 +68,10 @@ public class MarketplaceService : IMarketplaceService
             Title = dto.Title.Trim(),
             Price = dto.Price,
             Category = dto.Category.Trim(),
+            Condition = ParseCondition(dto.Condition),
             Location = NullIfBlank(dto.Location),
-            Description = NullIfBlank(dto.Description)
+            Description = NullIfBlank(dto.Description),
+            ExpiresAt = DateTime.UtcNow.AddDays(MarketplaceLimits.ListingLifetimeDays)
         };
 
         foreach (var image in await SaveImagesAsync(dto.Images))
@@ -104,9 +118,12 @@ public class MarketplaceService : IMarketplaceService
         foreach (var image in remaining.Concat(added))
             image.SortOrder = order++;
 
+        var previousPrice = listing.Price;
+
         listing.Title = dto.Title.Trim();
         listing.Price = dto.Price;
         listing.Category = dto.Category.Trim();
+        listing.Condition = ParseCondition(dto.Condition);
         listing.Location = NullIfBlank(dto.Location);
         listing.Description = NullIfBlank(dto.Description);
 
@@ -115,12 +132,17 @@ public class MarketplaceService : IMarketplaceService
         foreach (var image in removed)
             _files.Delete(image.Url);
 
+        // A cut (never a raise) is told once, right when it is saved, to everyone who kept the listing in their favourites.
+        // Nobody needs the news for a listing that is sold or whose time is over.
+        if (listing.Price < previousPrice && listing.Status != ListingStatus.Sold && listing.ExpiresAt > DateTime.UtcNow)
+            await NotifyPriceDropAsync(listing, previousPrice);
+
         return (await BuildDtosAsync(new[] { listing }, currentUserId))[0];
     }
 
     public async Task<GetMarketplaceListingDto> SetStatusAsync(Guid currentUserId, Guid listingId, PutListingStatusDto dto)
     {
-        if (!Enum.TryParse<ListingStatus>(dto.Status, out var status))
+        if (!Enum.TryParse<ListingStatus>(dto.Status, out var status) || !Enum.IsDefined(status))
             throw new BadRequestException(Loc.T("listing.status"));
 
         var listing = await GetOwnedListingAsync(currentUserId, listingId, Loc.T("listing.statusOwn"));
@@ -128,11 +150,63 @@ public class MarketplaceService : IMarketplaceService
         var becomesSold = status == ListingStatus.Sold && listing.Status != ListingStatus.Sold;
 
         listing.Status = status;
+
+        // A sold listing is no longer shown first; the weekly boost limit is not given back (it counts boosts, not listings).
+        if (status == ListingStatus.Sold)
+            listing.FeaturedUntil = null;
+
         await _listings.SaveChangesAsync();
 
-        // Selling it outside the offer flow ends every running negotiation on it.
+        // Selling it outside the offer flow ends every running negotiation on it. Reserving it does not: the
+        // reserved buyer's negotiation must be able to finish.
         if (becomesSold)
             await _offerService.CloseOpenOffersAsync(currentUserId, listing.Id);
+
+        return (await BuildDtosAsync(new[] { listing }, currentUserId))[0];
+    }
+
+    public async Task<GetMarketplaceListingDto> RenewAsync(Guid currentUserId, Guid listingId)
+    {
+        var listing = await GetOwnedListingAsync(currentUserId, listingId, Loc.T("listing.renewOwn"));
+        var now = DateTime.UtcNow;
+
+        if (listing.Status == ListingStatus.Sold)
+            throw new BadRequestException(Loc.T("listing.renewSold"));
+
+        // Renewing is for a listing whose time is over or nearly over; renewing a fresh one would only waste the daily allowance.
+        if (!InRenewWindow(listing, now))
+            throw new BadRequestException(Loc.T("listing.renewNotNeeded", MarketplaceLimits.RenewWindowDays));
+
+        var nextRenewAt = listing.RenewedAt?.AddHours(MarketplaceLimits.RenewCooldownHours);
+        if (nextRenewAt > now)
+            throw new BadRequestException(Loc.T("listing.renewCooldown", WaitText(nextRenewAt.Value - now)));
+
+        listing.ExpiresAt = now.AddDays(MarketplaceLimits.ListingLifetimeDays);
+        listing.RenewedAt = now;
+        await _listings.SaveChangesAsync();
+
+        return (await BuildDtosAsync(new[] { listing }, currentUserId))[0];
+    }
+
+    public async Task<GetMarketplaceListingDto> FeatureAsync(Guid currentUserId, Guid listingId)
+    {
+        var listing = await GetOwnedListingAsync(currentUserId, listingId, Loc.T("listing.featureOwn"));
+        var now = DateTime.UtcNow;
+
+        if (listing.Status != ListingStatus.Active || listing.ExpiresAt <= now)
+            throw new BadRequestException(Loc.T("listing.featureNotActive"));
+
+        if (await _listings.HasFeaturedAsync(currentUserId, now))
+            throw new BadRequestException(Loc.T("listing.featureRunning"));
+
+        var nextFeatureAt = (await _boosts.GetLastBoostAtAsync(currentUserId))?.AddDays(MarketplaceLimits.FeatureCooldownDays);
+        if (nextFeatureAt > now)
+            throw new BadRequestException(Loc.T("listing.featureCooldown", WaitText(nextFeatureAt.Value - now)));
+
+        // Listing and boost row share one context, so this single save keeps them together.
+        listing.FeaturedUntil = now.AddHours(MarketplaceLimits.FeatureHours);
+        await _boosts.AddAsync(new ListingBoost { SellerId = currentUserId });
+        await _listings.SaveChangesAsync();
 
         return (await BuildDtosAsync(new[] { listing }, currentUserId))[0];
     }
@@ -142,22 +216,43 @@ public class MarketplaceService : IMarketplaceService
         var listing = await _listings.GetByIdAsync(listingId, ListingIncludes)
             ?? throw new NotFoundException(Loc.T("listing.notFound"));
 
-        return (await BuildDtosAsync(new[] { listing }, currentUserId))[0];
+        return (await BuildDtosAsync(new[] { listing }, currentUserId, includeMessaging: true))[0];
+    }
+
+    public async Task<List<GetMarketplaceListingDto>> GetSimilarAsync(Guid currentUserId, Guid listingId)
+    {
+        var listing = await _listings.GetByIdAsync(listingId)
+            ?? throw new NotFoundException(Loc.T("listing.notFound"));
+
+        var hidden = await _blocks.GetBlockedIdsAsync(currentUserId);
+        var similar = await _listings.GetSimilarAsync(listing, currentUserId, hidden, DateTime.UtcNow, MarketplaceLimits.MaxSimilarListings);
+
+        return await BuildDtosAsync(similar, currentUserId);
     }
 
     public async Task<PagedResult<GetMarketplaceListingDto>> GetListingsAsync(Guid currentUserId, MarketplaceListingQuery query)
     {
         var page = Math.Max(query.Page, 1);
         var pageSize = Math.Clamp(query.PageSize, 1, 50);
+        var now = DateTime.UtcNow;
 
         var category = NullIfBlank(query.Category);
         var term = NullIfBlank(query.Search);
         var location = NullIfBlank(query.Location);
+        var includeSold = query.IncludeSold;
 
-        var listings = _listings.GetAll(l => l.Status == ListingStatus.Active, asNoTracking: true, includes: ListingIncludes);
+        // Sold listings only on request; everything else must still be inside its 30 days. Reserved ones stay in the
+        // grid (with their badge): the item is not gone yet, and the deal may fall through.
+        var listings = _listings.GetAll(
+            l => l.Status == ListingStatus.Sold ? includeSold : l.ExpiresAt > now,
+            asNoTracking: true,
+            includes: ListingIncludes);
 
         if (category != null)
             listings = listings.Where(l => l.Category == category);
+
+        if (MarketplaceConditions.TryParse(NullIfBlank(query.Condition), out var condition))
+            listings = listings.Where(l => l.Condition == condition);
 
         if (term != null)
             listings = listings.Where(l => l.Title.Contains(term) || (l.Description != null && l.Description.Contains(term)));
@@ -181,7 +276,12 @@ public class MarketplaceService : IMarketplaceService
         {
             MarketplaceSort.PriceAsc => listings.OrderBy(l => l.Price).ThenByDescending(l => l.CreatedAt).ThenBy(l => l.Id),
             MarketplaceSort.PriceDesc => listings.OrderByDescending(l => l.Price).ThenByDescending(l => l.CreatedAt).ThenBy(l => l.Id),
-            _ => listings.OrderByDescending(l => l.CreatedAt).ThenBy(l => l.Id)
+            MarketplaceSort.Nearby => await OrderNearbyAsync(listings, currentUserId),
+            // Featured ("Öne Çıkan") listings come first; inside each group, newest first.
+            _ => listings
+                .OrderByDescending(l => l.Status == ListingStatus.Active && l.FeaturedUntil != null && l.FeaturedUntil > now)
+                .ThenByDescending(l => l.CreatedAt)
+                .ThenBy(l => l.Id)
         };
 
         var items = await ordered.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -193,6 +293,26 @@ public class MarketplaceService : IMarketplaceService
             PageSize = pageSize,
             TotalCount = total
         };
+    }
+
+    // "Bana yakın": listings whose place contains the viewer's profile city come first, then the ones that share its
+    // last part (the country, in "İstanbul, Türkiye"), then the rest; newest first inside each group. A viewer without
+    // a place on their profile simply gets the newest-first order.
+    private async Task<IOrderedQueryable<MarketplaceListing>> OrderNearbyAsync(IQueryable<MarketplaceListing> listings, Guid currentUserId)
+    {
+        var parts = (await _users.GetLocationAsync(currentUserId))?
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? Array.Empty<string>();
+
+        if (parts.Length == 0)
+            return listings.OrderByDescending(l => l.CreatedAt).ThenBy(l => l.Id);
+
+        var city = parts[0];
+        var region = parts[^1];
+
+        return listings
+            .OrderBy(l => l.Location != null && l.Location.Contains(city) ? 0 : (l.Location != null && l.Location.Contains(region) ? 1 : 2))
+            .ThenByDescending(l => l.CreatedAt)
+            .ThenBy(l => l.Id);
     }
 
     public async Task<List<GetMarketplaceListingDto>> GetMyListingsAsync(Guid currentUserId)
@@ -253,6 +373,9 @@ public class MarketplaceService : IMarketplaceService
 
         foreach (var url in imageUrls)
             _files.Delete(url);
+
+        // Price-drop alerts about it would only lead to a listing that is gone.
+        await _notifications.DeleteByListingAsync(listingId);
     }
 
     private async Task<MarketplaceListing> GetOwnedListingAsync(Guid currentUserId, Guid listingId, string forbiddenMessage, bool asAdmin = false)
@@ -264,6 +387,42 @@ public class MarketplaceService : IMarketplaceService
             throw new ForbiddenException(forbiddenMessage);
 
         return listing;
+    }
+
+    private async Task NotifyPriceDropAsync(MarketplaceListing listing, decimal previousPrice)
+    {
+        foreach (var userId in await _saved.GetSaverIdsAsync(listing.Id))
+        {
+            // The title is a snapshot (Subject): the alert still reads right if the listing is renamed later.
+            await _notifications.CreateAsync(userId, listing.SellerId, NotificationType.MarketplacePriceDropped,
+                subject: listing.Title, amount: listing.Price, previousAmount: previousPrice, listingId: listing.Id);
+        }
+    }
+
+    // Expired, or about to expire (the last RenewWindowDays days): the only time "Yenile" makes sense.
+    private static bool InRenewWindow(MarketplaceListing listing, DateTime now)
+    {
+        return listing.ExpiresAt - now <= TimeSpan.FromDays(MarketplaceLimits.RenewWindowDays);
+    }
+
+    // "5 saat", "2 gün": how long until a limit ends, in the unit that fits.
+    private static string WaitText(TimeSpan wait)
+    {
+        if (wait.TotalHours < 1)
+            return Loc.T("listing.wait.minutes", Math.Max(1, (int)Math.Ceiling(wait.TotalMinutes)));
+
+        if (wait.TotalHours < 48)
+            return Loc.T("listing.wait.hours", (int)Math.Ceiling(wait.TotalHours));
+
+        return Loc.T("listing.wait.days", (int)Math.Ceiling(wait.TotalDays));
+    }
+
+    private static ListingCondition ParseCondition(string value)
+    {
+        // The validators already checked it; this only keeps a bad value from ever reaching the database.
+        return MarketplaceConditions.TryParse(value, out var condition)
+            ? condition
+            : throw new BadRequestException(Loc.T("val.listing.condition"));
     }
 
     // Saves the files in order; if one is rejected, the ones already written are removed again.
@@ -293,10 +452,13 @@ public class MarketplaceService : IMarketplaceService
         return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
-    // Fills in what AutoMapper can't: seller display info and the per-viewer "saved" flag (one batched query).
-    private async Task<List<GetMarketplaceListingDto>> BuildDtosAsync(IEnumerable<MarketplaceListing> listings, Guid currentUserId)
+    // Fills in what AutoMapper can't: seller display info, the per-viewer flags and the seller's own limits (a few
+    // batched queries, never one per listing). includeMessaging asks the messaging rule per seller, so only the
+    // single-listing detail pays for it.
+    private async Task<List<GetMarketplaceListingDto>> BuildDtosAsync(IEnumerable<MarketplaceListing> listings, Guid currentUserId, bool includeMessaging = false)
     {
         var list = listings.ToList();
+        var now = DateTime.UtcNow;
         var listingIds = list.Select(l => l.Id).ToList();
         var sellers = await _users.GetSummariesAsync(list.Select(l => l.SellerId));
         var savedIds = (await _saved.GetAll(s => s.UserId == currentUserId && listingIds.Contains(s.ListingId), asNoTracking: true)
@@ -319,21 +481,48 @@ public class MarketplaceService : IMarketplaceService
                 .ToListAsync())
             .ToDictionary(x => x.SellerId);
 
+        // The viewer's own boost state is the same for all their listings, so it is asked once.
+        var hasOwn = list.Any(l => l.SellerId == currentUserId);
+        var hasFeatured = hasOwn && await _listings.HasFeaturedAsync(currentUserId, now);
+        var nextFeatureAt = hasOwn
+            ? (await _boosts.GetLastBoostAtAsync(currentUserId))?.AddDays(MarketplaceLimits.FeatureCooldownDays)
+            : null;
+
+        // Whether the viewer may write to each seller (private accounts, blocks): asked once per seller.
+        var canMessage = new Dictionary<Guid, bool>();
+        if (includeMessaging)
+        {
+            foreach (var sellerId in sellerIds.Where(id => id != currentUserId))
+                canMessage[sellerId] = await _messages.CanMessageAsync(currentUserId, sellerId);
+        }
+
         var dtos = _mapper.Map<List<GetMarketplaceListingDto>>(list);
         for (var i = 0; i < dtos.Count; i++)
         {
-            if (sellerRatings.TryGetValue(list[i].SellerId, out var rated))
+            var listing = list[i];
+
+            if (sellerRatings.TryGetValue(listing.SellerId, out var rated))
             {
                 dtos[i].SellerRatingAverage = rated.Average;
                 dtos[i].SellerRatingCount = rated.Count;
             }
 
-            dtos[i].IsSavedByCurrentUser = savedIds.Contains(list[i].Id);
-            dtos[i].MyOpenOfferId = openOffers.FirstOrDefault(o => o.ListingId == list[i].Id && o.BuyerId == currentUserId)?.Id;
-            if (list[i].SellerId == currentUserId)
-                dtos[i].OpenOfferCount = openOffers.Count(o => o.ListingId == list[i].Id);
+            // A sold listing never expires: its time no longer matters.
+            dtos[i].IsExpired = listing.Status != ListingStatus.Sold && listing.ExpiresAt <= now;
+            dtos[i].IsFeatured = listing.Status == ListingStatus.Active && !dtos[i].IsExpired
+                && listing.FeaturedUntil != null && listing.FeaturedUntil > now;
+            dtos[i].CanMessageSeller = canMessage.TryGetValue(listing.SellerId, out var allowed) && allowed;
 
-            if (sellers.TryGetValue(list[i].SellerId, out var seller))
+            dtos[i].IsSavedByCurrentUser = savedIds.Contains(listing.Id);
+            dtos[i].MyOpenOfferId = openOffers.FirstOrDefault(o => o.ListingId == listing.Id && o.BuyerId == currentUserId)?.Id;
+
+            if (listing.SellerId == currentUserId)
+            {
+                dtos[i].OpenOfferCount = openOffers.Count(o => o.ListingId == listing.Id);
+                FillOwnerLimits(dtos[i], listing, now, hasFeatured, nextFeatureAt);
+            }
+
+            if (sellers.TryGetValue(listing.SellerId, out var seller))
             {
                 dtos[i].SellerName = seller.FullName;
                 dtos[i].SellerAvatarUrl = seller.AvatarUrl;
@@ -341,5 +530,22 @@ public class MarketplaceService : IMarketplaceService
         }
 
         return dtos;
+    }
+
+    // What "Yenile" and "Öne Çıkar" may do right now for the seller, and when a closed one opens up again.
+    private static void FillOwnerLimits(GetMarketplaceListingDto dto, MarketplaceListing listing, DateTime now, bool hasFeatured, DateTime? nextFeatureAt)
+    {
+        if (listing.Status != ListingStatus.Sold && InRenewWindow(listing, now))
+        {
+            var nextRenewAt = listing.RenewedAt?.AddHours(MarketplaceLimits.RenewCooldownHours);
+            dto.CanRenew = !(nextRenewAt > now);
+            dto.NextRenewAt = nextRenewAt > now ? nextRenewAt : null;
+        }
+
+        if (listing.Status == ListingStatus.Active && listing.ExpiresAt > now)
+        {
+            dto.CanFeature = !hasFeatured && !(nextFeatureAt > now);
+            dto.NextFeatureAt = nextFeatureAt > now ? nextFeatureAt : null;
+        }
     }
 }

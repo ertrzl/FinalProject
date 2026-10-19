@@ -85,6 +85,7 @@ public static class ServiceRegistration
         services.AddScoped<ISellerRatingRepository, SellerRatingRepository>();
         services.AddScoped<IListingOfferRepository, ListingOfferRepository>();
         services.AddScoped<IListingOfferRoundRepository, ListingOfferRoundRepository>();
+        services.AddScoped<IListingBoostRepository, ListingBoostRepository>();
 
         // Events
         services.AddScoped<IEventRepository, EventRepository>();

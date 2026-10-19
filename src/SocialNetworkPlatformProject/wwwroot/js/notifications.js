@@ -27,6 +27,7 @@ const NOTIF_ICON = {
   MarketplaceOfferWithdrawn: { badge: "bg-secondary", icon: "bi-arrow-counterclockwise" },
   MarketplaceOfferClosed: { badge: "bg-secondary", icon: "bi-lock-fill" },
   MarketplaceRatingReceived: { badge: "bg-warning", icon: "bi-star-fill" },
+  MarketplacePriceDropped: { badge: "bg-success", icon: "bi-graph-down-arrow" },
   EventUpdated: { badge: "bg-info", icon: "bi-calendar-event-fill" },
   EventCancelled: { badge: "bg-danger", icon: "bi-calendar-x-fill" },
   EventInviteReceived: { badge: "bg-info", icon: "bi-calendar-plus-fill" },
@@ -87,6 +88,7 @@ const NOTIF_TEXT = {
   MarketplaceOfferWithdrawn: n => i18n("notif.offerWithdrawn", notifPerson(n), offerListing(n)),
   MarketplaceOfferClosed: n => i18n("notif.offerClosed", offerListing(n)),
   MarketplaceRatingReceived: n => i18n("notif.ratingReceived", notifPerson(n), offerListing(n), starsHtml(n.amount)),
+  MarketplacePriceDropped: n => i18n("notif.priceDropped", offerListing(n), notifBold(offerMoney(n.previousAmount)), notifBold(offerMoney(n.amount))),
   EventUpdated: n => i18n("notif.eventUpdated", notifPerson(n), notifEventName(n)),
   EventCancelled: n => i18n("notif.eventCancelled", notifPerson(n), notifEventName(n)),
   EventInviteReceived: n => i18n("notif.eventInvite", notifPerson(n), notifEventName(n)),
@@ -127,6 +129,8 @@ function notificationHtml(n) {
     actions = `<a href="post.html?id=${n.postId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Gönderiyi Gör</a>`;
   } else if (n.type === "StoryMentioned" || n.type === "StoryReshared") {
     actions = `<a href="home.html" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Hikâyelere Git</a>`;
+  } else if (n.type === "MarketplacePriceDropped" && n.listingId) {
+    actions = `<a href="marketplace.html?listing=${n.listingId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">İlana Git</a>`;
   } else if (n.type.startsWith("MarketplaceOffer")) {
     actions = `<a href="marketplace.html?view=offers" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Teklifleri Gör</a>`;
   } else if (n.type === "GroupInviteReceived" && !n.isRead) {

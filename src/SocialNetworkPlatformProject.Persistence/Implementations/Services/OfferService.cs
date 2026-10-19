@@ -52,8 +52,16 @@ public class OfferService : IOfferService
         if (await _blocks.AreBlockedAsync(currentUserId, listing.SellerId))
             throw new ForbiddenException(Loc.T("block.cannotOffer"));
 
-        if (listing.Status != ListingStatus.Active)
+        // Reserved means the seller promised it to somebody: no new bargaining starts, but the negotiations already
+        // running stay open (see LoadAnswerableOfferAsync) so the reserved buyer can still close the deal.
+        if (listing.Status == ListingStatus.Sold)
             throw new BadRequestException(Loc.T("offer.notForSale"));
+
+        if (listing.Status == ListingStatus.Reserved)
+            throw new BadRequestException(Loc.T("offer.reserved"));
+
+        if (listing.ExpiresAt <= DateTime.UtcNow)
+            throw new BadRequestException(Loc.T("offer.expired"));
 
         if (dto.Price > listing.Price)
             throw new BadRequestException(Loc.T("offer.tooHigh", Format(listing.Price)));
@@ -252,7 +260,8 @@ public class OfferService : IOfferService
         if (offer.LastProposerId == currentUserId)
             throw new BadRequestException(Loc.T("offer.otherTurn"));
 
-        if (offer.Listing!.Status != ListingStatus.Active)
+        // A reserved listing keeps its running negotiations alive; only a sold one ends them.
+        if (offer.Listing!.Status == ListingStatus.Sold)
             throw new BadRequestException(Loc.T("offer.notForSale"));
 
         return offer;

@@ -22,6 +22,10 @@ public abstract class MarketplaceListingInputValidator<T> : AbstractValidator<T>
             .Must(c => MarketplaceCategories.All.Contains(c))
             .WithMessage(_ => Loc.T("val.listing.category", string.Join(", ", MarketplaceCategories.All)));
 
+        RuleFor(x => x.Condition)
+            .Must(c => MarketplaceConditions.All.Contains(c))
+            .WithMessage(_ => Loc.T("val.listing.condition"));
+
         RuleFor(x => x.Location).MaximumLength(200);
         RuleFor(x => x.Description).MaximumLength(2000);
 

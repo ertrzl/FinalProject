@@ -76,6 +76,14 @@ public class UserRepository : IUserRepository
         return await _context.Users.AnyAsync(u => u.Id == id);
     }
 
+    public async Task<string?> GetLocationAsync(Guid id)
+    {
+        return await _context.Users.AsNoTracking()
+            .Where(u => u.Id == id)
+            .Select(u => u.Location)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<string?> GetSecurityStampAsync(Guid id)
     {
         return await _context.Users.AsNoTracking()
@@ -304,6 +312,7 @@ public class UserRepository : IUserRepository
         await _context.Set<SellerRating>().Where(r => r.BuyerId == userId || r.SellerId == userId).ExecuteDeleteAsync();
         await _context.Set<ListingOffer>().Where(o => o.BuyerId == userId).ExecuteDeleteAsync();
         await _context.Set<SavedListing>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
+        await _context.Set<ListingBoost>().Where(b => b.SellerId == userId).ExecuteDeleteAsync();
         await _context.Set<MarketplaceListing>().Where(l => l.SellerId == userId).ExecuteDeleteAsync();
 
         await _context.Set<EventComment>().Where(c => c.AuthorId == userId).ExecuteDeleteAsync();

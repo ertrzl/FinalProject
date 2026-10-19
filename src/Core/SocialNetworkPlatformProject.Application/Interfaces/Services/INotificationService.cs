@@ -10,7 +10,7 @@ public interface INotificationService
     Task CreateAsync(Guid recipientId, Guid actorId, NotificationType type,
         Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null, Guid? groupId = null,
         Guid? offerId = null, decimal? amount = null, Guid? eventId = null, string? subject = null, Guid? storyId = null,
-        Guid? gameId = null);
+        Guid? gameId = null, Guid? listingId = null, decimal? previousAmount = null);
 
     Task<PagedResult<GetNotificationDto>> GetMyNotificationsAsync(Guid currentUserId, int page, int pageSize);
 
@@ -31,4 +31,7 @@ public interface INotificationService
 
     // Same for notifications about a group that was deleted (invites, join requests, role changes...).
     Task DeleteByGroupAsync(Guid groupId);
+
+    // Same for notifications about a listing that was deleted (price-drop alerts).
+    Task DeleteByListingAsync(Guid listingId);
 }

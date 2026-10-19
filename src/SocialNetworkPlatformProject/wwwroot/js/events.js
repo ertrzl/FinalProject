@@ -25,7 +25,9 @@ function eventCardHtml(ev) {
             <button class="btn btn-light border btn-sm rounded-pill flex-fill text-danger" onclick="deleteEvent('${ev.id}')"><i class="bi bi-trash me-1"></i>Sil</button>
           </div>` : ""}
           ${ev.isPast
-            ? `<div class="text-center text-muted small py-1"><i class="bi bi-check2-circle me-1"></i>Sona erdi${ev.currentUserStatus === "Going" ? " · katıldın" : ev.currentUserStatus === "Interested" ? " · ilgileniyordun" : ""}</div>`
+            ? (ev.myCheckedIn
+              ? `<div class="text-center text-success small fw-semibold py-1"><i class="bi bi-patch-check-fill me-1"></i>Katıldın</div>`
+              : `<div class="text-center text-muted small py-1"><i class="bi bi-check2-circle me-1"></i>Sona erdi${ev.currentUserStatus === "Going" ? " · katıldın" : ev.currentUserStatus === "Interested" ? " · ilgileniyordun" : ""}</div>`)
             : `<div class="d-flex gap-2">
             <button class="btn ${primary.css} btn-sm rounded-pill flex-fill" onclick="setEventStatus('${ev.id}', '${primary.status}')">${primary.label}</button>
             <button class="btn ${interestedBtnClass} btn-sm rounded-pill flex-fill" onclick="setEventStatus('${ev.id}', 'Interested')">${interestedLabel}</button>

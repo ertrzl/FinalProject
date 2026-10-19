@@ -15,19 +15,22 @@ public class EventDtoBuilder : IEventDtoBuilder
     private readonly IGroupRepository _groups;
     private readonly IEventInviteRepository _invites;
     private readonly IEventAttendeeRepository _attendees;
+    private readonly IEventPhotoRepository _photos;
 
     public EventDtoBuilder(
         IMapper mapper,
         IUserRepository users,
         IGroupRepository groups,
         IEventInviteRepository invites,
-        IEventAttendeeRepository attendees)
+        IEventAttendeeRepository attendees,
+        IEventPhotoRepository photos)
     {
         _mapper = mapper;
         _users = users;
         _groups = groups;
         _invites = invites;
         _attendees = attendees;
+        _photos = photos;
     }
 
     public GetEventDto Build(Event source, Guid viewerId)
@@ -58,6 +61,8 @@ public class EventDtoBuilder : IEventDtoBuilder
     public async Task<GetEventDto> BuildDetailAsync(Event source, Guid viewerId)
     {
         var dto = Build(source, viewerId);
+
+        dto.PhotoCount = await _photos.CountByEventAsync(source.Id);
 
         var organizer = await _users.GetSummaryAsync(source.CreatedByUserId);
         dto.CreatedByName = organizer?.FullName;
@@ -91,7 +96,8 @@ public class EventDtoBuilder : IEventDtoBuilder
             source.Attendees.Count(a => a.Status == EventAttendeeStatus.Interested),
             waitlist.Count,
             mine?.Status,
-            mine?.Status == EventAttendeeStatus.Waitlisted ? waitlist.FindIndex(a => a.UserId == viewerId) + 1 : 0);
+            mine?.Status == EventAttendeeStatus.Waitlisted ? waitlist.FindIndex(a => a.UserId == viewerId) + 1 : 0,
+            mine?.CheckedInAt != null);
     }
 
     private GetEventDto Fill(Event source, EventAttendance attendance, Guid viewerId)
@@ -101,6 +107,7 @@ public class EventDtoBuilder : IEventDtoBuilder
         dto.InterestedCount = attendance.Interested;
         dto.CurrentUserStatus = attendance.MyStatus?.ToString() ?? "None";
         dto.IsOwner = source.CreatedByUserId == viewerId;
+        dto.MyCheckedIn = attendance.MyCheckedIn;
 
         dto.IsFull = source.IsFullWith(attendance.Going);
         dto.SpotsLeft = source.Capacity.HasValue ? Math.Max(source.Capacity.Value - attendance.Going, 0) : null;

@@ -9,6 +9,11 @@ public abstract class EventInputDto
     public string? Description { get; set; }
     public string? Location { get; set; }
 
+    // The pin chosen on the map picker: both or neither. Text, not numbers, because a form field is read in the culture
+    // of the request (see EventCoordinates). Ignored for an online event.
+    public string? Latitude { get; set; }
+    public string? Longitude { get; set; }
+
     // Moments in time: the browser sends them with an offset ("...Z"); EventService normalizes them to UTC.
     public DateTime StartsAt { get; set; }
     public DateTime? EndsAt { get; set; } // null = start + EventLimits.DefaultDuration

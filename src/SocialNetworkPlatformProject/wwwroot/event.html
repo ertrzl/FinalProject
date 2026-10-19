@@ -51,15 +51,38 @@
       </div>
     </div>
 
+    <ul class="nav nav-pills gap-2 mb-3 ev-tabs" id="evTabs">
+      <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="pill" data-bs-target="#evPane-about">Detaylar</button></li>
+      <li class="nav-item"><button type="button" class="nav-link text-muted" data-bs-toggle="pill" data-bs-target="#evPane-discussion">Tartışma</button></li>
+      <li class="nav-item"><button type="button" class="nav-link text-muted" id="evPhotosTab" data-bs-toggle="pill" data-bs-target="#evPane-photos">Fotoğraflar (0)</button></li>
+      <li class="nav-item d-none" id="evAttendanceTabItem"><button type="button" class="nav-link text-muted" id="evAttendanceTab" data-bs-toggle="pill" data-bs-target="#evPane-attendance">Yoklama</button></li>
+    </ul>
+
+    <div class="tab-content">
+
+    <div class="tab-pane fade show active" id="evPane-about"><div>
+
     <div class="card border-0 shadow-sm rounded-4 p-4 mb-3" id="evAboutCard">
       <h2 class="h6 fw-bold mb-2">Hakkında</h2>
       <div id="evDescription" data-no-i18n class="text-break" style="white-space: pre-wrap;"></div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-3 d-none" id="evMapCard">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h2 class="h6 fw-bold mb-0">Harita</h2>
+        <a id="evDirections" class="btn btn-light border btn-sm rounded-pill ev-touch" href="#" target="_blank" rel="noopener noreferrer"><i class="bi bi-sign-turn-right me-1"></i>Yol tarifi</a>
+      </div>
+      <div id="evMap" class="event-map"></div>
     </div>
 
     <div class="card border-0 shadow-sm rounded-4 p-4 mb-3">
       <h2 class="h6 fw-bold mb-3">Katılımcılar</h2>
       <div id="evAttendees"><div class="text-muted small">Yükleniyor...</div></div>
     </div>
+
+    </div></div>
+
+    <div class="tab-pane fade" id="evPane-discussion"><div>
 
     <div class="card border-0 shadow-sm rounded-4 p-4 mb-3">
       <h2 class="h6 fw-bold mb-3">Tartışma</h2>
@@ -79,9 +102,71 @@
       </div>
     </div>
 
+    </div></div>
+
+    <div class="tab-pane fade" id="evPane-photos"><div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-3">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+        <h2 class="h6 fw-bold mb-0">Fotoğraflar</h2>
+        <button type="button" class="btn btn-primary btn-sm rounded-pill ev-touch d-none" id="evPhotoAddBtn" onclick="document.getElementById('evPhotoInput').click()"><i class="bi bi-camera-fill me-1"></i>Fotoğraf Ekle</button>
+        <input type="file" id="evPhotoInput" class="d-none" accept="image/*" multiple onchange="uploadEventPhotos(this)">
+      </div>
+      <div class="text-muted small mb-3" id="evPhotoInfo"></div>
+      <div id="evPhotoGrid" class="ev-photo-grid"><div class="text-muted small">Yükleniyor...</div></div>
+    </div>
+
+    </div></div>
+
+    <div class="tab-pane fade" id="evPane-attendance"><div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-3">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+        <h2 class="h6 fw-bold mb-0">Yoklama</h2>
+        <span class="badge text-bg-light border fs-6 fw-semibold" id="evCheckInCount"></span>
+      </div>
+      <div class="text-muted small mb-3" id="evCheckInInfo"></div>
+      <div id="evCheckInList"><div class="text-muted small">Yükleniyor...</div></div>
+    </div>
+
+    </div></div>
+
+    </div>
+
   </div>
 </div>
 </div>
+</div>
+
+<!-- Share the event to the feed: a post on your own feed with the event as a card -->
+<div class="modal fade" id="shareEventModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Gönderide Paylaş</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="shared-post small mb-3">
+          <div class="fw-semibold text-break" id="shareEventTitle" data-no-i18n></div>
+          <div class="text-muted" id="shareEventWhen" data-no-i18n></div>
+        </div>
+        <textarea id="shareEventText" data-mention class="form-control" rows="3" maxlength="5000" placeholder="Bir şey eklemek ister misin? (isteğe bağlı)"></textarea>
+        <div class="mt-3">
+          <label class="form-label small fw-semibold" for="shareEventPrivacy">Kimler görebilir?</label>
+          <select id="shareEventPrivacy" class="form-select form-select-sm rounded-pill">
+            <option value="Public">Herkese Açık</option>
+            <option value="FriendsOnly">Sadece Arkadaşlar</option>
+          </select>
+        </div>
+        <div class="text-danger small mt-2 d-none" id="shareEventError"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>
+        <button type="button" class="btn btn-primary rounded-pill" id="shareEventSend" onclick="submitEventShare()">Paylaş</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Invite people: organizer and people who are going -->
@@ -127,6 +212,7 @@
 <script src="js/location-autocomplete.js"></script>
 <script src="js/event-form.js"></script>
 <script src="js/user-search.js"></script>
+<script src="js/mention-autocomplete.js"></script>
 <script src="js/event.js"></script>
 </body>
 </html>

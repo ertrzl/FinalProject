@@ -1068,3 +1068,37 @@ html[data-design="inbox"] .profile-page #taggedPostsList > .card {
 }
 html[data-design="inbox"] .profile-page #taggedPostsList > .card:hover { background: var(--surface-2); }
 html[data-design="inbox"] #taggedPostsList > .text-muted { padding: 24px 18px; display: block; }
+/* ---- Events: map, photo album, attendance list, event card inside a post ---- */
+.event-map {
+  height: 260px; border-radius: 12px; overflow: hidden; background: var(--bs-tertiary-bg, #f1f3f5);
+  border: 1px solid var(--bs-border-color, #dee2e6);
+  isolation: isolate; /* Leaflet's panes use z-index up to 1000: keep them inside the map, under the navbar and the dialogs */
+}
+#eventMapPicker.event-map { height: 240px; }
+/* Leaflet's zoom buttons are 26-30 px: a fingertip needs more */
+.event-map .leaflet-bar a, .event-map.leaflet-touch .leaflet-bar a { width: 44px; height: 44px; line-height: 44px; font-size: 22px; }
+.event-pin { background: none; border: 0; text-align: center; color: #dc3545; font-size: 36px; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35)); }
+.event-pin i { display: block; line-height: 36px; }
+[data-bs-theme="dark"] .event-map .leaflet-tile-pane { filter: brightness(0.8) contrast(1.1); } /* the light map tiles are glaring on a dark page */
+.event-map-btn, .ev-touch, #evActions .btn { min-height: 44px; }
+#evTabs .nav-link { min-height: 44px; display: flex; align-items: center; }
+
+.ev-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.ev-photo { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--bs-tertiary-bg, #f1f3f5); }
+.ev-photo > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ev-photo-by {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 16px 8px 4px; font-size: 11px; color: #fff; pointer-events: none;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ev-photo-del { position: absolute; top: 0; right: 0; width: 44px; height: 44px; border: 0; background: none; color: #fff; display: flex; align-items: center; justify-content: center; }
+.ev-photo-del i { display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: rgba(0, 0, 0, 0.55); }
+
+.ev-checkin-row { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 4px 4px; border-bottom: 1px solid var(--bs-border-color, #dee2e6); cursor: pointer; }
+.ev-checkin-row:last-child { border-bottom: 0; }
+.ev-checkin-box { width: 26px; height: 26px; margin: 0; flex-shrink: 0; cursor: pointer; }
+.ev-checkin-box:disabled { cursor: not-allowed; }
+
+.shared-event { border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 14px; overflow: hidden; background: var(--bs-tertiary-bg, #f8f9fa); }
+.shared-event-cover { display: block; width: 100%; height: 150px; object-fit: cover; }
+.shared-event-body { padding: 12px; }
+.shared-event-btn { min-height: 44px; display: inline-flex; align-items: center; }

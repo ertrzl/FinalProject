@@ -17,7 +17,7 @@ public class UploadsController : ControllerBase
 {
     // Only what LocalFileStorageService writes: <folder>/<32 hex digits>.<extension>. Nothing else is looked up on the disk.
     private static readonly Regex FilePattern = new(
-        @"^(?<folder>avatars|covers|groups|events|marketplace|posts|stories|highlights|messages)/[0-9a-f]{32}\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$",
+        @"^(?<folder>avatars|covers|groups|events|eventphotos|marketplace|posts|stories|highlights|messages)/[0-9a-f]{32}.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$",
         RegexOptions.Compiled);
 
     private static readonly FileExtensionContentTypeProvider ContentTypes = new();

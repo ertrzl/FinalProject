@@ -36,6 +36,7 @@ const NOTIF_ICON = {
   EventCommentAdded: { badge: "bg-info", icon: "bi-chat-left-text-fill" },
   EventWaitlistPromoted: { badge: "bg-success", icon: "bi-arrow-up-circle-fill" },
   EventReminder: { badge: "bg-warning", icon: "bi-alarm-fill" },
+  EventShared: { badge: "bg-primary", icon: "bi-share-fill" },
   GameInviteReceived: { badge: "bg-info", icon: "bi-controller" },
   GameInviteAccepted: { badge: "bg-success", icon: "bi-controller" },
   ContentRemoved: { badge: "bg-danger", icon: "bi-shield-exclamation" }
@@ -96,6 +97,7 @@ const NOTIF_TEXT = {
   EventJoined: n => i18n("notif.eventJoined", notifPerson(n), notifEventName(n)),
   EventCommentAdded: n => i18n("notif.eventComment", notifPerson(n), notifEventName(n)),
   EventWaitlistPromoted: n => i18n("notif.eventWaitlist", notifEventName(n)),
+  EventShared: n => i18n("notif.eventShared", notifPerson(n), notifEventName(n)),
   GameInviteReceived: n => i18n("notif.gameInviteReceived", notifPerson(n)),
   GameInviteAccepted: n => i18n("notif.gameInviteAccepted", notifPerson(n)),
   // The admins are not named; the title of what was removed comes in the event-title field (the server's "subject").
@@ -125,7 +127,7 @@ function notificationHtml(n) {
     actions = `<a href="event.html?id=${n.eventId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Etkinliği Gör</a>`;
   } else if (["GameInviteReceived", "GameInviteAccepted"].includes(n.type) && n.gameId) {
     actions = `<a href="game.html?id=${n.gameId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Oyuna Git</a>`;
-  } else if (["PostLiked", "CommentAdded", "CommentReplied", "CommentLiked", "Mentioned", "PostShared"].includes(n.type) && n.postId) {
+  } else if (["PostLiked", "CommentAdded", "CommentReplied", "CommentLiked", "Mentioned", "PostShared", "EventShared"].includes(n.type) && n.postId) {
     actions = `<a href="post.html?id=${n.postId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Gönderiyi Gör</a>`;
   } else if (n.type === "StoryMentioned" || n.type === "StoryReshared") {
     actions = `<a href="home.html" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Hikâyelere Git</a>`;

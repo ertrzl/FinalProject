@@ -44,6 +44,19 @@ const EVENT_FORM_HTML = `
           <label class="form-label fw-semibold small" for="eventLocation">Konum</label>
           <input type="text" id="eventLocation" class="form-control" placeholder="Örn. Caddebostan Sahili">
         </div>
+        <div class="mb-3" id="eventMapWrap">
+          <label class="form-label fw-semibold small" for="eventMapSearch">Haritada işaretle <span class="text-muted fw-normal">(isteğe bağlı)</span></label>
+          <div class="d-flex gap-2 mb-2">
+            <input type="text" id="eventMapSearch" class="form-control form-control-sm" maxlength="200" placeholder="Adres ara..." onkeydown="if (event.key === 'Enter') { event.preventDefault(); searchEventMap(); }">
+            <button type="button" class="btn btn-light border btn-sm rounded-pill px-3 flex-shrink-0 event-map-btn" id="eventMapSearchBtn" onclick="searchEventMap()" aria-label="Ara"><i class="bi bi-search"></i></button>
+          </div>
+          <div class="list-group mb-2 d-none" id="eventMapResults"></div>
+          <div id="eventMapPicker" class="event-map"></div>
+          <div class="d-flex justify-content-between align-items-center gap-2 mt-2 small">
+            <span class="text-muted" id="eventMapHint">Pini koymak için haritaya dokun.</span>
+            <button type="button" class="btn btn-light border btn-sm rounded-pill flex-shrink-0 d-none event-map-btn" id="eventMapClear" onclick="clearEventPin()"><i class="bi bi-x-lg me-1"></i>Pini kaldır</button>
+          </div>
+        </div>
         <div class="mb-3 d-none" id="eventOnlineWrap">
           <label class="form-label fw-semibold small" for="eventOnlineLink">Bağlantı</label>
           <input type="url" id="eventOnlineLink" class="form-control" placeholder="https://meet.google.com/...">
@@ -90,16 +103,189 @@ let formEventId = null;   // null = creating
 let formOnSaved = null;
 let formGroup = null;     // { id, name } when a new event is created for a group
 
+// ---- Map (Leaflet + OpenStreetMap tiles, loaded the first time a map is needed) ----
+// Shared with event.js, which shows the pin on the event page. Leaflet is only loaded from jsdelivr when a map is opened.
+
+const LEAFLET_URL = "https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/";
+const EVENT_MAP_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const EVENT_MAP_START = { center: [39, 35], zoom: 5 }; // Turkey, until a pin or a search result says otherwise
+
+let leafletPromise = null;
+
+function loadLeaflet() {
+  if (window.L) return Promise.resolve(window.L);
+  if (leafletPromise) return leafletPromise;
+
+  leafletPromise = new Promise((resolve, reject) => {
+    const style = document.createElement("link");
+    style.rel = "stylesheet";
+    style.href = LEAFLET_URL + "leaflet.css";
+    document.head.appendChild(style);
+
+    const script = document.createElement("script");
+    script.src = LEAFLET_URL + "leaflet.js";
+    script.onload = () => resolve(window.L);
+    script.onerror = () => { leafletPromise = null; reject(new Error("Leaflet could not be loaded")); };
+    document.head.appendChild(script);
+  });
+  return leafletPromise;
+}
+
+// A map in the given element. The pin is a Bootstrap icon in a divIcon, so no marker pictures have to be fetched.
+function createEventMap(element, center, zoom, options = {}) {
+  const map = L.map(element, { scrollWheelZoom: false, ...options }).setView(center, zoom);
+  L.tileLayer(EVENT_MAP_TILES, {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>'
+  }).addTo(map);
+  return map;
+}
+
+function eventPinIcon() {
+  return L.divIcon({ className: "event-pin", html: '<i class="bi bi-geo-alt-fill"></i>', iconSize: [36, 36], iconAnchor: [18, 34] });
+}
+
+// OpenStreetMap's route planner with the event as the destination; the visitor types where they start from.
+function eventDirectionsUrl(latitude, longitude) {
+  return `https://www.openstreetmap.org/directions?route=%3B${encodeURIComponent(latitude)}%2C${encodeURIComponent(longitude)}`;
+}
+
+// ---- The picker in the create / edit form ----
+
+let eventPin = null;          // { lat, lng } the organizer placed, or null for "no pin"
+let eventPickerMap = null;
+let eventPickerMarker = null;
+let eventFormOpen = false;    // the modal is on the screen (a map can only be sized then)
+
+function syncEventPinUi() {
+  document.getElementById("eventMapClear").classList.toggle("d-none", !eventPin);
+  document.getElementById("eventMapHint").textContent = eventPin
+    ? "Pin yerleştirildi. Taşımak için sürükle ya da haritaya tekrar dokun."
+    : "Pini koymak için haritaya dokun.";
+}
+
+// The marker follows the pin: made when there is a pin and none yet, moved when it changes, removed when it is gone.
+function drawEventPin() {
+  if (!eventPickerMap) return;
+
+  if (!eventPin) {
+    if (eventPickerMarker) { eventPickerMarker.remove(); eventPickerMarker = null; }
+    return;
+  }
+
+  if (!eventPickerMarker) {
+    eventPickerMarker = L.marker([eventPin.lat, eventPin.lng], { draggable: true, icon: eventPinIcon() }).addTo(eventPickerMap);
+    eventPickerMarker.on("dragend", () => {
+      const spot = eventPickerMarker.getLatLng().wrap();
+      setEventPin(spot.lat, spot.lng, false);
+    });
+  } else {
+    eventPickerMarker.setLatLng([eventPin.lat, eventPin.lng]);
+  }
+}
+
+// Six decimals are about ten centimetres: plenty, and a short number to send.
+function setEventPin(latitude, longitude, moveView) {
+  eventPin = { lat: Math.round(latitude * 1e6) / 1e6, lng: Math.round(longitude * 1e6) / 1e6 };
+  drawEventPin();
+  if (moveView && eventPickerMap) eventPickerMap.setView([eventPin.lat, eventPin.lng], Math.max(eventPickerMap.getZoom(), 16));
+  syncEventPinUi();
+}
+
+function clearEventPin() {
+  eventPin = null;
+  drawEventPin();
+  syncEventPinUi();
+}
+
+// Makes the map (once) and shows the current pin on it. Called when the form is on the screen and the place is not online.
+async function showEventPickerMap() {
+  const box = document.getElementById("eventMapPicker");
+  try {
+    await loadLeaflet();
+  } catch (err) {
+    box.innerHTML = `<div class="text-muted small p-3">Harita yüklenemedi.</div>`;
+    return;
+  }
+  if (!eventFormOpen) return;
+
+  if (!eventPickerMap) {
+    box.innerHTML = "";
+    eventPickerMap = createEventMap(box, EVENT_MAP_START.center, EVENT_MAP_START.zoom);
+    eventPickerMap.on("click", e => {
+      const spot = e.latlng.wrap();
+      setEventPin(spot.lat, spot.lng, false);
+    });
+  }
+
+  eventPickerMap.invalidateSize();
+  if (eventPickerMarker) { eventPickerMarker.remove(); eventPickerMarker = null; }
+  drawEventPin();
+  if (eventPin) eventPickerMap.setView([eventPin.lat, eventPin.lng], 15);
+  else eventPickerMap.setView(EVENT_MAP_START.center, EVENT_MAP_START.zoom);
+}
+
+// "Adres ara": Nominatim (OpenStreetMap's search) with the typed address, or the Konum field when the box is empty.
+// Only when the button is pressed, never while typing, as the service asks.
+async function searchEventMap() {
+  const term = (document.getElementById("eventMapSearch").value.trim() || document.getElementById("eventLocation").value.trim());
+  const list = document.getElementById("eventMapResults");
+  if (term.length < 2) return;
+
+  const button = document.getElementById("eventMapSearchBtn");
+  button.disabled = true;
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=${encodeURIComponent(getLang())}&q=${encodeURIComponent(term)}`;
+    const response = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error("lookup failed");
+    const found = (await response.json()).filter(r => Number.isFinite(parseFloat(r.lat)) && Number.isFinite(parseFloat(r.lon)));
+
+    list.innerHTML = found.length
+      ? found.map((r, i) => `<button type="button" class="list-group-item list-group-item-action small text-start" data-index="${i}"><i class="bi bi-geo-alt me-2 text-muted"></i><span data-no-i18n>${escapeHtml(r.display_name)}</span></button>`).join("")
+      : `<div class="list-group-item small text-muted">Sonuç bulunamadı.</div>`;
+    list.classList.remove("d-none");
+
+    list.onclick = e => {
+      const item = e.target.closest("[data-index]");
+      if (!item) return;
+      const result = found[Number(item.dataset.index)];
+      setEventPin(parseFloat(result.lat), parseFloat(result.lon), true);
+
+      // An empty place name takes the first parts of the address, so the pin and the text agree.
+      const location = document.getElementById("eventLocation");
+      if (!location.value.trim()) location.value = result.display_name.split(",").slice(0, 3).join(",").trim().slice(0, 200);
+
+      list.classList.add("d-none");
+      list.innerHTML = "";
+    };
+  } catch (err) {
+    list.innerHTML = `<div class="list-group-item small text-danger">Arama yapılamadı.</div>`;
+    list.classList.remove("d-none");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+document.getElementById("createEventModal").addEventListener("shown.bs.modal", () => {
+  eventFormOpen = true;
+  if (!document.getElementById("eventIsOnline").checked) showEventPickerMap();
+});
+document.getElementById("createEventModal").addEventListener("hidden.bs.modal", () => { eventFormOpen = false; });
+
 // Online events swap the place for a link; the limit field only shows while the limit switch is on.
 function syncEventFormToggles() {
   const online = document.getElementById("eventIsOnline").checked;
   document.getElementById("eventLocationWrap").classList.toggle("d-none", online);
+  document.getElementById("eventMapWrap").classList.toggle("d-none", online);
   document.getElementById("eventOnlineWrap").classList.toggle("d-none", !online);
   document.getElementById("eventCapacityWrap").classList.toggle("d-none", !document.getElementById("eventLimitToggle").checked);
+
+  // The map was hidden while the event was online: it needs to measure itself again when it comes back.
+  if (!online && eventFormOpen) showEventPickerMap();
 }
 
 function clearEventForm() {
-  ["eventTitle", "eventDate", "eventTime", "eventEndsAt", "eventLocation", "eventDescription", "eventCover", "eventOnlineLink", "eventCapacity"].forEach(id => {
+  ["eventTitle", "eventDate", "eventTime", "eventEndsAt", "eventLocation", "eventDescription", "eventCover", "eventOnlineLink", "eventCapacity", "eventMapSearch"].forEach(id => {
     const field = document.getElementById(id);
     field.value = "";
     field.classList.remove("is-invalid");
@@ -113,6 +299,12 @@ function clearEventForm() {
   document.getElementById("eventIsOnline").checked = false;
   document.getElementById("eventLimitToggle").checked = false;
   document.getElementById("eventError").classList.add("d-none");
+
+  // No pin and no search results from the last time the form was open.
+  eventPin = null;
+  document.getElementById("eventMapResults").classList.add("d-none");
+  document.getElementById("eventMapResults").innerHTML = "";
+  syncEventPinUi();
 }
 
 // ev = an event DTO to edit, or null to create a new one. onSaved(savedEvent) runs after a successful save.
@@ -150,6 +342,10 @@ function openEventForm(ev, onSaved, options = {}) {
       document.getElementById("eventScheduleHint").textContent = "Etkinlik başladığı için başlangıç değiştirilemez, sadece bitişi değiştirebilirsin.";
     }
     document.getElementById("eventLocation").value = ev.location || "";
+    if (ev.latitude != null && ev.longitude != null) {
+      eventPin = { lat: ev.latitude, lng: ev.longitude };
+      syncEventPinUi();
+    }
     document.getElementById("eventDescription").value = ev.description || "";
     if (ev.coverImageUrl) document.getElementById("eventCoverPreview").src = ev.coverImageUrl;
 
@@ -196,6 +392,11 @@ async function saveEventForm() {
     formData.append("title", title);
     formData.append("description", document.getElementById("eventDescription").value.trim());
     formData.append("location", online ? "" : document.getElementById("eventLocation").value.trim());
+    // The pin goes as plain text with a dot; the server reads it with the invariant culture. No pin = nothing sent.
+    if (!online && eventPin) {
+      formData.append("latitude", String(eventPin.lat));
+      formData.append("longitude", String(eventPin.lng));
+    }
     formData.append("startsAt", localInputToIso(`${date}T${time}`));
     if (endsAtValue) formData.append("endsAt", localInputToIso(endsAtValue)); // leaving it out means "default duration"
     formData.append("isPrivate", document.getElementById("eventIsPrivate").checked);

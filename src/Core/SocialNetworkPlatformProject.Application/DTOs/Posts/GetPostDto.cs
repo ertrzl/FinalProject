@@ -34,6 +34,11 @@ public class GetPostDto
     public bool IsShare { get; set; }
     public GetSharedPostDto? SharedPost { get; set; }
 
+    // An event shared to the feed: IsEventShare is true and SharedEvent is its card, or null when the event is gone or
+    // the viewer may not see it (private, a group's, or from someone blocked): the card then says "Etkinlik kaldırıldı".
+    public bool IsEventShare { get; set; }
+    public GetSharedEventDto? SharedEvent { get; set; }
+
     public GetPollDto? Poll { get; set; }
     public bool IsSavedByCurrentUser { get; set; }
 

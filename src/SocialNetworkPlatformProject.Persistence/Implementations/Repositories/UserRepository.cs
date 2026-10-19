@@ -264,6 +264,8 @@ public class UserRepository : IUserRepository
         files.AddRange(await _context.Set<Message>().Where(m => myConversationIds.Contains(m.ConversationId) && m.MediaUrl != null).Select(m => m.MediaUrl!).ToListAsync());
         files.AddRange(await _context.Set<Group>().Where(g => groupIdsToDelete.Contains(g.Id) && g.CoverImageUrl != null).Select(g => g.CoverImageUrl!).ToListAsync());
         files.AddRange(await myEvents.Where(e => e.CoverImageUrl != null).Select(e => e.CoverImageUrl!).ToListAsync());
+        // The albums of the events that go, and the pictures the person added to other people's events.
+        files.AddRange(await _context.Set<EventPhoto>().Where(p => myEventIds.Contains(p.EventId) || p.UploadedByUserId == userId).Select(p => p.Url).ToListAsync());
 
         await _context.Set<Notification>()
             .Where(n => n.RecipientId == userId || n.ActorId == userId
@@ -323,6 +325,9 @@ public class UserRepository : IUserRepository
 
         await _context.Set<EventComment>().Where(c => c.AuthorId == userId).ExecuteDeleteAsync();
         await _context.Set<EventInvite>().Where(i => i.InvitedUserId == userId || i.InvitedByUserId == userId).ExecuteDeleteAsync();
+        await _context.Set<EventPhoto>().Where(p => p.UploadedByUserId == userId).ExecuteDeleteAsync();
+        await _context.Set<EventAttendee>().Where(a => a.CheckedInByUserId == userId)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(a => a.CheckedInByUserId, (Guid?)null)); // the ticks they gave stay, only the name of who gave them goes
         await _context.Set<EventAttendee>().Where(a => a.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<Event>().Where(e => e.GroupId == null && e.CreatedByUserId == userId).ExecuteDeleteAsync();
 

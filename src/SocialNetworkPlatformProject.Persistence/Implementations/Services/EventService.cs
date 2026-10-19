@@ -18,6 +18,7 @@ public class EventService : IEventService
     private readonly IEventRepository _events;
     private readonly IEventAttendeeRepository _attendees;
     private readonly IEventInviteRepository _invites;
+    private readonly IEventPhotoRepository _photos;
     private readonly IEventAccessService _access;
     private readonly IEventDtoBuilder _builder;
     private readonly IFileStorageService _files;
@@ -28,6 +29,7 @@ public class EventService : IEventService
         IEventRepository events,
         IEventAttendeeRepository attendees,
         IEventInviteRepository invites,
+        IEventPhotoRepository photos,
         IEventAccessService access,
         IEventDtoBuilder builder,
         IFileStorageService files,
@@ -37,6 +39,7 @@ public class EventService : IEventService
         _events = events;
         _attendees = attendees;
         _invites = invites;
+        _photos = photos;
         _access = access;
         _builder = builder;
         _files = files;
@@ -50,6 +53,8 @@ public class EventService : IEventService
         if (dto.GroupId.HasValue)
             await _access.EnsureCanCreateGroupEventAsync(currentUserId, dto.GroupId.Value);
 
+        var (latitude, longitude) = ResolveCoordinates(dto);
+
         string? coverUrl = null;
         if (dto.CoverImage != null)
             coverUrl = await _files.SaveImageAsync(dto.CoverImage, "events");
@@ -61,6 +66,8 @@ public class EventService : IEventService
             Title = dto.Title.Trim(),
             Description = dto.Description?.Trim(),
             Location = dto.Location?.Trim(),
+            Latitude = latitude,
+            Longitude = longitude,
             CoverImageUrl = coverUrl,
             StartsAt = startsAt,
             EndsAt = endsAt,
@@ -91,6 +98,7 @@ public class EventService : IEventService
             throw new BadRequestException(Loc.T("event.editEnded"));
 
         var (startsAt, endsAt) = ResolveTimes(dto);
+        var (latitude, longitude) = ResolveCoordinates(dto);
         var hasStarted = found.StartsAt <= now;
         ValidateReschedule(found, startsAt, endsAt, hasStarted, now);
         if (hasStarted)
@@ -110,7 +118,8 @@ public class EventService : IEventService
 
         // Only changes that affect whether people can still make it are worth a notification.
         var importantChange = found.Title != title || found.StartsAt != startsAt || found.EndsAt != endsAt
-            || found.Location != location || found.IsOnline != dto.IsOnline || found.OnlineLink != onlineLink;
+            || found.Location != location || found.IsOnline != dto.IsOnline || found.OnlineLink != onlineLink
+            || found.Latitude != latitude || found.Longitude != longitude;
 
         var oldCoverUrl = found.CoverImageUrl;
         string? newCoverUrl = null;
@@ -129,6 +138,8 @@ public class EventService : IEventService
         found.Title = title;
         found.Description = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
         found.Location = location;
+        found.Latitude = latitude;
+        found.Longitude = longitude;
         found.StartsAt = startsAt;
         found.EndsAt = endsAt;
         if (startMoved)
@@ -193,6 +204,13 @@ public class EventService : IEventService
                 existing.Status = newStatus.Value;
                 // Staying on the waiting list keeps your place in the queue; any other change drops it.
                 existing.WaitlistedAt = newStatus == EventAttendeeStatus.Waitlisted ? existing.WaitlistedAt ?? DateTime.UtcNow : null;
+
+                // A tick on the attendance list belongs to someone who is going; stepping back from "going" takes it away.
+                if (newStatus != EventAttendeeStatus.Going)
+                {
+                    existing.CheckedInAt = null;
+                    existing.CheckedInByUserId = null;
+                }
             }
             else
             {
@@ -240,11 +258,14 @@ public class EventService : IEventService
             throw new ForbiddenException(Loc.T("event.deleteCreatorOnly"));
 
         var attendeeIds = found.Attendees.Select(a => a.UserId).ToList(); // read before the rows are deleted
+        var photoUrls = await _photos.GetUrlsByEventAsync(eventId); // the album goes with the event (cascade); its files are ours to remove
 
         _events.Delete(found);
         await _events.SaveChangesAsync();
 
         _files.Delete(found.CoverImageUrl);
+        foreach (var url in photoUrls)
+            _files.Delete(url);
         await _notifications.DeleteByEventAsync(eventId);
         await _notifier.CancelledAsync(found, attendeeIds, currentUserId);
     }
@@ -323,6 +344,18 @@ public class EventService : IEventService
         var startsAt = dto.StartsAt.ToUtc();
         var endsAt = dto.EndsAt?.ToUtc() ?? startsAt.Add(EventLimits.DefaultDuration);
         return (startsAt, endsAt);
+    }
+
+    // The map pin. An online event has none, whatever the client sent; otherwise both numbers or neither.
+    private static (double? Latitude, double? Longitude) ResolveCoordinates(EventInputDto dto)
+    {
+        if (dto.IsOnline)
+            return (null, null);
+
+        if (!EventCoordinates.TryParse(dto.Latitude, dto.Longitude, out var latitude, out var longitude))
+            throw new BadRequestException(Loc.T("val.event.coordinates"));
+
+        return (latitude, longitude);
     }
 
     // An upcoming event may be moved anywhere in the future; an ongoing one keeps its start (it already happened)

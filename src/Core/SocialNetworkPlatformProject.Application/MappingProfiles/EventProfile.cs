@@ -17,6 +17,8 @@ public class EventProfile : Profile
             .ForMember(dest => dest.IsOwner, opt => opt.Ignore())
             .ForMember(dest => dest.GroupName, opt => opt.Ignore())
             .ForMember(dest => dest.InvitedByName, opt => opt.Ignore())
+            .ForMember(dest => dest.MyCheckedIn, opt => opt.Ignore())
+            .ForMember(dest => dest.PhotoCount, opt => opt.Ignore())
             .ForMember(dest => dest.IsFull, opt => opt.Ignore())
             .ForMember(dest => dest.SpotsLeft, opt => opt.Ignore())
             .ForMember(dest => dest.WaitlistCount, opt => opt.Ignore())

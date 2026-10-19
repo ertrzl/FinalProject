@@ -70,6 +70,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<EventAttendee> EventAttendees => Set<EventAttendee>();
     public DbSet<EventInvite> EventInvites => Set<EventInvite>();
     public DbSet<EventComment> EventComments => Set<EventComment>();
+    public DbSet<EventPhoto> EventPhotos => Set<EventPhoto>();
 
     // Games
     public DbSet<Game> Games => Set<Game>();

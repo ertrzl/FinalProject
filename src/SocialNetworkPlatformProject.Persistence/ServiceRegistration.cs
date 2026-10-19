@@ -92,6 +92,7 @@ public static class ServiceRegistration
         services.AddScoped<IEventAttendeeRepository, EventAttendeeRepository>();
         services.AddScoped<IEventInviteRepository, EventInviteRepository>();
         services.AddScoped<IEventCommentRepository, EventCommentRepository>();
+        services.AddScoped<IEventPhotoRepository, EventPhotoRepository>();
 
         // Games
         services.AddScoped<IGameRepository, GameRepository>();
@@ -136,6 +137,8 @@ public static class ServiceRegistration
         services.AddScoped<IEventMaintenanceService, EventMaintenanceService>();
         services.AddScoped<IEventInviteService, EventInviteService>();
         services.AddScoped<IEventCommentService, EventCommentService>();
+        services.AddScoped<IEventPhotoService, EventPhotoService>();
+        services.AddScoped<IEventCheckInService, EventCheckInService>();
         services.AddScoped<ILiveUpdateService, LiveUpdateService>();
         services.AddScoped<IGameService, GameService>();
 

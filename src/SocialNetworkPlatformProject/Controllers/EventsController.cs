@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SocialNetworkPlatformProject.Application.DTOs.Events;
+using SocialNetworkPlatformProject.Application.DTOs.Posts;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Extensions;
 
@@ -14,11 +15,13 @@ public class EventsController : ControllerBase
 {
     private readonly IEventService _events;
     private readonly IEventQueryService _queries;
+    private readonly IPostService _posts;
 
-    public EventsController(IEventService events, IEventQueryService queries)
+    public EventsController(IEventService events, IEventQueryService queries, IPostService posts)
     {
         _events = events;
         _queries = queries;
+        _posts = posts;
     }
 
     // events.html "Yaklaşan": search box and filter chips, paged
@@ -74,6 +77,14 @@ public class EventsController : ControllerBase
     public async Task<ActionResult<GetEventDto>> SetStatus(Guid id, PutEventStatusDto dto)
     {
         return await _events.SetStatusAsync(User.GetUserId(), id, dto);
+    }
+
+    // event.html "Gönderide paylaş": a post on the caller's own feed that carries the event as a card
+    [HttpPost("{id:guid}/share")]
+    public async Task<ActionResult<GetPostDto>> Share(Guid id, PostShareDto dto)
+    {
+        var post = await _posts.ShareEventAsync(User.GetUserId(), id, dto);
+        return StatusCode(StatusCodes.Status201Created, post);
     }
 
     [HttpDelete("{id:guid}")]

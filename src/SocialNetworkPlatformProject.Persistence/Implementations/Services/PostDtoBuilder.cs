@@ -19,6 +19,8 @@ public class PostDtoBuilder : IPostDtoBuilder
     private readonly IMentionService _mentions;
     private readonly IUserRepository _users;
     private readonly IMapper _mapper;
+    private readonly IEventRepository _events;
+    private readonly IEventAccessService _eventAccess;
 
     public PostDtoBuilder(
         IPostRepository posts,
@@ -28,8 +30,12 @@ public class PostDtoBuilder : IPostDtoBuilder
         IPostAccessService access,
         IMentionService mentions,
         IUserRepository users,
-        IMapper mapper)
+        IMapper mapper,
+        IEventRepository events,
+        IEventAccessService eventAccess)
     {
+        _events = events;
+        _eventAccess = eventAccess;
         _posts = posts;
         _likes = likes;
         _saved = saved;
@@ -47,6 +53,9 @@ public class PostDtoBuilder : IPostDtoBuilder
 
         // The originals of the shares on this page, as far as the viewer may see them.
         var originals = await LoadVisibleOriginalsAsync(list, viewerId);
+
+        // The events shown as cards in posts that share one, as far as the viewer may see them.
+        var sharedEvents = await LoadVisibleEventsAsync(list, viewerId);
 
         var authors = await _users.GetSummariesAsync(list.Select(p => p.AuthorId).Concat(originals.Values.Select(p => p.AuthorId)));
         var mentioned = await _mentions.ResolveAsync(list.Select(p => p.Text).Concat(originals.Values.Select(p => p.Text)));
@@ -91,6 +100,9 @@ public class PostDtoBuilder : IPostDtoBuilder
             if (post.SharedPostId is { } originalId && originals.TryGetValue(originalId, out var original))
                 dto.SharedPost = ToSharedDto(original, authors, mentioned);
 
+            if (post.SharedEventId is { } eventId && sharedEvents.TryGetValue(eventId, out var sharedEvent))
+                dto.SharedEvent = ToSharedEventDto(sharedEvent);
+
             if (post.Poll != null)
                 dto.Poll = ToPollDto(post, post.Poll, optionCounts, myVotes, viewerId);
         }
@@ -120,6 +132,37 @@ public class PostDtoBuilder : IPostDtoBuilder
         var originals = await _posts.GetAll(p => originalIds.Contains(p.Id), asNoTracking: true, includes: new[] { "Media" }).ToListAsync();
         var visible = await _access.FilterVisibleAsync(originals, viewerId);
         return visible.ToDictionary(p => p.Id);
+    }
+
+    // The events behind the event cards of this page's posts, in one query. An event that is gone, private (it may have
+    // become private after it was shared) or hidden from the viewer (a block) is simply missing: its card says so.
+    private async Task<Dictionary<Guid, Event>> LoadVisibleEventsAsync(List<Post> list, Guid viewerId)
+    {
+        var eventIds = list.Where(p => p.SharedEventId != null).Select(p => p.SharedEventId!.Value).Distinct().ToList();
+        if (eventIds.Count == 0)
+            return new Dictionary<Guid, Event>();
+
+        var visibleToViewer = await _eventAccess.GetVisibilityFilterAsync(viewerId);
+        return await _events.GetAll(e => eventIds.Contains(e.Id) && !e.IsPrivate && e.GroupId == null, asNoTracking: true)
+            .Where(visibleToViewer)
+            .ToDictionaryAsync(e => e.Id);
+    }
+
+    private static GetSharedEventDto ToSharedEventDto(Event source)
+    {
+        var now = DateTime.UtcNow;
+        return new GetSharedEventDto
+        {
+            Id = source.Id,
+            Title = source.Title,
+            CoverImageUrl = source.CoverImageUrl,
+            Location = source.Location,
+            IsOnline = source.IsOnline,
+            StartsAt = source.StartsAt,
+            EndsAt = source.EndsAt,
+            IsOngoing = source.StartsAt <= now && source.EndsAt > now,
+            IsPast = source.EndsAt <= now
+        };
     }
 
     private GetSharedPostDto ToSharedDto(Post original, Dictionary<Guid, UserSummary> authors, Dictionary<string, GetMentionDto> mentioned)

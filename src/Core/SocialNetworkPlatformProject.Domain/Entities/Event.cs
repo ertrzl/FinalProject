@@ -9,6 +9,12 @@ public class Event : BaseEntity
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? Location { get; set; }
+
+    // Where the pin is on the map (event.html). Both or neither; never set for an online event. WGS84 degrees
+    // (-90..90 and -180..180, checked by the validator and the database).
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+
     public string? CoverImageUrl { get; set; }
 
     // Both are UTC. EndsAt is always stored: when the organizer leaves it out, EventService fills in StartsAt + a
@@ -48,6 +54,7 @@ public class Event : BaseEntity
     public ICollection<EventAttendee> Attendees { get; set; } = new List<EventAttendee>();
     public ICollection<EventInvite> Invites { get; set; } = new List<EventInvite>();
     public ICollection<EventComment> Comments { get; set; } = new List<EventComment>();
+    public ICollection<EventPhoto> Photos { get; set; } = new List<EventPhoto>();
 
     // Called when the event is created or its start moves. Reminders that are still ahead of us become due again; one
     // whose moment has already passed counts as sent, so an event created for tomorrow morning doesn't immediately

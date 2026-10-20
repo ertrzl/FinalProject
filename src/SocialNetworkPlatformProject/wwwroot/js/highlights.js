@@ -54,7 +54,81 @@ function renderHighlightRow(isOwn) {
   row.classList.remove("d-none");
 }
 
-function explainNewHighlight() {
+// "Yeni" on your own profile: pick one of your running stories right here and give the highlight a name. With no running
+// story there is nothing to pick, so the window says how it starts (from a story) and points to the stories.
+async function explainNewHighlight() {
+  let mine = [];
+  try {
+    const stories = await apiFetch("/api/stories");
+    mine = stories.filter(s => s.userId === getSession().userId);
+  } catch (err) {
+    mine = [];
+  }
+
+  if (mine.length === 0) {
+    explainHowHighlightsStart();
+    return;
+  }
+
+  const thumb = s => s.mediaType === "Video"
+    ? `<video src="${escapeHtml(s.mediaUrl)}" muted preload="metadata" class="w-100 h-100 object-fit-cover"></video>`
+    : `<img src="${escapeHtml(s.mediaUrl)}" alt="" class="w-100 h-100 object-fit-cover">`;
+
+  openSiteDialog(`
+    <div class="fw-bold mb-2">Öne çıkan ekle</div>
+    <div class="small text-muted mb-3">Hikâyelerinden birini seç ve öne çıkana bir ad ver.</div>
+    <div class="d-flex flex-wrap gap-2 mb-3" id="newHighlightStories">
+      ${mine.map((s, i) => `<button type="button" class="highlight-pick ${i === 0 ? "picked" : ""}" data-story="${s.id}" aria-pressed="${i === 0}" aria-label="Hikâye ${i + 1}">${thumb(s)}</button>`).join("")}
+    </div>
+    <label class="form-label small fw-semibold" for="newHighlightTitle">Ad</label>
+    <input type="text" id="newHighlightTitle" class="form-control mb-4" maxlength="30" autocomplete="off" placeholder="Öne çıkan adı">
+    <div class="d-flex justify-content-end flex-wrap gap-2">
+      <button type="button" class="btn btn-light rounded-pill px-4" data-answer="close">Kapat</button>
+      <button type="button" class="btn btn-primary rounded-pill px-4" data-answer="create">Oluştur</button>
+    </div>`,
+    (box, close) => {
+      let storyId = mine[0].id;
+      let busy = false;
+
+      box.querySelectorAll("[data-story]").forEach(button => button.addEventListener("click", () => {
+        storyId = button.dataset.story;
+        box.querySelectorAll("[data-story]").forEach(b => {
+          const on = b === button;
+          b.classList.toggle("picked", on);
+          b.setAttribute("aria-pressed", String(on));
+        });
+      }));
+
+      const create = async () => {
+        if (busy) return;
+        const title = box.querySelector("#newHighlightTitle").value.trim();
+        if (!title) {
+          toast("Öne çıkana bir ad ver.");
+          return;
+        }
+
+        busy = true;
+        try {
+          await apiFetch("/api/highlights", { method: "POST", body: { title, storyId } });
+          close();
+          toast("Yeni öne çıkan oluşturuldu.");
+          await loadHighlights(currentProfile);
+        } catch (err) {
+          busy = false;
+          toast(err.message || "Öne çıkanlara eklenemedi.");
+        }
+      };
+
+      box.querySelector('[data-answer="create"]').addEventListener("click", create);
+      box.querySelector("#newHighlightTitle").addEventListener("keydown", event => {
+        if (event.key === "Enter") { event.preventDefault(); create(); }
+      });
+      box.querySelector('[data-answer="close"]').addEventListener("click", close);
+      box.addEventListener("dismiss", close);
+    });
+}
+
+function explainHowHighlightsStart() {
   openSiteDialog(`
     <div class="fw-bold mb-2">Öne çıkan ekle</div>
     <div class="mb-4">Bir hikâye paylaş, hikâyeni aç ve üstteki "Öne çıkanlara ekle" düğmesine dokun. Öne çıkanlar 24 saat sonra kaybolmaz; profilinde kalır.</div>

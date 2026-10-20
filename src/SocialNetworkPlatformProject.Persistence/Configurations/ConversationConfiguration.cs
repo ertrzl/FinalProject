@@ -21,6 +21,10 @@ public class ConversationConfiguration : IEntityTypeConfiguration<Conversation>
             .HasForeignKey(c => c.GroupId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        builder.Property(c => c.Title).HasMaxLength(60);
+        builder.Property(c => c.AvatarUrl).HasMaxLength(500);
+        builder.HasIndex(c => c.AvatarUrl); // who may open a chat picture is decided from the chat that holds its address (UploadsController)
+
         builder.HasMany(c => c.Participants)
             .WithOne(p => p.Conversation)
             .HasForeignKey(p => p.ConversationId)

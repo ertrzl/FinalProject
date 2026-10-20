@@ -23,6 +23,7 @@ public class GetNotificationDto
     public DateTime? EventStartsAt { get; set; } // UTC; lets "event starts soon" show when
     public decimal? Amount { get; set; }
     public decimal? PreviousAmount { get; set; } // price-drop alerts: the price before the cut (Amount is the new one)
+    public Guid? ConversationId { get; set; } // "added you to a chat" notifications: the chat the button opens
     public Guid? ListingId { get; set; }
     public string? ListingTitle { get; set; }
 

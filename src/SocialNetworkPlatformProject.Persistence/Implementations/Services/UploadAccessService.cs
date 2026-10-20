@@ -105,6 +105,10 @@ public class UploadAccessService : IUploadAccessService
                 return await _participants.AnyAsync(p => p.ConversationId == conversationId && p.UserId == viewerId);
             }
 
+            // The picture of a group chat made on the Messages page: the people in that chat.
+            case "chat-avatars":
+                return await _participants.AnyAsync(p => p.UserId == viewerId && p.Conversation!.AvatarUrl == url);
+
             // An event's cover: whoever may see the event (a private or group event is not for everybody).
             case "events":
             {

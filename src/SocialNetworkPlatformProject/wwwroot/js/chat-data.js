@@ -173,6 +173,8 @@ window.deleteChatMessage = async function (id) {
 
 // Where the name in a list row / header leads: the group's page, or the person's profile.
 window.chatConversationLink = function (conv) {
+  // A group chat made on the Messages page has no page of its own: its name opens its chat (and "Grup bilgisi" there).
+  if (conv.isCustomGroup) return `messages.html?conversation=${conv.id}`;
   return conv.isGroup ? `group.html?id=${conv.groupId}` : `profile.html?id=${conv.otherUserId}`;
 };
 

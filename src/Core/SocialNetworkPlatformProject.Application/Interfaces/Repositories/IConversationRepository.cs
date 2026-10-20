@@ -27,6 +27,12 @@ public interface IConversationRepository : IRepository<Conversation>
     // conversation id -> group id, for those of these conversations that are group chats.
     Task<Dictionary<Guid, Guid>> GetGroupIdsAsync(IReadOnlyCollection<Guid> conversationIds);
 
+    // Which of these conversations are group chats of either kind: the chat of a group, or one made on the Messages page.
+    Task<HashSet<Guid>> GetGroupChatIdsAsync(IReadOnlyCollection<Guid> conversationIds);
+
+    // The photos sent in one conversation (they go with it, so their files must go too).
+    Task<List<string>> GetMediaUrlsAsync(Guid conversationId);
+
     // The photos sent in a group's chat (deleted with the group, so their files must go too).
     Task<List<string>> GetGroupChatMediaUrlsAsync(Guid groupId);
 }

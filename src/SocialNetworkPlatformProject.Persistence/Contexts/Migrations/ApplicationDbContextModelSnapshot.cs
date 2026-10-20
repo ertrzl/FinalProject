@@ -256,8 +256,15 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AvatarUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("DirectKey")
                         .HasMaxLength(80)
@@ -266,7 +273,13 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<Guid?>("GroupId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Title")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("AvatarUrl");
 
                     b.HasIndex("DirectKey")
                         .IsUnique()
@@ -290,6 +303,12 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsMuted")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("LastReadAt")
                         .HasColumnType("datetime2");
@@ -1160,6 +1179,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid?>("CommentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ConversationId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")

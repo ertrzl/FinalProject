@@ -204,9 +204,9 @@ public class UserRepository : IUserRepository
         var myPostIds = myPosts.Select(p => p.Id);
         var myComments = _context.Set<Comment>().Where(c => c.AuthorId == userId);
         var myCommentIds = myComments.Select(c => c.Id);
-        // The person's direct conversations (group chats belong to their groups, see below).
+        // The person's direct conversations (group chats of both kinds stay for the other people, see below).
         var myConversationIds = _context.Set<ConversationParticipant>()
-            .Where(p => p.UserId == userId && p.Conversation!.GroupId == null)
+            .Where(p => p.UserId == userId && p.Conversation!.DirectKey != null)
             .Select(p => p.ConversationId);
 
         // The groups the person owns. A group with other members lives on: it is handed to the member best placed to run
@@ -267,9 +267,23 @@ public class UserRepository : IUserRepository
         files.AddRange(await _context.Set<Group>().Where(g => groupIdsToDelete.Contains(g.Id) && g.AvatarUrl != null).Select(g => g.AvatarUrl!).ToListAsync());
         // Group chats: the photos the person sent there, and every photo of the chat of a group that goes.
         files.AddRange(await _context.Set<Message>()
-            .Where(m => m.MediaUrl != null && m.Conversation!.GroupId != null
-                && (m.SenderId == userId || groupIdsToDelete.Contains(m.Conversation.GroupId.Value)))
+            .Where(m => m.MediaUrl != null && (m.Conversation!.GroupId != null || m.Conversation.Title != null)
+                && (m.SenderId == userId || (m.Conversation.GroupId != null && groupIdsToDelete.Contains(m.Conversation.GroupId.Value))))
             .Select(m => m.MediaUrl!).ToListAsync());
+
+        // Group chats made on the Messages page: the ones where this person is the only one left go with them (their photos and
+        // picture too); in the others, if they were the only one who ran the chat, the member who has been in it longest takes over.
+        var soloChatIds = await _context.Set<Conversation>()
+            .Where(c => c.Title != null && c.GroupId == null && c.DirectKey == null
+                && c.Participants.Any(p => p.UserId == userId) && !c.Participants.Any(p => p.UserId != userId))
+            .Select(c => c.Id)
+            .ToListAsync();
+        files.AddRange(await _context.Set<Message>().Where(m => soloChatIds.Contains(m.ConversationId) && m.MediaUrl != null).Select(m => m.MediaUrl!).ToListAsync());
+        files.AddRange(await _context.Set<Conversation>().Where(c => soloChatIds.Contains(c.Id) && c.AvatarUrl != null).Select(c => c.AvatarUrl!).ToListAsync());
+        var chatsIRanIds = await _context.Set<ConversationParticipant>()
+            .Where(p => p.UserId == userId && p.IsAdmin && p.Conversation!.Title != null && p.Conversation.GroupId == null && p.Conversation.DirectKey == null)
+            .Select(p => p.ConversationId)
+            .ToListAsync();
         files.AddRange(await myEvents.Where(e => e.CoverImageUrl != null).Select(e => e.CoverImageUrl!).ToListAsync());
         // The albums of the events that go, and the pictures the person added to other people's events.
         files.AddRange(await _context.Set<EventPhoto>().Where(p => myEventIds.Contains(p.EventId) || p.UploadedByUserId == userId).Select(p => p.Url).ToListAsync());
@@ -321,8 +335,24 @@ public class UserRepository : IUserRepository
 
         // Group chats stay for the other members: the person's own messages there go (the emojis on them with them), and
         // they are no longer a participant. The chats of the groups that go are deleted with those groups below.
-        await _context.Set<Message>().Where(m => m.SenderId == userId && m.Conversation!.GroupId != null).ExecuteDeleteAsync();
+        await _context.Set<Message>().Where(m => m.SenderId == userId && (m.Conversation!.GroupId != null || m.Conversation.Title != null)).ExecuteDeleteAsync();
         await _context.Set<ConversationParticipant>().Where(p => p.UserId == userId).ExecuteDeleteAsync();
+
+        // The chats made on the Messages page that had only this person left are gone; in the others somebody runs the chat.
+        await _context.Set<Conversation>().Where(c => soloChatIds.Contains(c.Id)).ExecuteDeleteAsync();
+        foreach (var chatId in chatsIRanIds.Except(soloChatIds))
+        {
+            if (await _context.Set<ConversationParticipant>().AnyAsync(p => p.ConversationId == chatId && p.IsAdmin))
+                continue;
+
+            var successorId = await _context.Set<ConversationParticipant>()
+                .Where(p => p.ConversationId == chatId)
+                .OrderBy(p => p.CreatedAt)
+                .Select(p => p.Id)
+                .FirstOrDefaultAsync();
+            if (successorId != Guid.Empty)
+                await _context.Set<ConversationParticipant>().Where(p => p.Id == successorId).ExecuteUpdateAsync(s => s.SetProperty(p => p.IsAdmin, true));
+        }
 
         // Games, invitations and finished ones alike: the opponent has nobody left to play or answer.
         await _context.Set<Game>().Where(g => g.InviterId == userId || g.InviteeId == userId).ExecuteDeleteAsync();

@@ -22,7 +22,16 @@ public class Conversation : BaseEntity
     public Guid? GroupId { get; set; }
     public Group? Group { get; set; }
 
-    public bool IsGroup => GroupId != null;
+    public bool IsGroup => GroupId != null || IsCustomGroup;
+
+    // A group chat made from the Messages page ("Yeni grup"): friends picked by one person, with a name of its own and
+    // optionally a picture. It has neither DirectKey nor GroupId. The participants are its members; the ones with
+    // ConversationParticipant.IsAdmin run it (add and remove people, rename, change the picture).
+    public string? Title { get; set; }
+    public string? AvatarUrl { get; set; }
+    public Guid? CreatedByUserId { get; set; }
+
+    public bool IsCustomGroup => Title != null && GroupId == null && DirectKey == null;
 
     public ICollection<ConversationParticipant> Participants { get; set; } = new List<ConversationParticipant>();
     public ICollection<Message> Messages { get; set; } = new List<Message>();

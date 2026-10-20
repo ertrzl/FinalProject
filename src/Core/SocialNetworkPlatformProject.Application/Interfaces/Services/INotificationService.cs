@@ -10,7 +10,7 @@ public interface INotificationService
     Task CreateAsync(Guid recipientId, Guid actorId, NotificationType type,
         Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null, Guid? groupId = null,
         Guid? offerId = null, decimal? amount = null, Guid? eventId = null, string? subject = null, Guid? storyId = null,
-        Guid? gameId = null, Guid? listingId = null, decimal? previousAmount = null);
+        Guid? gameId = null, Guid? listingId = null, decimal? previousAmount = null, Guid? conversationId = null);
 
     Task<PagedResult<GetNotificationDto>> GetMyNotificationsAsync(Guid currentUserId, int page, int pageSize);
 

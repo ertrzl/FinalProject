@@ -1182,5 +1182,6 @@ window.PHRASES.en = {
   "Henüz katılan yok.": "No one is going yet.",
   "Geldi": "Came",
   "Yoklama kaydedilemedi.": "Couldn't save the attendance.",
-  "etkinliğini gönderide paylaştı.": "shared your event in a post."
+  "etkinliğini gönderide paylaştı.": "shared your event in a post.",
+  "Hikâyelerinden birini seç ve öne çıkana bir ad ver.": "Pick one of your stories and give the highlight a name."
 };

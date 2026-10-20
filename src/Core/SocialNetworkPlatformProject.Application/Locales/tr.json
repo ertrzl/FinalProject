@@ -371,5 +371,14 @@
   "time.minute": "{0} dakika",
   "time.minutes": "{0} dakika",
   "time.hour": "{0} saat",
-  "time.hours": "{0} saat"
+  "time.hours": "{0} saat",
+  "group.rulesNotAccepted": "Bu gruba katılmak için önce grubun kurallarını kabul etmelisin.",
+  "group.memberFilter": "Rol filtresi 'Owner', 'Admin', 'Moderator' ya da 'Member' olmalı.",
+  "group.pinLimit": "Bir grupta en fazla {0} gönderi sabitlenebilir. Önce birinin sabitlemesini kaldır.",
+  "val.group.avatar": "Grup fotoğrafı hem kaldırılıp hem yüklenemez.",
+  "val.group.rulesMax": "Bir grubun en fazla {0} kuralı olabilir.",
+  "val.group.ruleTitle": "Her kuralın bir başlığı olmalı.",
+  "val.group.ruleTitleLength": "Kural başlığı en fazla {0} karakter olabilir.",
+  "val.group.ruleTextLength": "Kural açıklaması en fazla {0} karakter olabilir.",
+  "message.storyGroup": "Bir hikâyeye grup sohbetinden yanıt verilemez."
 }

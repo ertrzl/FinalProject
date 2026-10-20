@@ -56,7 +56,8 @@
       replyBar.classList.toggle("d-none", !message);
       if (!message) return;
 
-      const who = message.isMine ? i18n("chat.you") : (window.findChatConversation?.(message.conversationId)?.otherUserName || "");
+      // In a group chat the bubble names its sender; in a direct one it is the other person.
+      const who = message.isMine ? i18n("chat.you") : (message.senderName || window.findChatConversation?.(message.conversationId)?.otherUserName || "");
       replyBar.querySelector(".chat-reply-text").innerHTML =
         `<div class="chat-reply-name" data-no-i18n>${i18n("chat.replyingTo", escapeHtml(who))}</div><div class="chat-reply-preview" data-no-i18n>${escapeHtml(window.chatMessagePreviewText(message))}</div>`;
       input.focus();

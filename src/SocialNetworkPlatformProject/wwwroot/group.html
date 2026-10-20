@@ -29,16 +29,21 @@
 
     <div class="profile-cover position-relative mb-3" id="groupCover"></div>
 
-    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3">
-      <div>
-        <h1 class="h4 mb-1 fw-bold" id="groupName"></h1>
-        <div class="text-muted small mb-2">
-          <i class="bi bi-people-fill me-1"></i><span id="groupMemberCount">0</span> üye ·
-          <i class="bi" id="groupPrivacyIcon"></i> <span id="groupPrivacyLabel"></span>
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-3 group-head">
+      <div class="d-flex align-items-start gap-3 group-head-main">
+        <div id="groupHeaderAvatar" class="group-head-avatar flex-shrink-0"></div>
+        <div class="group-head-text">
+          <h1 class="h4 mb-1 fw-bold" id="groupName" data-no-i18n></h1>
+          <div class="text-muted small mb-2">
+            <i class="bi bi-people-fill me-1"></i><span id="groupMemberCount">0</span> üye ·
+            <i class="bi" id="groupPrivacyIcon"></i> <span id="groupPrivacyLabel"></span>
+          </div>
+          <p class="mb-0 group-description" id="groupDescription" data-no-i18n></p>
         </div>
-        <p class="mb-0" id="groupDescription" data-no-i18n></p>
       </div>
-      <div class="d-flex flex-wrap gap-2">
+      <div class="d-flex flex-wrap gap-2 group-head-actions">
+        <button type="button" class="btn btn-primary rounded-pill d-none" id="groupChatBtn" onclick="openGroupChat(this)"><i class="bi bi-chat-dots-fill me-1"></i>Grup Sohbeti</button>
+        <button type="button" class="btn btn-light border rounded-pill d-none" id="groupMuteBtn" onclick="toggleGroupMute(this)"></button>
         <button type="button" class="btn btn-light border rounded-pill" data-bs-toggle="modal" data-bs-target="#groupMembersModal"><i class="bi bi-people me-1"></i>Üyeler</button>
         <div class="d-flex flex-wrap gap-2" id="groupActionArea"></div>
       </div>
@@ -46,42 +51,76 @@
 
     <hr class="mb-4">
 
-    <ul class="nav nav-pills gap-2 mb-3 d-none" id="groupTabs">
+    <ul class="nav nav-pills gap-2 mb-3 flex-wrap" id="groupTabs">
       <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#groupTabPosts">Gönderiler</button></li>
-      <li class="nav-item"><button class="nav-link text-muted" data-bs-toggle="pill" data-bs-target="#groupTabEvents" onclick="loadGroupEvents()">Etkinlikler</button></li>
+      <li class="nav-item d-none" id="groupEventsTabItem"><button class="nav-link text-muted" data-bs-toggle="pill" data-bs-target="#groupTabEvents" onclick="loadGroupEvents()">Etkinlikler</button></li>
+      <li class="nav-item"><button class="nav-link text-muted" data-bs-toggle="pill" data-bs-target="#groupTabRules" onclick="loadGroupRules()">Kurallar <span class="badge rounded-pill text-bg-light border d-none" id="groupRuleCountBadge"></span></button></li>
     </ul>
 
     <div class="tab-content">
     <div class="tab-pane fade show active" id="groupTabPosts">
 
-    <!-- Composer, only shown to members -->
-    <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 composer d-none" id="groupComposerWrap">
-      <div class="d-flex gap-3">
-        <img id="composerAvatar" src="images/default-avatar.png" class="avatar-sm flex-shrink-0 nav-profile-avatar" alt="">
-        <textarea id="composerText" data-mention class="form-control" rows="2" placeholder="Grupta ne paylaşmak istersin?"></textarea>
+    <!-- Search inside the group's wall (whoever may see the wall) -->
+    <form class="group-search mb-3 d-none" id="groupSearchForm" onsubmit="return searchGroupPosts(event)" role="search">
+      <div class="d-flex align-items-center bg-body-tertiary rounded-pill px-3 group-search-box">
+        <i class="bi bi-search text-muted me-2"></i>
+        <input type="search" id="groupSearchInput" class="form-control form-control-sm border-0 bg-transparent p-0 shadow-none" placeholder="Grupta ara (#etiket de olur)..." aria-label="Grupta ara" autocomplete="off">
+        <button type="button" class="btn btn-sm btn-link text-muted d-none" id="groupSearchClear" onclick="clearGroupSearch()" aria-label="Aramayı temizle"><i class="bi bi-x-lg"></i></button>
       </div>
-      <div class="d-none mt-3" id="composerPreview"></div>
-      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3 pt-3 border-top">
-        <label class="attach-label m-0">
-          <i class="bi bi-image"></i> Fotoğraf/Video Ekle
-          <input type="file" id="composerFile" class="d-none" accept="image/*,video/*" multiple onchange="addComposerFiles(this)">
-        </label>
-        <button type="button" id="composerSubmitBtn" class="btn btn-primary btn-sm rounded-pill px-3" onclick="publishGroupPost(this)">Paylaş</button>
+    </form>
+
+    <div id="groupSearchResults" class="d-none">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="small text-muted" id="groupSearchSummary"></div>
+        <button type="button" class="btn btn-sm btn-light border rounded-pill" onclick="clearGroupSearch()"><i class="bi bi-arrow-left me-1"></i>Duvara dön</button>
       </div>
+      <div id="groupSearchList"></div>
     </div>
 
-    <div id="groupNonMemberNotice" class="alert alert-light border small d-none">Bu grubun gönderilerini görmek/paylaşmak için üye olman gerekiyor.</div>
+    <div id="groupWall">
+      <!-- Pinned announcements (at most 3), above everything else -->
+      <div id="groupPinnedSection" class="d-none mb-2">
+        <div class="small fw-bold text-muted mb-2 group-pinned-title"><i class="bi bi-pin-angle-fill me-1"></i>SABİTLENEN GÖNDERİLER</div>
+        <div id="groupPinnedList"></div>
+      </div>
 
-    <div id="groupPostsList"></div>
+      <!-- Composer, only shown to members -->
+      <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 composer d-none" id="groupComposerWrap">
+        <div class="d-flex gap-3">
+          <img id="composerAvatar" src="images/default-avatar.png" class="avatar-sm flex-shrink-0 nav-profile-avatar" alt="">
+          <textarea id="composerText" data-mention class="form-control" rows="2" placeholder="Grupta ne paylaşmak istersin?"></textarea>
+        </div>
+        <div class="d-none mt-3" id="composerPreview"></div>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-3 pt-3 border-top">
+          <label class="attach-label m-0">
+            <i class="bi bi-image"></i> Fotoğraf/Video Ekle
+            <input type="file" id="composerFile" class="d-none" accept="image/*,video/*" multiple onchange="addComposerFiles(this)">
+          </label>
+          <button type="button" id="composerSubmitBtn" class="btn btn-primary btn-sm rounded-pill px-3" onclick="publishGroupPost(this)">Paylaş</button>
+        </div>
+      </div>
+
+      <div id="groupNonMemberNotice" class="alert alert-light border small d-none">Bu grubun gönderilerini görmek/paylaşmak için üye olman gerekiyor.</div>
+
+      <div id="groupPostsList"></div>
+    </div>
 
     </div>
 
     <div class="tab-pane fade" id="groupTabEvents">
-      <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <div class="text-muted small">Sadece grup üyelerinin gördüğü etkinlikler</div>
         <button class="btn btn-primary btn-sm rounded-pill d-none" id="groupEventCreateBtn" onclick="createGroupEvent()"><i class="bi bi-plus-lg me-1"></i>Etkinlik Oluştur</button>
       </div>
       <div id="groupEventsList"><div class="text-muted small">Yükleniyor...</div></div>
+    </div>
+
+    <div class="tab-pane fade" id="groupTabRules">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div class="text-muted small">Gruba katılan herkes bu kuralları kabul eder.</div>
+        <button class="btn btn-light border btn-sm rounded-pill d-none" id="groupRulesEditBtn" onclick="openRulesEditor()"><i class="bi bi-pencil me-1"></i>Kuralları Düzenle</button>
+      </div>
+      <div id="groupRulesList"><div class="text-muted small">Yükleniyor...</div></div>
     </div>
     </div>
 
@@ -107,15 +146,29 @@
             </div>
             <div id="groupInviteResultsList"></div>
           </div>
+          <!-- The members: searched and filtered by the server, a page at a time -->
+          <div class="d-flex flex-wrap gap-2 mb-2 group-member-filters">
+            <div class="d-flex align-items-center bg-body-tertiary rounded-pill px-3 flex-grow-1 group-member-search">
+              <i class="bi bi-search text-muted me-2"></i>
+              <input type="search" id="groupMemberSearch" class="form-control form-control-sm border-0 bg-transparent p-0 shadow-none" placeholder="Üyelerde ara..." aria-label="Üyelerde ara" autocomplete="off" oninput="scheduleMemberSearch()">
+            </div>
+            <select id="groupMemberRole" class="form-select form-select-sm rounded-pill group-member-role" aria-label="Role göre süz" onchange="loadMembers()">
+              <option value="">Herkes</option>
+              <option value="Owner">Grup sahibi</option>
+              <option value="Admin">Yöneticiler</option>
+              <option value="Moderator">Moderatörler</option>
+              <option value="Member">Üyeler</option>
+            </select>
+          </div>
           <div id="groupMembersList"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Admin-only: edit name/description/privacy/cover -->
+  <!-- Admin-only: edit name/description/privacy/cover/picture -->
   <div class="modal fade" id="editGroupModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content rounded-4">
         <div class="modal-header">
           <h5 class="modal-title fw-bold">Grubu Düzenle</h5>
@@ -137,14 +190,50 @@
               <option value="Private">🔒 Gizli</option>
             </select>
           </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold small" for="editGroupAvatarInput">Grup Fotoğrafı</label>
+            <div class="d-flex align-items-center gap-3">
+              <div id="editGroupAvatarPreview" class="flex-shrink-0"></div>
+              <input type="file" id="editGroupAvatarInput" class="form-control" accept="image/*" onchange="document.getElementById('editGroupRemoveAvatar').checked = false">
+            </div>
+            <div class="form-check mt-2 d-none" id="editGroupRemoveAvatarWrap">
+              <input class="form-check-input" type="checkbox" id="editGroupRemoveAvatar" onchange="if (this.checked) document.getElementById('editGroupAvatarInput').value = ''">
+              <label class="form-check-label small" for="editGroupRemoveAvatar">Grup fotoğrafını kaldır</label>
+            </div>
+          </div>
           <div class="mb-1">
             <label class="form-label fw-semibold small" for="editGroupCoverInput">Kapak Fotoğrafı</label>
-            <input type="file" id="editGroupCoverInput" class="form-control" accept="image/*">
+            <input type="file" id="editGroupCoverInput" class="form-control" accept="image/*" onchange="document.getElementById('editGroupRemoveCover').checked = false">
+            <div class="form-check mt-2 d-none" id="editGroupRemoveCoverWrap">
+              <input class="form-check-input" type="checkbox" id="editGroupRemoveCover" onchange="if (this.checked) document.getElementById('editGroupCoverInput').value = ''">
+              <label class="form-check-label small" for="editGroupRemoveCover">Kapak fotoğrafını kaldır</label>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>
           <button type="button" class="btn btn-primary rounded-pill" onclick="saveGroupEdit()">Kaydet</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin-only: the group's rules (at most 10) -->
+  <div class="modal fade" id="editRulesModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content rounded-4">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Kuralları Düzenle</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="small text-muted mb-3">En fazla 10 kısa kural. Kuralı olan bir gruba katılan herkes önce kuralları kabul eder.</div>
+          <div id="rulesEditorList"></div>
+          <button type="button" class="btn btn-light border btn-sm rounded-pill" id="rulesAddBtn" onclick="addRuleRow()"><i class="bi bi-plus-lg me-1"></i>Kural Ekle</button>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Vazgeç</button>
+          <button type="button" class="btn btn-primary rounded-pill" onclick="saveRules(this)">Kaydet</button>
         </div>
       </div>
     </div>
@@ -181,6 +270,7 @@
 <script src="js/location-autocomplete.js"></script>
 <script src="js/event-form.js"></script>
 <script src="js/user-search.js"></script>
+<script src="js/group-rules.js"></script>
 <script src="js/group.js"></script>
 </body>
 </html>

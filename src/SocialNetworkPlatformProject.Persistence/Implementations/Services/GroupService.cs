@@ -16,14 +16,19 @@ public class GroupService : IGroupService
 
     private static readonly string[] GroupAndInviteIncludes = { "Group" };
 
+    // The group's small round picture has a folder of its own (UploadAccessService: open to every signed-in person, like the covers).
+    private const string AvatarFolder = "group-avatars";
+
     private readonly IGroupRepository _groups;
     private readonly IGroupMemberRepository _members;
     private readonly IGroupJoinRequestRepository _joinRequests;
     private readonly IGroupInviteRepository _invites;
+    private readonly IGroupRuleRepository _rules;
     private readonly IUserRepository _users;
     private readonly INotificationService _notifications;
     private readonly IEventRepository _events;
     private readonly IEventService _eventService;
+    private readonly IMessageService _chat;
     private readonly IFileStorageService _files;
     private readonly IPostRepository _posts;
     private readonly IMapper _mapper;
@@ -34,15 +39,19 @@ public class GroupService : IGroupService
         IGroupMemberRepository members,
         IGroupJoinRequestRepository joinRequests,
         IGroupInviteRepository invites,
+        IGroupRuleRepository rules,
         IUserRepository users,
         INotificationService notifications,
         IEventRepository events,
         IEventService eventService,
+        IMessageService chat,
         IFileStorageService files,
         IPostRepository posts,
         IMapper mapper,
         IBlockService blocks)
     {
+        _rules = rules;
+        _chat = chat;
         _blocks = blocks;
         _posts = posts;
         _events = events;
@@ -62,22 +71,37 @@ public class GroupService : IGroupService
         if (!Enum.TryParse<GroupPrivacy>(dto.Privacy, out var privacy))
             throw new BadRequestException(Loc.T("group.privacy"));
 
+        // A picture that was stored but whose group could not be saved (or whose second picture was refused) is deleted again.
         string? coverUrl = null;
-        if (dto.CoverImage != null)
-            coverUrl = await _files.SaveImageAsync(dto.CoverImage, "groups");
-
-        var group = new Group
+        string? avatarUrl = null;
+        Group group;
+        try
         {
-            Name = dto.Name.Trim(),
-            Description = dto.Description?.Trim(),
-            CoverImageUrl = coverUrl,
-            Privacy = privacy,
-            CreatedByUserId = currentUserId
-        };
-        group.Members.Add(new GroupMember { UserId = currentUserId, Role = GroupMemberRole.Admin });
+            if (dto.CoverImage != null)
+                coverUrl = await _files.SaveImageAsync(dto.CoverImage, "groups");
+            if (dto.Avatar != null)
+                avatarUrl = await _files.SaveImageAsync(dto.Avatar, AvatarFolder);
 
-        await _groups.AddAsync(group);
-        await _groups.SaveChangesAsync();
+            group = new Group
+            {
+                Name = dto.Name.Trim(),
+                Description = dto.Description?.Trim(),
+                CoverImageUrl = coverUrl,
+                AvatarUrl = avatarUrl,
+                Privacy = privacy,
+                CreatedByUserId = currentUserId
+            };
+            group.Members.Add(new GroupMember { UserId = currentUserId, Role = GroupMemberRole.Admin });
+
+            await _groups.AddAsync(group);
+            await _groups.SaveChangesAsync();
+        }
+        catch
+        {
+            _files.Delete(coverUrl);
+            _files.Delete(avatarUrl);
+            throw;
+        }
 
         return await ToDtoAsync(group, currentUserId, includeMembers: false);
     }
@@ -94,8 +118,11 @@ public class GroupService : IGroupService
 
         // The old cover file is deleted only once the new state is saved: if the save fails, the group must not be left pointing
         // at a deleted file. A new cover that could not be saved is deleted again.
+        // The avatar follows the same rule.
         var oldCoverUrl = group.CoverImageUrl;
+        var oldAvatarUrl = group.AvatarUrl;
         string? newCoverUrl = null;
+        string? newAvatarUrl = null;
         if (dto.CoverImage != null)
         {
             newCoverUrl = await _files.SaveImageAsync(dto.CoverImage, "groups");
@@ -104,6 +131,24 @@ public class GroupService : IGroupService
         else if (dto.RemoveCoverImage)
         {
             group.CoverImageUrl = null;
+        }
+
+        if (dto.Avatar != null)
+        {
+            try
+            {
+                newAvatarUrl = await _files.SaveImageAsync(dto.Avatar, AvatarFolder);
+            }
+            catch
+            {
+                _files.Delete(newCoverUrl);
+                throw;
+            }
+            group.AvatarUrl = newAvatarUrl;
+        }
+        else if (dto.RemoveAvatar)
+        {
+            group.AvatarUrl = null;
         }
 
         group.Name = dto.Name.Trim();
@@ -119,11 +164,14 @@ public class GroupService : IGroupService
         catch
         {
             _files.Delete(newCoverUrl);
+            _files.Delete(newAvatarUrl);
             throw;
         }
 
         if (group.CoverImageUrl != oldCoverUrl)
             _files.Delete(oldCoverUrl);
+        if (group.AvatarUrl != oldAvatarUrl)
+            _files.Delete(oldAvatarUrl);
 
         // Going public makes any pending requests moot — those users can just join directly now.
         if (wasPrivate && privacy == GroupPrivacy.Public)
@@ -197,13 +245,16 @@ public class GroupService : IGroupService
         return dtos;
     }
 
-    public async Task<GetGroupDto> JoinAsync(Guid currentUserId, Guid groupId)
+    public async Task<GetGroupDto> JoinAsync(Guid currentUserId, Guid groupId, bool acceptRules)
     {
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
             ?? throw new NotFoundException(Loc.T("group.notFound"));
 
         if (group.Members.Any(m => m.UserId == currentUserId))
             throw new ConflictException(Loc.T("group.alreadyMember"));
+
+        // Asking to join a private group counts as joining: the rules are accepted then, not again on approval.
+        await EnsureRulesAcceptedAsync(groupId, acceptRules);
 
         if (group.Privacy == GroupPrivacy.Private)
         {
@@ -224,6 +275,7 @@ public class GroupService : IGroupService
         var member = new GroupMember { GroupId = groupId, UserId = currentUserId, Role = GroupMemberRole.Member };
         await _members.AddAsync(member);
         await _members.SaveChangesAsync();
+        await _chat.AddToGroupChatAsync(groupId, currentUserId);
 
         // The tracked Members collection was fixed up by EF when the new row was added.
         return await ToDtoAsync(group, currentUserId, includeMembers: false);
@@ -283,6 +335,7 @@ public class GroupService : IGroupService
         _joinRequests.Delete(request);
         await _members.AddAsync(new GroupMember { GroupId = groupId, UserId = requesterUserId, Role = GroupMemberRole.Member });
         await _joinRequests.SaveChangesAsync();
+        await _chat.AddToGroupChatAsync(groupId, requesterUserId);
 
         await _notifications.CreateAsync(requesterUserId, currentUserId, NotificationType.GroupJoinRequestApproved, groupId: groupId);
     }
@@ -330,6 +383,7 @@ public class GroupService : IGroupService
             _joinRequests.Delete(existingRequest);
             await _members.AddAsync(new GroupMember { GroupId = groupId, UserId = targetUserId, Role = GroupMemberRole.Member });
             await _joinRequests.SaveChangesAsync();
+            await _chat.AddToGroupChatAsync(groupId, targetUserId);
             return;
         }
 
@@ -359,6 +413,7 @@ public class GroupService : IGroupService
             return new List<GetGroupInviteDto>();
 
         var inviters = await _users.GetSummariesAsync(invites.Select(i => i.InvitedByUserId));
+        var ruleCounts = await _rules.CountByGroupAsync(invites.Select(i => i.GroupId).Distinct().ToList());
         return invites.Select(i =>
         {
             inviters.TryGetValue(i.InvitedByUserId, out var inviter);
@@ -367,6 +422,8 @@ public class GroupService : IGroupService
                 GroupId = i.GroupId,
                 GroupName = i.Group?.Name ?? "",
                 GroupCoverImageUrl = i.Group?.CoverImageUrl,
+                GroupAvatarUrl = i.Group?.AvatarUrl,
+                GroupRuleCount = ruleCounts.GetValueOrDefault(i.GroupId),
                 InvitedByUserId = i.InvitedByUserId,
                 InvitedByName = inviter?.FullName ?? "",
                 CreatedAt = i.CreatedAt
@@ -374,7 +431,7 @@ public class GroupService : IGroupService
         }).ToList();
     }
 
-    public async Task AcceptInviteAsync(Guid currentUserId, Guid groupId)
+    public async Task AcceptInviteAsync(Guid currentUserId, Guid groupId, bool acceptRules)
     {
         var invite = await _invites.GetAll(i => i.GroupId == groupId && i.UserId == currentUserId).FirstOrDefaultAsync()
             ?? throw new NotFoundException(Loc.T("groupInvite.notFound"));
@@ -390,9 +447,12 @@ public class GroupService : IGroupService
             return;
         }
 
+        await EnsureRulesAcceptedAsync(groupId, acceptRules);
+
         _invites.Delete(invite);
         await _members.AddAsync(new GroupMember { GroupId = groupId, UserId = currentUserId, Role = GroupMemberRole.Member });
         await _invites.SaveChangesAsync();
+        await _chat.AddToGroupChatAsync(groupId, currentUserId);
     }
 
     public async Task DeclineInviteAsync(Guid currentUserId, Guid groupId)
@@ -431,6 +491,7 @@ public class GroupService : IGroupService
 
         _members.Delete(membership);
         await _members.SaveChangesAsync();
+        await _chat.RemoveFromGroupChatAsync(groupId, currentUserId);
 
         await _eventService.RemoveUserFromGroupEventsAsync(currentUserId, groupId, group.CreatedByUserId);
     }
@@ -464,12 +525,16 @@ public class GroupService : IGroupService
         var wallPostIds = await wallPosts.Select(p => p.Id).ToListAsync();
         var wallFiles = await wallPosts.SelectMany(p => p.Media).Select(m => m.Url).ToListAsync();
 
+        // The group's chat (and its messages) go with it too.
+        var chatFiles = await _chat.GetGroupChatFilesAsync(group.Id);
+
         _groups.Delete(group);
         await _groups.SaveChangesAsync();
 
         _files.Delete(group.CoverImageUrl);
+        _files.Delete(group.AvatarUrl);
 
-        foreach (var file in wallFiles.Concat(eventPhotoFiles))
+        foreach (var file in wallFiles.Concat(eventPhotoFiles).Concat(chatFiles))
             _files.Delete(file);
 
         await _notifications.DeleteByPostsAsync(wallPostIds);
@@ -509,6 +574,7 @@ public class GroupService : IGroupService
 
         _members.Delete(target);
         await _members.SaveChangesAsync();
+        await _chat.RemoveFromGroupChatAsync(groupId, targetUserId);
 
         await _eventService.RemoveUserFromGroupEventsAsync(targetUserId, groupId, group.CreatedByUserId);
 
@@ -570,6 +636,111 @@ public class GroupService : IGroupService
         return await ToDtoAsync(group, currentUserId, includeMembers: true);
     }
 
+    public async Task<List<GetGroupRuleDto>> GetRulesAsync(Guid groupId)
+    {
+        if (!await _groups.AnyAsync(g => g.Id == groupId))
+            throw new NotFoundException(Loc.T("group.notFound"));
+
+        return _mapper.Map<List<GetGroupRuleDto>>(await _rules.GetForGroupAsync(groupId));
+    }
+
+    public async Task<List<GetGroupRuleDto>> SetRulesAsync(Guid currentUserId, Guid groupId, PutGroupRulesDto dto)
+    {
+        var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
+
+        EnsureAdmin(group, currentUserId);
+
+        // The validator says the same; this is the rule itself, for any caller.
+        if (dto.Rules.Count > GroupLimits.MaxRules)
+            throw new BadRequestException(Loc.T("val.group.rulesMax", GroupLimits.MaxRules));
+
+        // The new list replaces the old one as a whole (the modal edits, adds, removes and reorders in one go).
+        foreach (var old in await _rules.GetAll(r => r.GroupId == groupId).ToListAsync())
+            _rules.Delete(old);
+
+        var order = 0;
+        foreach (var rule in dto.Rules)
+        {
+            await _rules.AddAsync(new GroupRule
+            {
+                GroupId = groupId,
+                Title = rule.Title.Trim(),
+                Text = string.IsNullOrWhiteSpace(rule.Text) ? null : rule.Text.Trim(),
+                SortOrder = order++
+            });
+        }
+
+        await _rules.SaveChangesAsync();
+        return _mapper.Map<List<GetGroupRuleDto>>(await _rules.GetForGroupAsync(groupId));
+    }
+
+    public async Task<PagedResult<GetGroupMemberDto>> GetMembersAsync(
+        Guid currentUserId, Guid groupId, string? search, string? role, int page, int pageSize)
+    {
+        var group = await _groups.GetByIdAsync(groupId)
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
+
+        // Like the group itself: a private group's members are for its members only.
+        if (group.Privacy == GroupPrivacy.Private && !await _members.AnyAsync(m => m.GroupId == groupId && m.UserId == currentUserId))
+            throw new NotFoundException(Loc.T("group.notFound"));
+
+        var ownerOnly = role == "Owner";
+        GroupMemberRole? roleFilter = null;
+        if (!ownerOnly && !string.IsNullOrEmpty(role))
+        {
+            if (!Enum.TryParse<GroupMemberRole>(role, out var parsed))
+                throw new BadRequestException(Loc.T("group.memberFilter"));
+            roleFilter = parsed;
+        }
+
+        page = Math.Max(page, 1);
+        pageSize = Math.Clamp(pageSize, 1, GroupLimits.MaxMembersPageSize);
+
+        var (rows, total) = await _members.SearchAsync(groupId, group.CreatedByUserId, search, roleFilter, ownerOnly, page, pageSize);
+        var summaries = await _users.GetSummariesAsync(rows.Select(m => m.UserId));
+
+        return new PagedResult<GetGroupMemberDto>
+        {
+            Items = rows.Where(m => summaries.ContainsKey(m.UserId)).Select(m => new GetGroupMemberDto
+            {
+                UserId = m.UserId,
+                FullName = summaries[m.UserId].FullName,
+                UserName = summaries[m.UserId].UserName,
+                AvatarUrl = summaries[m.UserId].AvatarUrl,
+                Role = m.Role.ToString(),
+                IsOwner = m.UserId == group.CreatedByUserId
+            }).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = total
+        };
+    }
+
+    public async Task<GetGroupDto> SetMutedAsync(Guid currentUserId, Guid groupId, bool muted)
+    {
+        var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
+            ?? throw new NotFoundException(Loc.T("group.notFound"));
+
+        var membership = group.Members.FirstOrDefault(m => m.UserId == currentUserId)
+            ?? throw new BadRequestException(Loc.T("group.notMember"));
+
+        if (membership.IsMuted != muted)
+        {
+            membership.IsMuted = muted;
+            await _members.SaveChangesAsync();
+        }
+
+        return await ToDtoAsync(group, currentUserId, includeMembers: true);
+    }
+
+    // A group with rules lets nobody in who did not accept them (the page shows them with a box to tick).
+    private async Task EnsureRulesAcceptedAsync(Guid groupId, bool acceptRules)
+    {
+        if (!acceptRules && await _rules.AnyAsync(r => r.GroupId == groupId))
+            throw new BadRequestException(Loc.T("group.rulesNotAccepted"));
+    }
+
     private static void EnsureAdmin(Group group, Guid currentUserId)
     {
         var isAdmin = group.Members.Any(m => m.UserId == currentUserId && m.Role == GroupMemberRole.Admin);
@@ -581,13 +752,16 @@ public class GroupService : IGroupService
     // (one query for all the groups; loading every member of every group just to count them grew with the site).
     private async Task<List<GetGroupDto>> ToListDtosAsync(IReadOnlyList<Group> groups, Guid currentUserId)
     {
-        var memberships = await _groups.GetMembershipsAsync(groups.Select(g => g.Id).ToList(), currentUserId);
+        var groupIds = groups.Select(g => g.Id).ToList();
+        var memberships = await _groups.GetMembershipsAsync(groupIds, currentUserId);
+        var ruleCounts = await _rules.CountByGroupAsync(groupIds);
 
         return groups.Select(group =>
         {
             var membership = memberships[group.Id];
             var dto = _mapper.Map<GetGroupDto>(group);
             dto.MemberCount = membership.MemberCount;
+            dto.RuleCount = ruleCounts.GetValueOrDefault(group.Id);
             dto.IsCurrentUserMember = membership.ViewerRole != null;
             dto.IsCurrentUserAdmin = membership.ViewerRole == GroupMemberRole.Admin;
             dto.IsCurrentUserModerator = membership.ViewerRole == GroupMemberRole.Moderator;
@@ -603,6 +777,8 @@ public class GroupService : IGroupService
         dto.IsCurrentUserAdmin = group.Members.Any(m => m.UserId == currentUserId && m.Role == GroupMemberRole.Admin);
         dto.IsCurrentUserModerator = group.Members.Any(m => m.UserId == currentUserId && m.Role == GroupMemberRole.Moderator);
         dto.IsCurrentUserOwner = group.CreatedByUserId == currentUserId;
+        dto.IsMutedByCurrentUser = group.Members.Any(m => m.UserId == currentUserId && m.IsMuted);
+        dto.RuleCount = (await _rules.CountByGroupAsync(new[] { group.Id })).GetValueOrDefault(group.Id);
 
         if (includeMembers && group.Members.Count > 0)
         {

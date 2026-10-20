@@ -39,5 +39,6 @@ public enum NotificationType
     StoryMentioned = 33,            // a friend tagged you in a story (StoryId)
     StoryReshared = 34,             // to the owner: the tagged friend added the story to their own (StoryId is the original story)
     MarketplacePriceDropped = 45,   // to everyone who saved a listing: its seller lowered the price (ListingId, Amount = new price, PreviousAmount = old one, Subject = title)
-    EventShared = 40                // to the organizer: someone shared the event to their feed (EventId; PostId is THEIR post, so the link can open it)
+    EventShared = 40,               // to the organizer: someone shared the event to their feed (EventId; PostId is THEIR post, so the link can open it)
+    GroupPostPinned = 35            // to every member: an admin pinned a wall post as an announcement (PostId, GroupId); muted members get none
 }

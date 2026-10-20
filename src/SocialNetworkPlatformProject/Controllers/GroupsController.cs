@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SocialNetworkPlatformProject.Application.DTOs.Groups;
+using SocialNetworkPlatformProject.Application.DTOs.Posts;
 using SocialNetworkPlatformProject.Application.Interfaces.Services;
 using SocialNetworkPlatformProject.Extensions;
 
@@ -13,10 +14,12 @@ namespace SocialNetworkPlatformProject.Controllers;
 public class GroupsController : ControllerBase
 {
     private readonly IGroupService _groups;
+    private readonly IGroupPostService _groupPosts;
 
-    public GroupsController(IGroupService groups)
+    public GroupsController(IGroupService groups, IGroupPostService groupPosts)
     {
         _groups = groups;
+        _groupPosts = groupPosts;
     }
 
     [HttpGet("mine")]
@@ -52,10 +55,11 @@ public class GroupsController : ControllerBase
         return await _groups.UpdateAsync(User.GetUserId(), id, dto);
     }
 
+    // acceptRules: the person read the group's rules and ticked the box (required when the group has rules).
     [HttpPost("{id:guid}/join")]
-    public async Task<ActionResult<GetGroupDto>> Join(Guid id)
+    public async Task<ActionResult<GetGroupDto>> Join(Guid id, [FromQuery] bool acceptRules = false)
     {
-        return await _groups.JoinAsync(User.GetUserId(), id);
+        return await _groups.JoinAsync(User.GetUserId(), id, acceptRules);
     }
 
     [HttpGet("{id:guid}/join-requests")]
@@ -125,9 +129,9 @@ public class GroupsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/invites/accept")]
-    public async Task<IActionResult> AcceptInvite(Guid id)
+    public async Task<IActionResult> AcceptInvite(Guid id, [FromQuery] bool acceptRules = false)
     {
-        await _groups.AcceptInviteAsync(User.GetUserId(), id);
+        await _groups.AcceptInviteAsync(User.GetUserId(), id, acceptRules);
         return NoContent();
     }
 
@@ -136,5 +140,65 @@ public class GroupsController : ControllerBase
     {
         await _groups.DeclineInviteAsync(User.GetUserId(), id);
         return NoContent();
+    }
+
+    // group.html "Kurallar"
+    [HttpGet("{id:guid}/rules")]
+    public async Task<ActionResult<List<GetGroupRuleDto>>> GetRules(Guid id)
+    {
+        return await _groups.GetRulesAsync(id);
+    }
+
+    [HttpPut("{id:guid}/rules")]
+    public async Task<ActionResult<List<GetGroupRuleDto>>> SetRules(Guid id, PutGroupRulesDto dto)
+    {
+        return await _groups.SetRulesAsync(User.GetUserId(), id, dto);
+    }
+
+    // group.html "Üyeler": search by name, filter by role ("Owner" / "Admin" / "Moderator" / "Member"), paged.
+    [HttpGet("{id:guid}/members")]
+    public async Task<ActionResult<PagedResult<GetGroupMemberDto>>> GetMembers(
+        Guid id, [FromQuery] string? search, [FromQuery] string? role, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        return await _groups.GetMembersAsync(User.GetUserId(), id, search, role, page, pageSize);
+    }
+
+    [HttpPost("{id:guid}/mute")]
+    public async Task<ActionResult<GetGroupDto>> Mute(Guid id)
+    {
+        return await _groups.SetMutedAsync(User.GetUserId(), id, true);
+    }
+
+    [HttpPost("{id:guid}/unmute")]
+    public async Task<ActionResult<GetGroupDto>> Unmute(Guid id)
+    {
+        return await _groups.SetMutedAsync(User.GetUserId(), id, false);
+    }
+
+    // group.html: the pinned announcements at the top of the wall.
+    [HttpGet("{id:guid}/pinned-posts")]
+    public async Task<ActionResult<List<GetPostDto>>> GetPinnedPosts(Guid id)
+    {
+        return await _groupPosts.GetPinnedAsync(User.GetUserId(), id);
+    }
+
+    [HttpPost("{id:guid}/pinned-posts/{postId:guid}")]
+    public async Task<ActionResult<List<GetPostDto>>> PinPost(Guid id, Guid postId)
+    {
+        return await _groupPosts.PinAsync(User.GetUserId(), id, postId);
+    }
+
+    [HttpDelete("{id:guid}/pinned-posts/{postId:guid}")]
+    public async Task<ActionResult<List<GetPostDto>>> UnpinPost(Guid id, Guid postId)
+    {
+        return await _groupPosts.UnpinAsync(User.GetUserId(), id, postId);
+    }
+
+    // group.html "Grupta ara"
+    [HttpGet("{id:guid}/posts/search")]
+    public async Task<ActionResult<PagedResult<GetPostDto>>> SearchPosts(
+        Guid id, [FromQuery] string? q, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        return await _groupPosts.SearchAsync(User.GetUserId(), id, q, page, pageSize);
     }
 }

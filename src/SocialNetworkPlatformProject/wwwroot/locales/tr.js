@@ -175,5 +175,12 @@ window.LOCALES.tr = {
   "game.bsCellSunk": "{0}: batık gemi",
   "game.bsCellEmpty": "{0}: boş",
   "game.bsCellPlace": "{0}: buraya yerleştir",
-  "game.bsCellShip": "{0}: {1}"
+  "game.bsCellShip": "{0}: {1}",
+
+  // Groups: pinned announcements, rules, search, group chat (group.html, groups.html, messages, chat dock)
+  "notif.groupPostPinned": "{0}, {1} grubunda bir duyuru sabitledi.",
+  "group.rulesIntro": "{0} grubuna katılmadan önce kuralları oku.",
+  "group.searchFor": "{0} için sonuçlar",
+  "chat.groupMembers": "{0} üye",
+  "chat.typingName": "{0} yazıyor..."
 };

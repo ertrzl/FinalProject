@@ -20,6 +20,7 @@ const NOTIF_ICON = {
   GroupRoleChanged: { badge: "bg-warning", icon: "bi-award-fill" },
   GroupJoinRequestApproved: { badge: "bg-success", icon: "bi-check-circle-fill" },
   GroupJoinRequestRejected: { badge: "bg-secondary", icon: "bi-x-circle-fill" },
+  GroupPostPinned: { badge: "bg-warning", icon: "bi-pin-angle-fill" },
   MarketplaceOfferReceived: { badge: "bg-warning", icon: "bi-tag-fill" },
   MarketplaceOfferCountered: { badge: "bg-info", icon: "bi-arrow-left-right" },
   MarketplaceOfferAccepted: { badge: "bg-success", icon: "bi-check-lg" },
@@ -82,6 +83,7 @@ const NOTIF_TEXT = {
   GroupRoleChanged: n => i18n("notif.groupRole", notifPerson(n), notifGroupName(n)),
   GroupJoinRequestApproved: n => i18n("notif.groupApproved", notifPerson(n), notifGroupName(n)),
   GroupJoinRequestRejected: n => i18n("notif.groupRejected", notifPerson(n), notifGroupName(n)),
+  GroupPostPinned: n => i18n("notif.groupPostPinned", notifPerson(n), notifGroupName(n)),
   MarketplaceOfferReceived: n => i18n("notif.offerReceived", notifPerson(n), offerListing(n), notifBold(offerMoney(n.amount))),
   MarketplaceOfferCountered: n => i18n("notif.offerCountered", notifPerson(n), offerListing(n), notifBold(offerMoney(n.amount))),
   MarketplaceOfferAccepted: n => i18n("notif.offerAccepted", notifPerson(n), offerListing(n), notifBold(offerMoney(n.amount))),
@@ -129,6 +131,8 @@ function notificationHtml(n) {
     actions = `<a href="game.html?id=${n.gameId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Oyuna Git</a>`;
   } else if (["PostLiked", "CommentAdded", "CommentReplied", "CommentLiked", "Mentioned", "PostShared", "EventShared"].includes(n.type) && n.postId) {
     actions = `<a href="post.html?id=${n.postId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Gönderiyi Gör</a>`;
+  } else if (n.type === "GroupPostPinned" && n.postId) {
+    actions = `<a href="${n.groupId ? `group.html?id=${n.groupId}` : `post.html?id=${n.postId}`}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Duyuruyu Gör</a>`;
   } else if (n.type === "StoryMentioned" || n.type === "StoryReshared") {
     actions = `<a href="home.html" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Hikâyelere Git</a>`;
   } else if (n.type === "MarketplacePriceDropped" && n.listingId) {
@@ -277,6 +281,12 @@ async function respondToGroupRequest(groupId, requesterId, notificationId, appro
 async function respondToGroupInvite(groupId, notificationId, accept) {
   event.stopPropagation();
   try {
+    // A group with rules is joined only after reading and accepting them: that happens on the invitations tab of groups.html.
+    if (accept && (await apiFetch(`/api/groups/${groupId}/rules`)).length > 0) {
+      await markRead(notificationId);
+      window.location.href = "groups.html?tab=invites";
+      return;
+    }
     await apiFetch(`/api/groups/${groupId}/invites/${accept ? "accept" : "decline"}`, { method: "POST" });
     toast(accept ? "Davet kabul edildi." : "Davet reddedildi.");
     await markRead(notificationId);

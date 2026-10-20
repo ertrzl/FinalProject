@@ -37,4 +37,20 @@ public interface IMessageService
     // May the user write to this person? Always inside an existing conversation; to start a new one the two must be
     // friends or the other person's account must not be private.
     Task<bool> CanMessageAsync(Guid currentUserId, Guid otherUserId);
+
+    // ---- Group chats (Conversation.GroupId): one per group, its participants are the group's current members ----
+
+    // group.html "Grup Sohbeti": the group's chat as the conversation list shows it (created on first use). Members only.
+    Task<GetConversationDto> OpenGroupChatAsync(Guid currentUserId, Guid groupId);
+
+    // Called by GroupService whenever someone becomes a member (join, approved request, accepted invite). Nothing to do
+    // while the group has no chat yet: it is created with every member in it.
+    Task AddToGroupChatAsync(Guid groupId, Guid userId);
+
+    // Called by GroupService whenever someone stops being a member (left, removed). They lose the chat at once: no more
+    // messages reach them, and their open tabs are told ("ConversationRemoved") so the chat closes.
+    Task RemoveFromGroupChatAsync(Guid groupId, Guid userId);
+
+    // The photos of a group's chat, to delete their files when the group (and with it the chat) is deleted.
+    Task<List<string>> GetGroupChatFilesAsync(Guid groupId);
 }

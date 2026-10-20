@@ -12,12 +12,12 @@ async function renderDockList() {
     .map(conv => `
         <button class="btn w-100 text-start rounded-0 px-3 py-2 border-0 border-bottom d-flex align-items-center gap-2" onclick="openChatPopup('${conv.id}')">
           <div class="position-relative flex-shrink-0">
-            <img src="${conv.otherUserAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt="">
-            <span class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle ${conv.isOtherUserOnline ? "" : "d-none"}" style="width:10px;height:10px;" data-presence-user="${conv.otherUserId}"></span>
+            ${window.chatConversationAvatarHtml(conv, "avatar-sm")}
+            ${conv.isGroup ? "" : `<span class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle ${conv.isOtherUserOnline ? "" : "d-none"}" style="width:10px;height:10px;" data-presence-user="${conv.otherUserId}"></span>`}
           </div>
           <div class="flex-grow-1 overflow-hidden">
-            <div class="fw-bold small text-truncate">${escapeHtml(conv.otherUserName)}</div>
-            <div class="text-muted small text-truncate">${conv.lastMessageText ? escapeHtml(conv.lastMessageText) : "Henüz mesaj yok"}</div>
+            <div class="fw-bold small text-truncate"><span data-no-i18n>${escapeHtml(conv.otherUserName)}</span>${conv.isMuted ? ` <i class="bi bi-bell-slash text-muted" title="Sessizde"></i>` : ""}</div>
+            <div class="text-muted small text-truncate">${conv.isGroup ? window.chatLastMessageHtml(conv) : conv.lastMessageText ? escapeHtml(conv.lastMessageText) : "Henüz mesaj yok"}</div>
           </div>
           ${conv.unreadCount > 0 ? `<span class="badge bg-danger rounded-pill flex-shrink-0">${conv.unreadCount}</span>` : ""}
         </button>`)
@@ -75,11 +75,11 @@ function buildPopupShell(id) {
   popup.innerHTML = `
     <div class="chat-popup-header">
       <div class="position-relative flex-shrink-0">
-        <img src="${conv.otherUserAvatarUrl || DEFAULT_AVATAR}" class="avatar-xs" alt="">
-        <span class="position-absolute bottom-0 end-0 bg-success border border-1 border-white rounded-circle ${conv.isOtherUserOnline ? "" : "d-none"}" style="width:9px;height:9px;" data-presence-user="${conv.otherUserId}"></span>
+        ${window.chatConversationAvatarHtml(conv, "avatar-xs")}
+        ${conv.isGroup ? "" : `<span class="position-absolute bottom-0 end-0 bg-success border border-1 border-white rounded-circle ${conv.isOtherUserOnline ? "" : "d-none"}" style="width:9px;height:9px;" data-presence-user="${conv.otherUserId}"></span>`}
       </div>
       <div class="flex-grow-1 overflow-hidden">
-        <div class="fw-bold small text-truncate"><a href="profile.html?id=${conv.otherUserId}" class="text-white text-decoration-none">${escapeHtml(conv.otherUserName)}</a></div>
+        <div class="fw-bold small text-truncate"><a href="${window.chatConversationLink(conv)}" class="text-white text-decoration-none" data-no-i18n>${escapeHtml(conv.otherUserName)}</a></div>
         <div class="chat-typing d-none" style="font-size:11px;opacity:.85;">yazıyor...</div>
       </div>
       <button type="button" class="btn-close btn-close-white btn-sm" onclick="closeChatPopup('${id}')"></button>
@@ -114,10 +114,10 @@ async function renderPopup(id) {
 
 function bubbleHtml(m) {
   return `
-      <div class="chat-msg-row d-flex align-items-center mb-2 ${m.isMine ? "justify-content-end" : "justify-content-start"}" data-message-id="${m.id}">
-        ${m.isMine ? window.chatMessageActionsHtml(m) : ""}
+      <div class="chat-msg-row d-flex align-items-center mb-2 ${m.isMine ? "justify-content-end" : "justify-content-start"}" data-message-id="${m.id}" data-sent-at="${m.sentAt}">
+        ${m.isMine ? window.chatMessageActionsHtml(m) : window.chatSenderAvatarHtml(m)}
         <div class="px-2 py-1 rounded-3 ${window.chatBubbleColorClasses(m)}" style="max-width:80%; font-size:13px;">
-          ${window.chatMessageBodyHtml(m, true)}${m.isMine && !m.isDeleted ? ` <i class="bi ${m.isRead ? "bi-check2-all text-info" : "bi-check2"} read-status" style="font-size:11px;"></i>` : ""}
+          ${window.chatSenderNameHtml(m)}${window.chatMessageBodyHtml(m, true)}${m.isMine && !m.isDeleted ? ` <i class="bi ${m.isRead ? "bi-check2-all text-info" : "bi-check2"} read-status" style="font-size:11px;"></i>` : ""}
         </div>
         ${m.isMine ? "" : window.chatMessageActionsHtml(m)}
       </div>`;
@@ -179,11 +179,16 @@ for (const eventName of ["realtime:message-deleted", "realtime:message-updated"]
   });
 }
 
-// The other person has opened our messages: turn our single ticks into double ticks.
+// The other person has opened our messages: turn our single ticks into double ticks (in a group chat, the ones everybody
+// else has read).
 document.addEventListener("realtime:messages-read", e => {
-  document.querySelectorAll(`#chatPopupThread-${e.detail.conversationId} .read-status`).forEach(icon => {
-    icon.className = "bi bi-check2-all text-info read-status";
-  });
+  window.chatApplyReadReceipt(document.getElementById(`chatPopupThread-${e.detail.conversationId}`), e.detail, "bi bi-check2-all text-info read-status");
+});
+
+// Taken out of a group: its chat window closes and the list drops it.
+document.addEventListener("realtime:conversation-removed", e => {
+  closeChatPopup(e.detail.conversationId);
+  renderDockList();
 });
 
 const typingTimers = {};
@@ -197,6 +202,8 @@ function setPopupTyping(conversationId, isTyping) {
 document.addEventListener("realtime:typing", e => {
   const id = e.detail.conversationId;
   if (!openPopups.includes(id)) return;
+  const label = document.querySelector(`#chatPopup-${id} .chat-typing`);
+  if (label) label.textContent = window.chatTypingText(e.detail);
   setPopupTyping(id, true);
   typingTimers[id] = setTimeout(() => setPopupTyping(id, false), 3500);
 });

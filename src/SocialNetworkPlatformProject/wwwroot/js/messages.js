@@ -7,15 +7,18 @@ let draftUser = null;     // { id, fullName, avatarUrl } when starting a brand-n
 
 function conversationListItemHtml(conv) {
   const activeClass = conv.id === activeId ? "bg-primary-subtle" : "";
+  // A group chat shows the group (no online dot: there is no single other person); a muted one carries a small bell.
+  const presenceDot = conv.isGroup ? ""
+    : `<span class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle ${conv.isOtherUserOnline ? "" : "d-none"}" style="width:11px;height:11px;" data-presence-user="${conv.otherUserId}"></span>`;
   return `
     <button class="btn w-100 text-start rounded-0 px-3 py-3 border-0 border-bottom d-flex align-items-center gap-2 ${activeClass}" onclick="selectConversation('${conv.id}')">
       <div class="position-relative flex-shrink-0">
-        <img src="${conv.otherUserAvatarUrl || DEFAULT_AVATAR}" class="avatar-sm" alt="">
-        <span class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle ${conv.isOtherUserOnline ? "" : "d-none"}" style="width:11px;height:11px;" data-presence-user="${conv.otherUserId}"></span>
+        ${window.chatConversationAvatarHtml(conv, "avatar-sm")}
+        ${presenceDot}
       </div>
       <div class="flex-grow-1 overflow-hidden">
-        <div class="fw-bold small text-truncate">${escapeHtml(conv.otherUserName)}</div>
-        <div class="text-muted small text-truncate">${conv.lastMessageText ? (conv.lastMessageIsMine ? "Sen: " : "") + escapeHtml(conv.lastMessageText) : "Henüz mesaj yok"}</div>
+        <div class="fw-bold small text-truncate"><span data-no-i18n>${escapeHtml(conv.otherUserName)}</span>${conv.isGroup ? ` <i class="bi bi-people-fill text-muted ms-1" title="Grup sohbeti"></i>` : ""}${conv.isMuted ? ` <i class="bi bi-bell-slash text-muted ms-1" title="Sessizde"></i>` : ""}</div>
+        <div class="text-muted small text-truncate">${window.chatLastMessageHtml(conv)}</div>
       </div>
       ${conv.unreadCount > 0 ? `<span class="badge bg-danger rounded-pill flex-shrink-0">${conv.unreadCount}</span>` : ""}
     </button>`;
@@ -46,10 +49,10 @@ function readStatusHtml(isRead) {
 
 function messageBubbleHtml(m) {
   return `
-      <div class="chat-msg-row d-flex align-items-center mb-3 ${m.isMine ? "justify-content-end" : "justify-content-start"}" data-message-id="${m.id}">
-        ${m.isMine ? window.chatMessageActionsHtml(m) : ""}
+      <div class="chat-msg-row d-flex align-items-center mb-3 ${m.isMine ? "justify-content-end" : "justify-content-start"}" data-message-id="${m.id}" data-sent-at="${m.sentAt}">
+        ${m.isMine ? window.chatMessageActionsHtml(m) : window.chatSenderAvatarHtml(m)}
         <div class="px-3 py-2 rounded-4 ${window.chatBubbleColorClasses(m)}" style="max-width:70%;">
-          ${window.chatMessageBodyHtml(m)}
+          ${window.chatSenderNameHtml(m)}${window.chatMessageBodyHtml(m)}
           <div class="mt-1 ${m.isMine && m.type !== "Sticker" && !m.isDeleted ? "text-white-50" : "text-muted"}" style="font-size:10.5px;">${timeAgo(m.sentAt)}${m.isMine && !m.isDeleted ? readStatusHtml(m.isRead) : ""}</div>
         </div>
         ${m.isMine ? "" : window.chatMessageActionsHtml(m)}
@@ -84,6 +87,17 @@ function renderHeader(userId, name, avatar, online) {
     </div>`;
 }
 
+// A group chat's header: the group (its page is a tap away) and how many members it has, where "yazıyor..." also shows.
+function renderGroupHeader(conv) {
+  document.getElementById("conversationHeader").innerHTML = `
+    <button type="button" class="btn btn-link text-body p-0 d-md-none" onclick="showConversationList()" aria-label="Sohbetlere dön"><i class="bi bi-arrow-left fs-4"></i></button>
+    ${window.chatConversationAvatarHtml(conv, "avatar-sm")}
+    <div style="min-width:0;">
+      <div class="fw-bold text-truncate"><a href="${window.chatConversationLink(conv)}" class="text-body text-decoration-none" data-no-i18n>${escapeHtml(conv.otherUserName)}</a>${conv.isMuted ? ` <i class="bi bi-bell-slash text-muted ms-1" title="Sessizde"></i>` : ""}</div>
+      <div class="text-muted small" id="presenceText" data-no-i18n>${escapeHtml(window.chatGroupSubtitle(conv))}</div>
+    </div>`;
+}
+
 // keepView: refresh the conversation without changing which column a phone shows (after a lost connection).
 async function selectConversation(id, { keepView = false } = {}) {
   activeId = id;
@@ -93,7 +107,8 @@ async function selectConversation(id, { keepView = false } = {}) {
   await renderList();
 
   const conv = window.findChatConversation(id);
-  if (conv) renderHeader(conv.otherUserId, conv.otherUserName, conv.otherUserAvatarUrl, conv.isOtherUserOnline);
+  if (conv && conv.isGroup) renderGroupHeader(conv);
+  else if (conv) renderHeader(conv.otherUserId, conv.otherUserName, conv.otherUserAvatarUrl, conv.isOtherUserOnline);
 
   const thread = document.getElementById("conversationThread");
   try {
@@ -183,12 +198,23 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) markActiveConversationRead();
 });
 
-// The other person has opened our messages: turn our single ticks into double ticks.
+// The other person has opened our messages: turn our single ticks into double ticks (in a group chat, the ones everybody
+// else has read).
 document.addEventListener("realtime:messages-read", e => {
   if (e.detail.conversationId !== activeId) return;
-  document.querySelectorAll("#conversationThread .read-status").forEach(icon => {
-    icon.className = "bi bi-check2-all text-info read-status ms-1";
-  });
+  window.chatApplyReadReceipt(document.getElementById("conversationThread"), e.detail, "bi bi-check2-all text-info read-status ms-1");
+});
+
+// Taken out of a group (left, removed, or the group is gone): its chat closes here at once.
+document.addEventListener("realtime:conversation-removed", async e => {
+  if (e.detail.conversationId === activeId) {
+    activeId = null;
+    document.getElementById("conversationHeader").innerHTML = "";
+    document.getElementById("conversationThread").innerHTML = `<div class="text-muted small text-center py-4">Artık bu grubun üyesi değilsin.</div>`;
+    document.getElementById("messageForm").classList.add("d-none");
+    showConversationList();
+  }
+  await renderList();
 });
 
 // The sender took a message back, or somebody left or took back an emoji on it: redraw its bubble (the last-message
@@ -211,7 +237,8 @@ function hideTyping() {
   delete label.dataset.typing;
   label.classList.remove("text-primary");
   const conv = window.findChatConversation(activeId);
-  label.textContent = conv && conv.isOtherUserOnline ? "Çevrimiçi" : "Çevrimdışı";
+  if (conv && conv.isGroup) label.textContent = window.chatGroupSubtitle(conv);
+  else label.textContent = conv && conv.isOtherUserOnline ? "Çevrimiçi" : "Çevrimdışı";
 }
 
 document.addEventListener("realtime:typing", e => {
@@ -220,7 +247,7 @@ document.addEventListener("realtime:typing", e => {
   if (!label) return;
   label.dataset.typing = "1";
   label.classList.add("text-primary");
-  label.textContent = "yazıyor...";
+  label.textContent = window.chatTypingText(e.detail);
   clearTimeout(typingTimer);
   typingTimer = setTimeout(hideTyping, 3500);
 });
@@ -235,8 +262,12 @@ async function init() {
 
   const params = new URLSearchParams(window.location.search);
   const userId = params.get("userId");
+  // messages.html?conversation=<id>: a given conversation, e.g. a group chat opened from group.html.
+  const conversationId = params.get("conversation");
 
-  if (userId) {
+  if (conversationId && window.findChatConversation(conversationId)) {
+    await selectConversation(conversationId);
+  } else if (userId) {
     const existing = window.chatConversationsCache.find(c => c.otherUserId === userId);
     if (existing) {
       await selectConversation(existing.id);

@@ -26,6 +26,13 @@ public class MessagesController : ControllerBase
         return await _messages.GetConversationsAsync(User.GetUserId());
     }
 
+    // group.html "Grup Sohbeti": the group's chat (created on first use), members only.
+    [HttpPost("groups/{groupId:guid}")]
+    public async Task<ActionResult<GetConversationDto>> OpenGroupChat(Guid groupId)
+    {
+        return await _messages.OpenGroupChatAsync(User.GetUserId(), groupId);
+    }
+
     [HttpGet("conversations/{conversationId:guid}")]
     public async Task<ActionResult<PagedResult<GetMessageDto>>> GetMessages(Guid conversationId, [FromQuery] int page = 1, [FromQuery] int pageSize = 30)
     {

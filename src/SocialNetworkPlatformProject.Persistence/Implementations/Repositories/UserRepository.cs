@@ -204,8 +204,9 @@ public class UserRepository : IUserRepository
         var myPostIds = myPosts.Select(p => p.Id);
         var myComments = _context.Set<Comment>().Where(c => c.AuthorId == userId);
         var myCommentIds = myComments.Select(c => c.Id);
+        // The person's direct conversations (group chats belong to their groups, see below).
         var myConversationIds = _context.Set<ConversationParticipant>()
-            .Where(p => p.UserId == userId)
+            .Where(p => p.UserId == userId && p.Conversation!.GroupId == null)
             .Select(p => p.ConversationId);
 
         // The groups the person owns. A group with other members lives on: it is handed to the member best placed to run
@@ -263,6 +264,12 @@ public class UserRepository : IUserRepository
         // The photos of the person's chats: the conversations go with the account, so both sides' messages do.
         files.AddRange(await _context.Set<Message>().Where(m => myConversationIds.Contains(m.ConversationId) && m.MediaUrl != null).Select(m => m.MediaUrl!).ToListAsync());
         files.AddRange(await _context.Set<Group>().Where(g => groupIdsToDelete.Contains(g.Id) && g.CoverImageUrl != null).Select(g => g.CoverImageUrl!).ToListAsync());
+        files.AddRange(await _context.Set<Group>().Where(g => groupIdsToDelete.Contains(g.Id) && g.AvatarUrl != null).Select(g => g.AvatarUrl!).ToListAsync());
+        // Group chats: the photos the person sent there, and every photo of the chat of a group that goes.
+        files.AddRange(await _context.Set<Message>()
+            .Where(m => m.MediaUrl != null && m.Conversation!.GroupId != null
+                && (m.SenderId == userId || groupIdsToDelete.Contains(m.Conversation.GroupId.Value)))
+            .Select(m => m.MediaUrl!).ToListAsync());
         files.AddRange(await myEvents.Where(e => e.CoverImageUrl != null).Select(e => e.CoverImageUrl!).ToListAsync());
         // The albums of the events that go, and the pictures the person added to other people's events.
         files.AddRange(await _context.Set<EventPhoto>().Where(p => myEventIds.Contains(p.EventId) || p.UploadedByUserId == userId).Select(p => p.Url).ToListAsync());
@@ -311,6 +318,11 @@ public class UserRepository : IUserRepository
 
         await _context.Set<MessageReaction>().Where(r => r.UserId == userId).ExecuteDeleteAsync(); // emojis left on other people's messages (their own messages go with the conversations)
         await _context.Set<Conversation>().Where(c => myConversationIds.Contains(c.Id)).ExecuteDeleteAsync();
+
+        // Group chats stay for the other members: the person's own messages there go (the emojis on them with them), and
+        // they are no longer a participant. The chats of the groups that go are deleted with those groups below.
+        await _context.Set<Message>().Where(m => m.SenderId == userId && m.Conversation!.GroupId != null).ExecuteDeleteAsync();
+        await _context.Set<ConversationParticipant>().Where(p => p.UserId == userId).ExecuteDeleteAsync();
 
         // Games, invitations and finished ones alike: the opponent has nobody left to play or answer.
         await _context.Set<Game>().Where(g => g.InviterId == userId || g.InviteeId == userId).ExecuteDeleteAsync();

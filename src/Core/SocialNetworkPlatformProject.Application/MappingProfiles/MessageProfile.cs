@@ -12,6 +12,8 @@ public class MessageProfile : Profile
             .ForMember(dest => dest.SentAt, opt => opt.MapFrom(src => src.CreatedAt))
             .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(src => src.DeletedAt != null))
             .ForMember(dest => dest.IsMine, opt => opt.Ignore())
+            .ForMember(dest => dest.SenderName, opt => opt.Ignore())
+            .ForMember(dest => dest.SenderAvatarUrl, opt => opt.Ignore())
             .ForMember(dest => dest.StoryReply, opt => opt.Ignore())
             .ForMember(dest => dest.ReplyTo, opt => opt.Ignore())
             .ForMember(dest => dest.Reactions, opt => opt.Ignore());
@@ -24,6 +26,9 @@ public class MessageProfile : Profile
             .ForMember(dest => dest.LastMessageText, opt => opt.Ignore())
             .ForMember(dest => dest.LastMessageAt, opt => opt.Ignore())
             .ForMember(dest => dest.LastMessageIsMine, opt => opt.Ignore())
+            .ForMember(dest => dest.LastMessageSenderName, opt => opt.Ignore())
+            .ForMember(dest => dest.MemberCount, opt => opt.Ignore())
+            .ForMember(dest => dest.IsMuted, opt => opt.Ignore())
             .ForMember(dest => dest.UnreadCount, opt => opt.Ignore());
     }
 }

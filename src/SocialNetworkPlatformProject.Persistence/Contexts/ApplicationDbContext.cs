@@ -55,6 +55,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<GroupJoinRequest> GroupJoinRequests => Set<GroupJoinRequest>();
     public DbSet<GroupInvite> GroupInvites => Set<GroupInvite>();
+    public DbSet<GroupRule> GroupRules => Set<GroupRule>();
+    public DbSet<GroupPinnedPost> GroupPinnedPosts => Set<GroupPinnedPost>();
 
     // Marketplace
     public DbSet<MarketplaceListing> MarketplaceListings => Set<MarketplaceListing>();

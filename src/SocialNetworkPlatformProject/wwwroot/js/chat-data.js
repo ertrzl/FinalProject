@@ -169,6 +169,62 @@ window.deleteChatMessage = async function (id) {
   }
 };
 
+// ---- Group chats (conv.isGroup): the list and the header show the group; each bubble names who wrote it ----
+
+// Where the name in a list row / header leads: the group's page, or the person's profile.
+window.chatConversationLink = function (conv) {
+  return conv.isGroup ? `group.html?id=${conv.groupId}` : `profile.html?id=${conv.otherUserId}`;
+};
+
+// The round picture of a conversation: the person's, or the group's (its initial when it has none).
+window.chatConversationAvatarHtml = function (conv, sizeClass) {
+  if (!conv.isGroup) return `<img src="${conv.otherUserAvatarUrl || DEFAULT_AVATAR}" class="${sizeClass}" alt="">`;
+  if (conv.otherUserAvatarUrl) return `<img src="${conv.otherUserAvatarUrl}" class="${sizeClass} group-avatar" alt="">`;
+  const initial = (conv.otherUserName || "?").trim().charAt(0).toLocaleUpperCase(localeTag()) || "?";
+  return `<span class="${sizeClass} group-avatar group-avatar-empty" aria-hidden="true" data-no-i18n>${escapeHtml(initial)}</span>`;
+};
+
+// The last message under a list row: "Sen: ..." for mine, "Ayşe: ..." in a group, the text alone otherwise. Safe HTML.
+window.chatLastMessageHtml = function (conv) {
+  if (!conv.lastMessageText) return "Henüz mesaj yok";
+  const who = conv.lastMessageIsMine ? "Sen: " : conv.isGroup && conv.lastMessageSenderName ? `${escapeHtml(conv.lastMessageSenderName)}: ` : "";
+  return `${who}<span data-no-i18n>${escapeHtml(conv.lastMessageText)}</span>`;
+};
+
+// The line under the name in a header: the group's member count (direct chats show the online state instead).
+window.chatGroupSubtitle = function (conv) {
+  return i18n("chat.groupMembers", conv.memberCount);
+};
+
+// A group chat's bubble from somebody else: their small picture beside it (the space stays when the previous bubble is
+// theirs too) and their name above it.
+window.chatSenderAvatarHtml = function (m) {
+  if (m.isMine || !m.senderName) return "";
+  return `<a href="profile.html?id=${m.senderId}" class="chat-sender-avatar flex-shrink-0 align-self-end me-1" title="${escapeHtml(m.senderName)}"><img src="${m.senderAvatarUrl || DEFAULT_AVATAR}" class="avatar-xs" alt=""></a>`;
+};
+
+window.chatSenderNameHtml = function (m) {
+  if (m.isMine || !m.senderName || m.isDeleted) return "";
+  return `<div class="chat-sender-name" data-no-i18n>${escapeHtml(m.senderName)}</div>`;
+};
+
+// "yazıyor..." — in a group chat with the name of who is typing.
+window.chatTypingText = function (detail) {
+  return detail.userName ? i18n("chat.typingName", detail.userName) : "yazıyor...";
+};
+
+// The others have read my messages: double ticks. In a group chat only up to when *all* the others have read (readUpTo,
+// from the server); the rows carry their time (data-sent-at) for that.
+window.chatApplyReadReceipt = function (container, detail, readClass) {
+  if (!container) return;
+  const upTo = detail.readUpTo ? parseServerDate(detail.readUpTo).getTime() : null;
+  container.querySelectorAll(".read-status").forEach(icon => {
+    const row = icon.closest("[data-sent-at]");
+    if (upTo !== null && row && parseServerDate(row.dataset.sentAt).getTime() > upTo) return;
+    icon.className = readClass;
+  });
+};
+
 window.openChatImage = function (url) {
   const overlay = document.createElement("div");
   overlay.className = "chat-image-viewer";

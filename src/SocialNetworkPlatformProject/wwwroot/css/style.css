@@ -336,6 +336,8 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- Messages page ---------- */
 .messages-card { height: calc(100vh - 130px); min-height: 480px; }
+/* A bubble is never wider than a comfortable line (on a big screen 70% of the conversation is a line of 1500 px). */
+.messages-thread-col .chat-msg-row > .rounded-4 { max-width: min(70%, 720px) !important; }
 @media (max-width: 767.98px) {
   /* top bar + page padding + the bottom tab bar are around the card; and only one column shows at a time */
   .messages-card { height: calc(100vh - 175px); height: calc(100dvh - 175px); min-height: 360px; }

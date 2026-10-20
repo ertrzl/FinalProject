@@ -823,6 +823,10 @@ html[data-design="inbox"] .not-found-code { color: var(--accent); font-family: v
 @media (min-width: 1500px) {
   html[data-design="inbox"] body > .container,
   html[data-design="inbox"] body > .container-fluid { max-width: 1280px !important; margin-left: auto !important; margin-right: auto !important; }
+
+  /* Messages is an app-like page (the list and the conversation, the height of the screen): the rule above made it shrink to
+     the width of its content and sit in the middle with a lot of empty room on both sides. It fills the room beside the menu. */
+  html[data-design="inbox"] body > .container:has(.messages-card) { max-width: none !important; width: auto; margin: 0 !important; }
 }
 
 /* ---------- X-O games (games.html, game.html; the shared part is in style.css) ---------- */

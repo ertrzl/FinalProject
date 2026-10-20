@@ -25,5 +25,10 @@ public class GroupConfiguration : IEntityTypeConfiguration<Group>
             .WithOne(i => i.Group)
             .HasForeignKey(i => i.GroupId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(g => g.Rules)
+            .WithOne(r => r.Group)
+            .HasForeignKey(r => r.GroupId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

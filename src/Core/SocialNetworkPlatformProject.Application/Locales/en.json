@@ -371,5 +371,14 @@
   "time.minute": "{0} minute",
   "time.minutes": "{0} minutes",
   "time.hour": "{0} hour",
-  "time.hours": "{0} hours"
+  "time.hours": "{0} hours",
+  "group.rulesNotAccepted": "You need to accept the group's rules before you can join it.",
+  "group.memberFilter": "The role filter must be 'Owner', 'Admin', 'Moderator' or 'Member'.",
+  "group.pinLimit": "A group can have at most {0} pinned posts. Unpin one first.",
+  "val.group.avatar": "The group picture can't be removed and uploaded at the same time.",
+  "val.group.rulesMax": "A group can have at most {0} rules.",
+  "val.group.ruleTitle": "Every rule needs a title.",
+  "val.group.ruleTitleLength": "A rule title can be at most {0} characters.",
+  "val.group.ruleTextLength": "A rule description can be at most {0} characters.",
+  "message.storyGroup": "A story can't be answered from a group chat."
 }

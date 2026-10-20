@@ -263,11 +263,18 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DirectKey")
                         .IsUnique()
                         .HasFilter("[DirectKey] IS NOT NULL");
+
+                    b.HasIndex("GroupId")
+                        .IsUnique()
+                        .HasFilter("[GroupId] IS NOT NULL");
 
                     b.ToTable("Conversations");
                 });
@@ -282,6 +289,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastReadAt")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid>("UserId")
@@ -688,6 +698,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("CoverImageUrl")
                         .HasColumnType("nvarchar(max)");
 
@@ -775,6 +788,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<Guid>("GroupId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("IsMuted")
+                        .HasColumnType("bit");
+
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
@@ -787,6 +803,62 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                         .IsUnique();
 
                     b.ToTable("GroupMembers");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.GroupPinnedPost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("GroupId", "PostId")
+                        .IsUnique();
+
+                    b.ToTable("GroupPinnedPosts");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.GroupRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId", "SortOrder");
+
+                    b.ToTable("GroupRules");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Hashtag", b =>
@@ -2007,6 +2079,16 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("Comment");
                 });
 
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Conversation", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Group");
+                });
+
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.ConversationParticipant", b =>
                 {
                     b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Conversation", "Conversation")
@@ -2098,6 +2180,28 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 {
                     b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Group", "Group")
                         .WithMany("Members")
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.GroupPinnedPost", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Post", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.GroupRule", b =>
+                {
+                    b.HasOne("SocialNetworkPlatformProject.Domain.Entities.Group", "Group")
+                        .WithMany("Rules")
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -2360,6 +2464,8 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Navigation("JoinRequests");
 
                     b.Navigation("Members");
+
+                    b.Navigation("Rules");
                 });
 
             modelBuilder.Entity("SocialNetworkPlatformProject.Domain.Entities.Hashtag", b =>

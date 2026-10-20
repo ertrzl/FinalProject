@@ -5,6 +5,11 @@ public class GetMessageDto
     public Guid Id { get; set; }
     public Guid ConversationId { get; set; }
     public Guid SenderId { get; set; }
+
+    // Group chats only (a direct chat has two people, the header already names the other one): who wrote it.
+    public string? SenderName { get; set; }
+    public string? SenderAvatarUrl { get; set; }
+
     public string Type { get; set; } = "Text"; // Text / Image / Sticker
     public string Text { get; set; } = string.Empty;
     public string? MediaUrl { get; set; }

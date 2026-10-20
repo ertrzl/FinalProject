@@ -3,6 +3,7 @@
 //   "realtime:notification"  detail = notification DTO
 //   "realtime:message"       detail = message DTO (cancelable: call preventDefault() if the page already shows it, to suppress the toast)
 //   "realtime:message-deleted"  detail = the message DTO after the sender took it back (isDeleted = true)
+//   "realtime:conversation-removed"  detail = { conversationId }: a group chat the user is no longer a member of
 //   "realtime:game-updated"  detail = the game (X-O or rock-paper-scissors) as this user sees it (games.html and game.html redraw from it)
 //   "realtime:reconnected"   the connection was lost and came back — reload anything that may have been missed
 
@@ -32,7 +33,8 @@
     EventShared: "etkinliğini gönderide paylaştı.",
     GameInviteReceived: "sana oyun teklif etti.",
     GameInviteAccepted: "oyun davetini kabul etti.",
-    MarketplacePriceDropped: "kaydettiğin bir ilanın fiyatını düşürdü."
+    MarketplacePriceDropped: "kaydettiğin bir ilanın fiyatını düşürdü.",
+    GroupPostPinned: "grupta bir duyuru sabitledi."
   };
 
   function createConnection(url) {
@@ -90,8 +92,18 @@
     if (m.isMine || event.defaultPrevented) return;
     const conversations = window.refreshChatConversations ? await window.refreshChatConversations() : [];
     const conversation = conversations.find(c => c.id === m.conversationId);
+    // A group the person muted makes no noise: the message is in the chat and the list, without a toast.
+    if (conversation && conversation.isMuted) return;
     const preview = window.chatMessagePreviewText ? window.chatMessagePreviewText(m) : m.text;
-    toast(`<b>${escapeHtml(conversation ? conversation.otherUserName : "Yeni mesaj")}</b>: ${escapeHtml(preview)}`, { html: true });
+    // A group chat names the group and who wrote: "Kitap Kulübü · Ayşe: ...".
+    const title = conversation ? conversation.otherUserName + (conversation.isGroup && m.senderName ? ` · ${m.senderName}` : "") : "Yeni mesaj";
+    toast(`<b>${escapeHtml(title)}</b>: ${escapeHtml(preview)}`, { html: true });
+  });
+
+  // The person left or was removed from a group: its chat is no longer theirs (pages close it and drop it from the list).
+  messages.connection.on("ConversationRemoved", data => {
+    document.dispatchEvent(new CustomEvent("realtime:conversation-removed", { detail: data }));
+    window.refreshMessageBadge?.();
   });
 
   // Feed changes pushed by the server, re-dispatched as "realtime:<name>" (see live-posts.js and feed.js).

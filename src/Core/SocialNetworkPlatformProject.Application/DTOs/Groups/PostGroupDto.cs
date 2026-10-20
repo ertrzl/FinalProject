@@ -9,4 +9,5 @@ public class PostGroupDto
     public string? Description { get; set; }
     public string Privacy { get; set; } = "Public"; // "Public" / "Private"
     public IFormFile? CoverImage { get; set; }
+    public IFormFile? Avatar { get; set; }
 }

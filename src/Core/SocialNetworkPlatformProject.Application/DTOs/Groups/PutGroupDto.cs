@@ -10,4 +10,6 @@ public class PutGroupDto
     public string Privacy { get; set; } = "Public"; // "Public" / "Private"
     public IFormFile? CoverImage { get; set; }
     public bool RemoveCoverImage { get; set; }
+    public IFormFile? Avatar { get; set; }
+    public bool RemoveAvatar { get; set; }
 }

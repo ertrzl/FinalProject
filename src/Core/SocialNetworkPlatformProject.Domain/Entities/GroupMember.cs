@@ -11,4 +11,8 @@ public class GroupMember : BaseEntity
 
     public Guid UserId { get; set; }
     public GroupMemberRole Role { get; set; } = GroupMemberRole.Member;
+
+    // "Sessize al": this member gets no notifications (and no chat toasts) from the group's activity. Stored on the
+    // membership, so it goes when they leave and a later join starts unmuted.
+    public bool IsMuted { get; set; }
 }

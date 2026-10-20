@@ -82,6 +82,11 @@ public class NotificationService : INotificationService
         if (preferences != null && !preferences.Allows(type))
             return;
 
+        // The recipient muted the group this comes from (a wall post and what happens under it, a group event). A notice
+        // from the site's admins is not the group's activity: it always arrives.
+        if (type != NotificationType.ContentRemoved && await _groups.IsActivityMutedAsync(recipientId, postId, eventId))
+            return;
+
         if (!RepeatableTypes.Contains(type))
         {
             var alreadyExists = await _notifications.AnyAsync(n =>

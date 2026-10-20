@@ -415,6 +415,11 @@ html[data-design="inbox"] .chat-popup-header { background: var(--ink); color: va
 html[data-design="inbox"] .chat-tool { color: var(--ink-2); }
 html[data-design="inbox"] .chat-tool:hover { background: var(--chip); }
 html[data-design="inbox"] .chat-sticker-grid button:hover { background: var(--chip); }
+/* Group chats: the sender's name in the accent colour, the group's initial on ink instead of the classic gradient. */
+html[data-design="inbox"] .chat-sender-name { color: var(--accent); opacity: 1; font-family: var(--mono); font-weight: 400; }
+html[data-design="inbox"] .group-avatar-empty { background: var(--ink); color: var(--surface); }
+html[data-design="inbox"] .group-pinned-card { box-shadow: inset 3px 0 0 var(--accent) !important; }
+html[data-design="inbox"] .group-pinned-badge { background: var(--accent-wash); color: var(--accent); }
 
 /* ---------- Dark: the places style.css fixes in blue ---------- */
 html[data-design="inbox"][data-bs-theme="dark"] .comment-bubble,

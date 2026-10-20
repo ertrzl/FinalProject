@@ -7,7 +7,10 @@ public class GetGroupDto
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? CoverImageUrl { get; set; }
+    public string? AvatarUrl { get; set; }
     public string Privacy { get; set; } = string.Empty; // "Public" / "Private"
+    public int RuleCount { get; set; } // > 0: joining asks to accept the rules first (GET {id}/rules)
+    public bool IsMutedByCurrentUser { get; set; } // only on the group-detail fetch
     public int MemberCount { get; set; }
     public bool IsCurrentUserMember { get; set; }
     public bool IsCurrentUserAdmin { get; set; }

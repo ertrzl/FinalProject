@@ -16,6 +16,14 @@ public class Conversation : BaseEntity
         return string.CompareOrdinal(a, b) <= 0 ? $"{a}:{b}" : $"{b}:{a}";
     }
 
+    // Set on a group's chat (one per group, unique): its participants are the group's current members, kept in step by
+    // GroupService. A direct conversation has DirectKey and no GroupId; a group chat has GroupId and no DirectKey.
+    // Deleting the group deletes its chat and the messages (cascade).
+    public Guid? GroupId { get; set; }
+    public Group? Group { get; set; }
+
+    public bool IsGroup => GroupId != null;
+
     public ICollection<ConversationParticipant> Participants { get; set; } = new List<ConversationParticipant>();
     public ICollection<Message> Messages { get; set; } = new List<Message>();
 }

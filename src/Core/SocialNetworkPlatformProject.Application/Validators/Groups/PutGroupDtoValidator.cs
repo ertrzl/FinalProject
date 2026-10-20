@@ -20,5 +20,9 @@ public class PutGroupDtoValidator : AbstractValidator<PutGroupDto>
         RuleFor(x => x)
             .Must(x => !(x.RemoveCoverImage && x.CoverImage != null))
             .WithMessage(_ => Loc.T("val.group.cover"));
+
+        RuleFor(x => x)
+            .Must(x => !(x.RemoveAvatar && x.Avatar != null))
+            .WithMessage(_ => Loc.T("val.group.avatar"));
     }
 }

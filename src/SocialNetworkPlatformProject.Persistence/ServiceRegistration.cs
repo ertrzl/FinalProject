@@ -77,6 +77,8 @@ public static class ServiceRegistration
         services.AddScoped<IGroupMemberRepository, GroupMemberRepository>();
         services.AddScoped<IGroupJoinRequestRepository, GroupJoinRequestRepository>();
         services.AddScoped<IGroupInviteRepository, GroupInviteRepository>();
+        services.AddScoped<IGroupRuleRepository, GroupRuleRepository>();
+        services.AddScoped<IGroupPinnedPostRepository, GroupPinnedPostRepository>();
 
         // Marketplace
         services.AddScoped<IMarketplaceListingRepository, MarketplaceListingRepository>();
@@ -125,6 +127,7 @@ public static class ServiceRegistration
         services.AddScoped<IDataCleanupService, DataCleanupService>();
         services.AddScoped<IMessageService, MessageService>();
         services.AddScoped<IGroupService, GroupService>();
+        services.AddScoped<IGroupPostService, GroupPostService>();
         services.AddScoped<IMarketplaceService, MarketplaceService>();
         services.AddScoped<IOfferService, OfferService>();
         services.AddScoped<ISellerRatingService, SellerRatingService>();

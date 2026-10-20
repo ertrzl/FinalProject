@@ -1109,3 +1109,50 @@ html[data-design="inbox"] #taggedPostsList > .text-muted { padding: 24px 18px; d
   background: var(--bs-tertiary-bg);
 }
 .highlight-pick.picked { border-color: var(--bs-primary); }
+/* ---- Groups: group picture, header, pinned posts, rules, member search, group chat bubbles ---- */
+/* The group's round picture; without one, its initial on the brand colours (sizes come from the avatar-* class). */
+.group-avatar { flex-shrink: 0; }
+.group-avatar-empty {
+  display: inline-flex; align-items: center; justify-content: center; background: var(--brand-gradient); color: #fff;
+  font-weight: 700; font-size: 1rem; line-height: 1; user-select: none;
+}
+.avatar-xs.group-avatar-empty { font-size: .8rem; }
+.avatar-md.group-avatar-empty { font-size: 1.3rem; }
+.avatar-lg.group-avatar-empty { font-size: 2.6rem; }
+/* Cards on groups.html: the picture sits on the edge of the cover. */
+.group-card-body { position: relative; }
+.group-card-avatar { display: inline-block; margin-top: -44px; margin-bottom: 6px; border-radius: 50%; border: 3px solid var(--bs-body-bg, #fff); background: var(--bs-body-bg, #fff); line-height: 0; }
+/* group.html header: the picture overlaps the cover, the texts wrap instead of pushing the page wider. */
+.group-head-main { min-width: 0; flex: 1 1 280px; }
+.group-head-text { min-width: 0; }
+.group-head-avatar { margin-top: -72px; position: relative; line-height: 0; }
+.group-description { overflow-wrap: anywhere; white-space: pre-line; }
+.group-head-actions .btn { min-height: 44px; }
+@media (max-width: 575.98px) {
+  .group-head-avatar { margin-top: -52px; }
+  .group-head-avatar .avatar-lg { width: 88px; height: 88px; border-width: 4px; }
+  .group-head-avatar .avatar-lg.group-avatar-empty { font-size: 1.9rem; }
+  .group-head-actions { width: 100%; }
+  .group-head-actions > .btn { flex: 1 1 auto; }
+}
+/* Search inside the group and in its members. */
+.group-search-box, .group-member-search { min-height: 44px; }
+.group-search-box .btn { min-width: 44px; min-height: 44px; }
+.group-member-role { width: auto; min-width: 150px; min-height: 44px; }
+.member-action { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+/* Pinned announcements. */
+.group-pinned-title { letter-spacing: .04em; }
+.group-pinned-card { box-shadow: inset 4px 0 0 var(--bs-warning, #ffc107), 0 .125rem .25rem rgba(0, 0, 0, .075) !important; }
+.group-pinned-badge { background: rgba(255, 193, 7, .2); color: inherit; font-weight: 600; font-size: 11px; }
+/* Rules: the tab, the box to accept them, the editor. */
+.group-rule-text { white-space: pre-line; overflow-wrap: anywhere; }
+.group-rules-list { max-height: 50vh; overflow-y: auto; padding-right: 4px; }
+.group-rule-item { padding: 8px 0; border-bottom: 1px solid var(--bs-border-color, #dee2e6); overflow-wrap: anywhere; }
+.group-rule-item:last-child { border-bottom: 0; }
+.group-rules-accept { min-height: 44px; cursor: pointer; }
+.group-rules-accept .form-check-input { width: 1.25em; height: 1.25em; flex-shrink: 0; }
+.rule-remove { min-width: 44px; min-height: 44px; }
+/* Group chat bubbles: who wrote it, with their picture beside the bubble. */
+.chat-sender-name { font-size: 11px; font-weight: 600; opacity: .8; margin-bottom: 2px; }
+.chat-sender-avatar { line-height: 0; }
+.chat-popup-thread .chat-sender-avatar .avatar-xs { width: 24px; height: 24px; }

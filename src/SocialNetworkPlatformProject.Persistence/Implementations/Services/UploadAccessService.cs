@@ -69,6 +69,7 @@ public class UploadAccessService : IUploadAccessService
             case "avatars":
             case "covers":
             case "groups":
+            case "group-avatars":
             case "marketplace":
                 return true;
 
@@ -92,8 +93,7 @@ public class UploadAccessService : IUploadAccessService
             // A story kept in a highlight: whoever may see that person's highlights (they outlive the story, so the story rule does not apply).
             case "highlights":
                 return await _highlights.CanViewFileAsync(viewerId, url);
-
-            // A photo of a chat: the two people of the chat.
+            // A photo of a chat: the two people of the chat, or the current members of a group's chat.
             case "messages":
             {
                 var conversationId = await _messages.GetAll(m => m.MediaUrl == url, asNoTracking: true)

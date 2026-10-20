@@ -34,7 +34,8 @@
     GameInviteReceived: "sana oyun teklif etti.",
     GameInviteAccepted: "oyun davetini kabul etti.",
     MarketplacePriceDropped: "kaydettiğin bir ilanın fiyatını düşürdü.",
-    GroupPostPinned: "grupta bir duyuru sabitledi."
+    GroupPostPinned: "grupta bir duyuru sabitledi.",
+    GroupChatAdded: "seni bir grup sohbetine ekledi."
   };
 
   function createConnection(url) {
@@ -105,6 +106,15 @@
     document.dispatchEvent(new CustomEvent("realtime:conversation-removed", { detail: data }));
     window.refreshMessageBadge?.();
   });
+
+  // A group chat made on the Messages page: the person was added to one (it shows in their list at once), or its name,
+  // picture or people changed. detail = the conversation as this person's list shows it.
+  for (const eventName of ["ConversationAdded", "ConversationUpdated"]) {
+    messages.connection.on(eventName, conversation => {
+      document.dispatchEvent(new CustomEvent("realtime:conversation-changed", { detail: conversation }));
+      window.refreshMessageBadge?.();
+    });
+  }
 
   // Feed changes pushed by the server, re-dispatched as "realtime:<name>" (see live-posts.js and feed.js).
   const FEED_EVENTS = {

@@ -10,6 +10,11 @@ public class GetConversationDto
     public Guid? GroupId { get; set; }
     public bool IsGroup { get; set; }
     public int MemberCount { get; set; }
+
+    // A group chat made on the Messages page: it has no GroupId; OtherUserName / OtherUserAvatarUrl hold its name and picture.
+    // CanManage: the viewer runs it (rename, change the picture, add and remove people).
+    public bool IsCustomGroup { get; set; }
+    public bool CanManage { get; set; }
     public bool IsMuted { get; set; } // the viewer muted the group: no toasts, and it is left out of the unread total
 
     public Guid OtherUserId { get; set; }

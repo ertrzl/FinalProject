@@ -191,6 +191,9 @@ document.addEventListener("realtime:conversation-removed", e => {
   renderDockList();
 });
 
+// A group chat made on the Messages page changed (or one was made with this person in it): the dock's list shows it.
+document.addEventListener("realtime:conversation-changed", () => window.refreshChatDock());
+
 const typingTimers = {};
 
 function setPopupTyping(conversationId, isTyping) {

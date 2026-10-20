@@ -82,9 +82,21 @@ public class MessageService : IMessageService
             return new List<GetConversationDto>();
 
         var groupOf = await _conversations.GetGroupIdsAsync(conversationIds);
-        var directIds = conversationIds.Where(id => !groupOf.ContainsKey(id)).ToList();
-        var groupChatIds = conversationIds.Where(groupOf.ContainsKey).ToList();
+        var groupChatSet = await _conversations.GetGroupChatIdsAsync(conversationIds);
+        var directIds = conversationIds.Where(id => !groupChatSet.Contains(id)).ToList();
+        var groupChatIds = conversationIds.Where(groupChatSet.Contains).ToList();
+        var customIds = groupChatIds.Where(id => !groupOf.ContainsKey(id)).ToList();
         var hidden = await _blocks.GetBlockedIdsAsync(currentUserId);
+
+        // The chats made on the Messages page: their name, picture and people (the viewer's own row says if they run it or muted it).
+        var customChats = customIds.Count == 0
+            ? new Dictionary<Guid, Conversation>()
+            : await _conversations.GetAll(c => customIds.Contains(c.Id), asNoTracking: true).ToDictionaryAsync(c => c.Id);
+        var customMembers = customIds.Count == 0
+            ? new Dictionary<Guid, List<ConversationParticipant>>()
+            : (await _participants.GetAll(p => customIds.Contains(p.ConversationId), asNoTracking: true).ToListAsync())
+                .GroupBy(p => p.ConversationId)
+                .ToDictionary(g => g.Key, g => g.ToList());
 
         var otherParticipants = await _participants.GetAll(
                 p => directIds.Contains(p.ConversationId) && p.UserId != currentUserId,
@@ -128,6 +140,31 @@ public class MessageService : IMessageService
         foreach (var conversationId in conversationIds)
         {
             lastMessages.TryGetValue(conversationId, out var lastMessage);
+
+            if (customChats.TryGetValue(conversationId, out var custom))
+            {
+                var members = customMembers.GetValueOrDefault(conversationId) ?? new List<ConversationParticipant>();
+                var mine = members.FirstOrDefault(p => p.UserId == currentUserId);
+                result.Add(new GetConversationDto
+                {
+                    Id = conversationId,
+                    IsGroup = true,
+                    IsCustomGroup = true,
+                    CanManage = mine?.IsAdmin == true,
+                    MemberCount = members.Count,
+                    IsMuted = mine?.IsMuted == true,
+                    OtherUserId = Guid.Empty,
+                    OtherUserName = custom.Title!,
+                    OtherUserAvatarUrl = custom.AvatarUrl,
+                    IsOtherUserOnline = false,
+                    LastMessageText = lastMessage == null ? null : PreviewText(lastMessage),
+                    LastMessageAt = lastMessage?.CreatedAt ?? custom.CreatedAt,
+                    LastMessageIsMine = lastMessage?.SenderId == currentUserId,
+                    LastMessageSenderName = lastMessage != null && users.TryGetValue(lastMessage.SenderId, out var customSender) ? customSender.FullName : null,
+                    UnreadCount = groupUnread.GetValueOrDefault(conversationId)
+                });
+                continue;
+            }
 
             if (groupOf.TryGetValue(conversationId, out var groupId))
             {
@@ -510,18 +547,25 @@ public class MessageService : IMessageService
             return 0;
 
         var groupOf = await _conversations.GetGroupIdsAsync(myConversationIds);
-        var directIds = myConversationIds.Where(id => !groupOf.ContainsKey(id)).ToList();
+        var groupChatSet = await _conversations.GetGroupChatIdsAsync(myConversationIds);
+        var directIds = myConversationIds.Where(id => !groupChatSet.Contains(id)).ToList();
 
         var count = directIds.Count == 0 ? 0 : await _messages.GetAll(m =>
                 directIds.Contains(m.ConversationId) && m.SenderId != currentUserId && !m.IsRead && m.DeletedAt == null)
             .CountAsync();
 
-        if (groupOf.Count == 0)
+        if (groupChatSet.Count == 0)
             return count;
 
-        // A muted group's chat keeps its own counter in the list but does not add to the total on the menu.
-        var muted = await MutedGroupIdsAsync(currentUserId, groupOf.Values.Distinct().ToList());
-        var groupChatIds = groupOf.Where(pair => !muted.Contains(pair.Value)).Select(pair => pair.Key).ToList();
+        // A muted group's chat keeps its own counter in the list but does not add to the total on the menu (a chat of a group:
+        // the group's mute switch; a chat made on the Messages page: the person's own switch).
+        var mutedGroups = await MutedGroupIdsAsync(currentUserId, groupOf.Values.Distinct().ToList());
+        var mutedCustom = (await _participants.GetAll(p => p.UserId == currentUserId && p.IsMuted && groupChatSet.Contains(p.ConversationId), asNoTracking: true)
+            .Select(p => p.ConversationId)
+            .ToListAsync()).ToHashSet();
+        var groupChatIds = groupChatSet
+            .Where(id => !mutedCustom.Contains(id) && !(groupOf.TryGetValue(id, out var linkedGroup) && mutedGroups.Contains(linkedGroup)))
+            .ToList();
         var hidden = await _blocks.GetBlockedIdsAsync(currentUserId);
 
         return count + (await _messages.CountGroupUnreadAsync(currentUserId, groupChatIds, hidden)).Values.Sum();
@@ -588,6 +632,14 @@ public class MessageService : IMessageService
 
     public Task<List<string>> GetGroupChatFilesAsync(Guid groupId) => _conversations.GetGroupChatMediaUrlsAsync(groupId);
 
+    public async Task<GetConversationDto> GetConversationAsync(Guid currentUserId, Guid conversationId)
+    {
+        await EnsureParticipantAsync(currentUserId, conversationId);
+
+        var rows = await BuildConversationsAsync(currentUserId, new List<Guid> { conversationId });
+        return rows.FirstOrDefault() ?? throw new NotFoundException(Loc.T("conversation.notFound"));
+    }
+
     // ---- Helpers ----
 
     // New conversations: friends, or someone whose account is open. Existing ones are never affected (see CanMessageAsync).
@@ -613,7 +665,7 @@ public class MessageService : IMessageService
             return ids;
 
         var hidden = await _participants.GetAll(
-                p => ids.Contains(p.ConversationId) && blockedIds.Contains(p.UserId) && p.Conversation!.GroupId == null,
+                p => ids.Contains(p.ConversationId) && blockedIds.Contains(p.UserId) && p.Conversation!.DirectKey != null,
                 asNoTracking: true)
             .Select(p => p.ConversationId)
             .ToListAsync();
@@ -628,7 +680,7 @@ public class MessageService : IMessageService
     }
 
     private async Task<bool> IsGroupChatAsync(Guid conversationId)
-        => (await _conversations.GetGroupIdsAsync(new[] { conversationId })).Count > 0;
+        => (await _conversations.GetGroupChatIdsAsync(new[] { conversationId })).Count > 0;
 
     private async Task<HashSet<Guid>> MutedGroupIdsAsync(Guid userId, List<Guid> groupIds)
     {
@@ -699,7 +751,7 @@ public class MessageService : IMessageService
             .GroupBy(r => r.MessageId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        var groupChatIds = (await _conversations.GetGroupIdsAsync(messages.Select(m => m.ConversationId).Distinct().ToList())).Keys.ToHashSet();
+        var groupChatIds = await _conversations.GetGroupChatIdsAsync(messages.Select(m => m.ConversationId).Distinct().ToList());
         var groupParticipants = groupChatIds.Count == 0
             ? new Dictionary<Guid, List<ConversationParticipant>>()
             : (await _participants.GetAll(p => groupChatIds.Contains(p.ConversationId), asNoTracking: true).ToListAsync())

@@ -126,6 +126,7 @@ public static class ServiceRegistration
         services.AddScoped<IStoryMaintenanceService, StoryMaintenanceService>();
         services.AddScoped<IDataCleanupService, DataCleanupService>();
         services.AddScoped<IMessageService, MessageService>();
+        services.AddScoped<IChatGroupService, ChatGroupService>();
         services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<IGroupPostService, GroupPostService>();
         services.AddScoped<IMarketplaceService, MarketplaceService>();

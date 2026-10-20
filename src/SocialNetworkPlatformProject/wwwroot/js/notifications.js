@@ -38,6 +38,7 @@ const NOTIF_ICON = {
   EventWaitlistPromoted: { badge: "bg-success", icon: "bi-arrow-up-circle-fill" },
   EventReminder: { badge: "bg-warning", icon: "bi-alarm-fill" },
   EventShared: { badge: "bg-primary", icon: "bi-share-fill" },
+  GroupChatAdded: { badge: "bg-info", icon: "bi-people-fill" },
   GameInviteReceived: { badge: "bg-info", icon: "bi-controller" },
   GameInviteAccepted: { badge: "bg-success", icon: "bi-controller" },
   ContentRemoved: { badge: "bg-danger", icon: "bi-shield-exclamation" }
@@ -100,6 +101,7 @@ const NOTIF_TEXT = {
   EventCommentAdded: n => i18n("notif.eventComment", notifPerson(n), notifEventName(n)),
   EventWaitlistPromoted: n => i18n("notif.eventWaitlist", notifEventName(n)),
   EventShared: n => i18n("notif.eventShared", notifPerson(n), notifEventName(n)),
+  GroupChatAdded: n => i18n("notif.groupChatAdded", notifPerson(n)),
   GameInviteReceived: n => i18n("notif.gameInviteReceived", notifPerson(n)),
   GameInviteAccepted: n => i18n("notif.gameInviteAccepted", notifPerson(n)),
   // The admins are not named; the title of what was removed comes in the event-title field (the server's "subject").
@@ -127,6 +129,8 @@ function notificationHtml(n) {
     actions = `<a href="marketplace.html?sellerReviews=${getSession().userId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Değerlendirmeleri Gör</a>`;
   } else if (["EventUpdated", "EventInviteReceived", "EventAnnouncement", "EventJoined", "EventCommentAdded", "EventWaitlistPromoted", "EventReminder"].includes(n.type)) {
     actions = `<a href="event.html?id=${n.eventId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Etkinliği Gör</a>`;
+  } else if (n.type === "GroupChatAdded" && n.conversationId) {
+    actions = `<a href="messages.html?conversation=${n.conversationId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Sohbete Git</a>`;
   } else if (["GameInviteReceived", "GameInviteAccepted"].includes(n.type) && n.gameId) {
     actions = `<a href="game.html?id=${n.gameId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Oyuna Git</a>`;
   } else if (["PostLiked", "CommentAdded", "CommentReplied", "CommentLiked", "Mentioned", "PostShared", "EventShared"].includes(n.type) && n.postId) {

@@ -156,6 +156,27 @@ public class ConversationRepository : Repository<Conversation>, IConversationRep
             .ToDictionaryAsync(c => c.Id, c => c.GroupId!.Value);
     }
 
+    public async Task<HashSet<Guid>> GetGroupChatIdsAsync(IReadOnlyCollection<Guid> conversationIds)
+    {
+        if (conversationIds.Count == 0)
+            return new HashSet<Guid>();
+
+        var ids = await _dbSet.AsNoTracking()
+            .Where(c => conversationIds.Contains(c.Id) && (c.GroupId != null || c.Title != null))
+            .Select(c => c.Id)
+            .ToListAsync();
+
+        return ids.ToHashSet();
+    }
+
+    public async Task<List<string>> GetMediaUrlsAsync(Guid conversationId)
+    {
+        return await _context.Set<Message>().AsNoTracking()
+            .Where(m => m.ConversationId == conversationId && m.MediaUrl != null)
+            .Select(m => m.MediaUrl!)
+            .ToListAsync();
+    }
+
     public async Task<List<string>> GetGroupChatMediaUrlsAsync(Guid groupId)
     {
         return await _context.Set<Message>().AsNoTracking()

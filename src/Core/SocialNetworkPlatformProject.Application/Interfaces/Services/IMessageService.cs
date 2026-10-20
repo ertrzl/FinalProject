@@ -53,4 +53,7 @@ public interface IMessageService
 
     // The photos of a group's chat, to delete their files when the group (and with it the chat) is deleted.
     Task<List<string>> GetGroupChatFilesAsync(Guid groupId);
+
+    // One conversation as the list shows it to this person (they must be a participant).
+    Task<GetConversationDto> GetConversationAsync(Guid currentUserId, Guid conversationId);
 }

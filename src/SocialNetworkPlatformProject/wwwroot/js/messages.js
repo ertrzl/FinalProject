@@ -93,9 +93,12 @@ function renderGroupHeader(conv) {
     <button type="button" class="btn btn-link text-body p-0 d-md-none" onclick="showConversationList()" aria-label="Sohbetlere dön"><i class="bi bi-arrow-left fs-4"></i></button>
     ${window.chatConversationAvatarHtml(conv, "avatar-sm")}
     <div style="min-width:0;">
-      <div class="fw-bold text-truncate"><a href="${window.chatConversationLink(conv)}" class="text-body text-decoration-none" data-no-i18n>${escapeHtml(conv.otherUserName)}</a>${conv.isMuted ? ` <i class="bi bi-bell-slash text-muted ms-1" title="Sessizde"></i>` : ""}</div>
+      <div class="fw-bold text-truncate">${conv.isCustomGroup
+        ? `<button type="button" class="btn btn-link text-body text-decoration-none fw-bold p-0 text-truncate" onclick="openChatGroupInfo('${conv.id}')" title="Grup bilgisi" data-no-i18n>${escapeHtml(conv.otherUserName)}</button>`
+        : `<a href="${window.chatConversationLink(conv)}" class="text-body text-decoration-none" data-no-i18n>${escapeHtml(conv.otherUserName)}</a>`}${conv.isMuted ? ` <i class="bi bi-bell-slash text-muted ms-1" title="Sessizde"></i>` : ""}</div>
       <div class="text-muted small" id="presenceText" data-no-i18n>${escapeHtml(window.chatGroupSubtitle(conv))}</div>
-    </div>`;
+    </div>
+    ${conv.isCustomGroup ? `<button type="button" class="btn btn-light btn-sm rounded-circle ms-auto flex-shrink-0" style="width:44px;height:44px;" onclick="openChatGroupInfo('${conv.id}')" aria-label="Grup bilgisi" title="Grup bilgisi"><i class="bi bi-info-circle"></i></button>` : ""}`;
 }
 
 // keepView: refresh the conversation without changing which column a phone shows (after a lost connection).
@@ -215,6 +218,16 @@ document.addEventListener("realtime:conversation-removed", async e => {
     showConversationList();
   }
   await renderList();
+});
+
+// A group chat made on the Messages page was made with this person in it, or its name, picture or people changed: the list
+// (and the header, when it is the open chat) show the new state.
+document.addEventListener("realtime:conversation-changed", async e => {
+  await renderList();
+  if (e.detail && e.detail.id === activeId) {
+    const conv = window.findChatConversation(activeId);
+    if (conv) renderGroupHeader(conv);
+  }
 });
 
 // The sender took a message back, or somebody left or took back an emoji on it: redraw its bubble (the last-message

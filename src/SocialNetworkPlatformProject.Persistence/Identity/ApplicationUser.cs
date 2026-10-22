@@ -35,6 +35,7 @@ public class ApplicationUser : IdentityUser<Guid>
     public bool NotifyOnLikes { get; set; } = true;
     public bool NotifyOnComments { get; set; } = true;
     public bool NotifyOnFriendRequests { get; set; } = true;
+    public bool NotifyOnStoryTags { get; set; } = true;
 
     // Drives the green "Çevrimiçi" dot shown on profile.html / navbar avatar
     public DateTime? LastSeenAt { get; set; }

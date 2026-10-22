@@ -27,7 +27,7 @@ async function loadSettings() {
   }
 }
 
-// The three switches of "Bildirim Tercihleri" are stored on the server: a kind that is switched off is no longer
+// The four switches of "Bildirim Tercihleri" are stored on the server: a kind that is switched off is no longer
 // created for this user at all.
 async function loadNotificationSettings() {
   try {
@@ -35,6 +35,7 @@ async function loadNotificationSettings() {
     document.getElementById("notifLikes").checked = settings.likes;
     document.getElementById("notifComments").checked = settings.comments;
     document.getElementById("notifFriends").checked = settings.friendRequests;
+    document.getElementById("notifStoryTags").checked = settings.storyTags;
   } catch (err) {
     toast(err.message || "Bildirim tercihleri yüklenemedi.");
   }
@@ -47,7 +48,8 @@ async function saveNotificationSettings() {
       body: {
         likes: document.getElementById("notifLikes").checked,
         comments: document.getElementById("notifComments").checked,
-        friendRequests: document.getElementById("notifFriends").checked
+        friendRequests: document.getElementById("notifFriends").checked,
+        storyTags: document.getElementById("notifStoryTags").checked
       }
     });
     toast("Bildirim tercihleri kaydedildi.");

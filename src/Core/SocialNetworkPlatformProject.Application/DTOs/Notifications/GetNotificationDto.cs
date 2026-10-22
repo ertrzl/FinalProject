@@ -27,6 +27,10 @@ public class GetNotificationDto
     public Guid? ListingId { get; set; }
     public string? ListingTitle { get; set; }
 
+    // Friend request / group join request / group invitation notifications: is the request still waiting for an answer?
+    // Only then the notification shows its Accept / Decline buttons; once answered (here or elsewhere) it is just text.
+    public bool IsPending { get; set; }
+
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; }
 }

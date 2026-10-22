@@ -1974,6 +1974,9 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                     b.Property<bool>("NotifyOnLikes")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("NotifyOnStoryTags")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Occupation")
                         .HasColumnType("nvarchar(max)");
 

@@ -96,7 +96,7 @@ public class UserRepository : IUserRepository
     {
         return await _context.Users.AsNoTracking()
             .Where(u => u.Id == id)
-            .Select(u => new NotificationPreferences(u.NotifyOnLikes, u.NotifyOnComments, u.NotifyOnFriendRequests))
+            .Select(u => new NotificationPreferences(u.NotifyOnLikes, u.NotifyOnComments, u.NotifyOnFriendRequests, u.NotifyOnStoryTags))
             .FirstOrDefaultAsync();
     }
 

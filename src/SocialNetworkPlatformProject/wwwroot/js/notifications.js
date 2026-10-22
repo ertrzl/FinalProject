@@ -115,12 +115,13 @@ function notificationHtml(n) {
   const unreadClass = n.isRead ? "" : "notif-unread";
 
   let actions = "";
-  if (n.type === "FriendRequestReceived" && !n.isRead) {
+  // The server says whether a request is still waiting for an answer: only then are its buttons shown, read or not.
+  if (n.type === "FriendRequestReceived" && n.isPending) {
     actions = `<div class="d-flex gap-2 flex-shrink-0">
          <button class="btn btn-primary btn-sm rounded-pill" onclick="respondFromNotification('${n.friendRequestId}', '${n.id}', true)">Kabul Et</button>
          <button class="btn btn-light btn-sm rounded-pill" onclick="respondFromNotification('${n.friendRequestId}', '${n.id}', false)">Reddet</button>
        </div>`;
-  } else if (n.type === "GroupJoinRequestReceived" && !n.isRead) {
+  } else if (n.type === "GroupJoinRequestReceived" && n.isPending) {
     actions = `<div class="d-flex gap-2 flex-shrink-0">
          <button class="btn btn-primary btn-sm rounded-pill" onclick="respondToGroupRequest('${n.groupId}', '${n.actorId}', '${n.id}', true)">Onayla</button>
          <button class="btn btn-light btn-sm rounded-pill" onclick="respondToGroupRequest('${n.groupId}', '${n.actorId}', '${n.id}', false)">Reddet</button>
@@ -143,23 +144,11 @@ function notificationHtml(n) {
     actions = `<a href="marketplace.html?listing=${n.listingId}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">İlana Git</a>`;
   } else if (n.type.startsWith("MarketplaceOffer")) {
     actions = `<a href="marketplace.html?view=offers" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">Teklifleri Gör</a>`;
-  } else if (n.type === "GroupInviteReceived" && !n.isRead) {
+  } else if (n.type === "GroupInviteReceived" && n.isPending) {
     actions = `<div class="d-flex gap-2 flex-shrink-0">
          <button class="btn btn-primary btn-sm rounded-pill" onclick="respondToGroupInvite('${n.groupId}', '${n.id}', true)">Kabul Et</button>
          <button class="btn btn-light btn-sm rounded-pill" onclick="respondToGroupInvite('${n.groupId}', '${n.id}', false)">Reddet</button>
        </div>`;
-  }
-
-  // Opening the page marks everything read, so a request that was not answered right then shows a way to the place where it can be.
-  if (!actions) {
-    const toFriends = n.type === "FriendRequestReceived";
-    const toGroup = n.type === "GroupJoinRequestReceived" && n.groupId;
-    const toGroups = n.type === "GroupInviteReceived";
-    if (toFriends || toGroup || toGroups) {
-      const href = toFriends ? "friends.html" : toGroup ? `group.html?id=${n.groupId}` : "groups.html";
-      const label = toFriends ? "Arkadaşlar" : toGroup ? "Gruba Git" : "Gruplar";
-      actions = `<a href="${href}" class="btn btn-light border btn-sm rounded-pill flex-shrink-0" onclick="event.stopPropagation()">${label}</a>`;
-    }
   }
 
   return `

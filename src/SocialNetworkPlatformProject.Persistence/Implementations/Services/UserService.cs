@@ -188,6 +188,7 @@ public class UserService : IUserService
         user.NotifyOnLikes = dto.Likes;
         user.NotifyOnComments = dto.Comments;
         user.NotifyOnFriendRequests = dto.FriendRequests;
+        user.NotifyOnStoryTags = dto.StoryTags;
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
@@ -279,7 +280,8 @@ public class UserService : IUserService
         {
             Likes = user.NotifyOnLikes,
             Comments = user.NotifyOnComments,
-            FriendRequests = user.NotifyOnFriendRequests
+            FriendRequests = user.NotifyOnFriendRequests,
+            StoryTags = user.NotifyOnStoryTags
         };
     }
 

@@ -40,6 +40,9 @@ public class NotificationService : INotificationService
     private readonly IGroupRepository _groups;
     private readonly IListingOfferRepository _offers;
     private readonly IEventRepository _events;
+    private readonly IFriendRequestRepository _friendRequests;
+    private readonly IGroupJoinRequestRepository _joinRequests;
+    private readonly IGroupInviteRepository _invites;
     private readonly IRealTimeNotifier _notifier;
     private readonly IMapper _mapper;
 
@@ -50,6 +53,9 @@ public class NotificationService : INotificationService
         IGroupRepository groups,
         IListingOfferRepository offers,
         IEventRepository events,
+        IFriendRequestRepository friendRequests,
+        IGroupJoinRequestRepository joinRequests,
+        IGroupInviteRepository invites,
         IRealTimeNotifier notifier,
         IMapper mapper)
     {
@@ -59,6 +65,9 @@ public class NotificationService : INotificationService
         _groups = groups;
         _offers = offers;
         _events = events;
+        _friendRequests = friendRequests;
+        _joinRequests = joinRequests;
+        _invites = invites;
         _notifier = notifier;
         _mapper = mapper;
     }
@@ -128,6 +137,9 @@ public class NotificationService : INotificationService
         if (type == NotificationType.ContentRemoved)
             HideActor(dto);
 
+        // A request is created together with its notification, so it is waiting for an answer at this very moment.
+        dto.IsPending = IsRequestType(type);
+
         if (groupId.HasValue)
         {
             var group = await _groups.GetByIdAsync(groupId.Value);
@@ -157,6 +169,58 @@ public class NotificationService : INotificationService
         }
 
         await _notifier.SendNotificationAsync(recipientId, dto);
+    }
+
+    private static bool IsRequestType(NotificationType type) =>
+        type is NotificationType.FriendRequestReceived or NotificationType.GroupJoinRequestReceived or NotificationType.GroupInviteReceived;
+
+    // Which of the request notifications on this page are still waiting for an answer: one batched lookup per kind.
+    // Joining a group or being declined deletes the request row, so "the row exists" is the same as "still pending".
+    private async Task<HashSet<Guid>> FindPendingRequestNotificationsAsync(Guid currentUserId, List<Notification> items)
+    {
+        var pending = new HashSet<Guid>();
+
+        var friendItems = items.Where(n => n.Type == NotificationType.FriendRequestReceived && n.FriendRequestId.HasValue).ToList();
+        if (friendItems.Count > 0)
+        {
+            var requestIds = friendItems.Select(n => n.FriendRequestId!.Value).Distinct().ToList();
+            var open = (await _friendRequests
+                    .GetAll(r => requestIds.Contains(r.Id) && r.Status == FriendRequestStatus.Pending, asNoTracking: true)
+                    .Select(r => r.Id)
+                    .ToListAsync())
+                .ToHashSet();
+            foreach (var n in friendItems.Where(n => open.Contains(n.FriendRequestId!.Value)))
+                pending.Add(n.Id);
+        }
+
+        var joinItems = items.Where(n => n.Type == NotificationType.GroupJoinRequestReceived && n.GroupId.HasValue).ToList();
+        if (joinItems.Count > 0)
+        {
+            var groupIds = joinItems.Select(n => n.GroupId!.Value).Distinct().ToList();
+            var open = (await _joinRequests
+                    .GetAll(r => groupIds.Contains(r.GroupId), asNoTracking: true)
+                    .Select(r => new { r.GroupId, r.UserId })
+                    .ToListAsync())
+                .Select(r => (r.GroupId, r.UserId))
+                .ToHashSet();
+            foreach (var n in joinItems.Where(n => open.Contains((n.GroupId!.Value, n.ActorId))))
+                pending.Add(n.Id);
+        }
+
+        var inviteItems = items.Where(n => n.Type == NotificationType.GroupInviteReceived && n.GroupId.HasValue).ToList();
+        if (inviteItems.Count > 0)
+        {
+            var groupIds = inviteItems.Select(n => n.GroupId!.Value).Distinct().ToList();
+            var open = (await _invites
+                    .GetAll(i => i.UserId == currentUserId && groupIds.Contains(i.GroupId), asNoTracking: true)
+                    .Select(i => i.GroupId)
+                    .ToListAsync())
+                .ToHashSet();
+            foreach (var n in inviteItems.Where(n => open.Contains(n.GroupId!.Value)))
+                pending.Add(n.Id);
+        }
+
+        return pending;
     }
 
     // The admins speak as one: whoever pressed the button is not shown to the person whose content was removed.
@@ -203,10 +267,14 @@ public class NotificationService : INotificationService
             ? new Dictionary<Guid, (string Title, DateTime StartsAt)>()
             : await _events.GetAll(e => eventIds.Contains(e.Id), asNoTracking: true).ToDictionaryAsync(e => e.Id, e => (e.Title, e.StartsAt));
 
+        var pendingRequests = await FindPendingRequestNotificationsAsync(currentUserId, items);
+
         var dtos = _mapper.Map<List<GetNotificationDto>>(items);
 
         for (var i = 0; i < dtos.Count; i++)
         {
+            dtos[i].IsPending = pendingRequests.Contains(items[i].Id);
+
             if (actors.TryGetValue(items[i].ActorId, out var actor))
             {
                 dtos[i].ActorName = actor.FullName;

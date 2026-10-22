@@ -619,6 +619,7 @@ window.PHRASES.en = {
   "Beğeniler için bildirim al": "Get notified about likes",
   "Yorumlar için bildirim al": "Get notified about comments",
   "Arkadaşlık istekleri için bildirim al": "Get notified about friend requests",
+  "Hikâye etiketleri ve paylaşımları için bildirim al": "Get notified about story tags and reshares",
   "E-posta ile bildirim al (yakında)": "Get notified by email (coming soon)",
   "Bildirim tercihleri kaydedildi.": "Notification preferences saved.",
   "Bildirim tercihleri yüklenemedi.": "Couldn't load notification preferences.",

@@ -546,6 +546,15 @@ body > .container, body > .container-fluid, body > main {
 .admin-tabs { overflow-x: auto; flex-wrap: nowrap !important; scrollbar-width: none; }
 .admin-tabs .nav-link { white-space: nowrap; }
 
+/* A row that scrolls sideways fades out on the edge that has more behind it (js/app.js sets the two classes). */
+.scroll-fade-start, .scroll-fade-end {
+  --fade-start: 0px; --fade-end: 0px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent 100%);
+}
+.scroll-fade-start { --fade-start: 28px; }
+.scroll-fade-end { --fade-end: 28px; }
+
 /* ---------- 404.html ---------- */
 .not-found-code { font-size: 4.5rem; font-weight: 800; line-height: 1; letter-spacing: -0.04em; color: var(--bs-primary); }
 

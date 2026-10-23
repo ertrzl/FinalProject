@@ -386,3 +386,33 @@ document.addEventListener("focusin", event => {
 });
 
 // Live search suggestions moved to js/navbar-search.js (real backend data, not a hardcoded list).
+
+// ---- Rows that scroll sideways (tabs, the story strip, highlights): a soft fade on the edge that has more behind it ----
+// Only the look is done here; whether a row overflows is simply what the browser reports. The fade comes from the
+// .scroll-fade-start / .scroll-fade-end classes (style.css), so a row that fits, or wraps, shows nothing.
+(function () {
+  const ROWS = ".nav-pills, .nav-tabs, .story-strip, .profile-highlights, #categoryList";
+
+  function updateScrollFade(row) {
+    const max = row.scrollWidth - row.clientWidth;
+    row.classList.toggle("scroll-fade-start", max > 2 && row.scrollLeft > 2);
+    row.classList.toggle("scroll-fade-end", max > 2 && row.scrollLeft < max - 2);
+  }
+
+  function watchScrollFade(row) {
+    if (row.dataset.fadeWatched) return;
+    row.dataset.fadeWatched = "1";
+    const update = () => updateScrollFade(row);
+    row.addEventListener("scroll", update, { passive: true });
+    new ResizeObserver(update).observe(row);
+    new MutationObserver(update).observe(row, { childList: true, subtree: true }); // tabs and strips that fill in after loading
+    update();
+  }
+
+  function watchAllRows() {
+    document.querySelectorAll(ROWS).forEach(watchScrollFade);
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", watchAllRows);
+  else watchAllRows();
+})();

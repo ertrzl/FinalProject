@@ -1,4 +1,3 @@
-// English — same keys as tr.js (a key that is missing here is shown in Turkish).
 window.LOCALES = window.LOCALES || {};
 window.LOCALES.en = {
   "net.offline": "Can't reach the server. Check your connection and try again.",
@@ -50,6 +49,8 @@ window.LOCALES.en = {
   "settings.sessions.endedOthers": "{0} session(s) closed.",
   "settings.sessions.noOthers": "There are no other open sessions.",
   "common.loading": "Loading...",
+  "password.show": "Show password",
+  "password.hide": "Hide password",
 
   "language.label": "Language",
 
@@ -75,7 +76,6 @@ window.LOCALES.en = {
   "story.age.minutes": "{0}m",
   "story.age.hours": "{0}h",
 
-  // Profile extras (profile.html): mutual friends and groups
   "profile.mutualFriends": "{0} mutual friends",
   "profile.mutualFriendsOne": "1 mutual friend",
   "profile.mutualGroups": "{0} mutual groups",
@@ -136,7 +136,6 @@ window.LOCALES.en = {
   "game.opponentResigned": "{0} resigned",
   "game.cellLabel": "Row {0}, column {1}: {2}",
   "game.cellEmpty": "empty",
-  // Battleship (game.html, games.html)
   "game.kindBattleship": "Battleship",
   "game.shipCarrier": "Aircraft carrier",
   "game.shipBattleship": "Battleship",
@@ -173,7 +172,6 @@ window.LOCALES.en = {
   "game.bsCellPlace": "{0}: place here",
   "game.bsCellShip": "{0}: {1}",
 
-  // Groups: pinned announcements, rules, search, group chat (group.html, groups.html, messages, chat dock)
   "notif.groupPostPinned": "{0} pinned an announcement in {1}.",
   "group.rulesIntro": "Read the rules before joining {0}.",
   "group.searchFor": "Results for {0}",
@@ -214,11 +212,8 @@ window.LOCALES.en = {
   "chat.typingName": "{0} is typing..."
 };
 
-// Turkish text of the pages -> English (see js/i18n.js). {0}, {1}... are the values the page fills in, numbered in
-// the order they appear in the Turkish text. A text that is missing here is shown in Turkish.
 window.PHRASES = window.PHRASES || {};
 window.PHRASES.en = {
-  // ---- menu, titles, general ----
   "Ana Sayfa": "Home",
   "Keşfet": "Explore",
   "Arkadaşlar": "Friends",
@@ -338,7 +333,6 @@ window.PHRASES.en = {
   "Fiyat (₺)": "Price (₺)",
   "Fiyat": "Price",
 
-  // ---- sign in, register, password ----
   "Dijital kimliğini oluştur, ağını büyüt.": "Build your digital identity, grow your network.",
   "Arkadaşlarınla bağlantıda kal.": "Stay connected with your friends.",
   "Giriş Yap": "Log in",
@@ -382,7 +376,6 @@ window.PHRASES.en = {
   "Profil resmi seç": "Choose profile picture",
   "Zaten üye": "Already a member",
 
-  // ---- home, composer, posts ----
   "Aklında ne var?": "What's on your mind?",
   "Aklında ne var, {0}?": "What's on your mind, {0}?",
   "Fotoğraf/Video Ekle": "Add photo/video",
@@ -503,7 +496,6 @@ window.PHRASES.en = {
   "Bu hikâye silinsin mi?": "Delete this story?",
   "Görüntüleyenler": "Viewers",
 
-  // ---- search ----
   "Arama sonuçları": "Search results",
   "\"{0}\" için arama sonuçları": "Search results for \"{0}\"",
   "\"{0}\" için gönderi bulunamadı.": "No posts found for \"{0}\".",
@@ -516,7 +508,6 @@ window.PHRASES.en = {
   "Ortak arkadaş yok": "No mutual friends",
   "{0} ortak arkadaş": "{0} mutual friends",
 
-  // ---- friends ----
   "Gelen İstekler (": "Incoming Requests (",
   "Arkadaşlarım (": "My Friends (",
   "Gelen Arkadaşlık İstekleri": "Incoming Friend Requests",
@@ -550,7 +541,6 @@ window.PHRASES.en = {
   "Mesaj Gönder": "Send Message",
   "{0} kişi bekliyor": "{0} people waiting",
 
-  // ---- profile ----
   "Profili Düzenle": "Edit Profile",
   "Profil güncellendi.": "Profile updated.",
   "Profil güncellenemedi.": "Couldn't update the profile.",
@@ -583,13 +573,11 @@ window.PHRASES.en = {
   "Alıcı": "Buyer",
   "Alıcı henüz puan vermedi.": "The buyer hasn't rated yet.",
 
-  // ---- settings ----
   "Hesap": "Account",
   "Hesap Bilgileri": "Account Information",
   "Hesap bilgileri kaydedildi.": "Account information saved.",
   "Dil": "Language",
   "Sayfaların ve mesajların hangi dilde gösterileceğini seç. Seçim bu tarayıcıda saklanır.": "Choose the language the pages and messages are shown in. Your choice is kept in this browser.",
-  // ---- inbox design ----
   "Gruplarım": "My groups",
   "g, sonra {0}": "g, then {0}",
   "Hepsi": "All",
@@ -634,13 +622,11 @@ window.PHRASES.en = {
   "Engelle": "Block",
   "Diğer": "More",
 
-  // ---- notifications page ----
   "Tümünü okundu işaretle": "Mark all as read",
   "Tüm bildirimler okundu olarak işaretlendi.": "All notifications were marked as read.",
   "Henüz bildirim yok.": "No notifications yet.",
   "Sohbetler": "Chats",
 
-  // ---- messages ----
   "Bir mesaj yaz...": "Write a message...",
   "Henüz mesaj yok. İlk yazan sen ol.": "No messages yet. Be the first to write.",
   "Henüz mesaj yok": "No messages yet",
@@ -657,7 +643,6 @@ window.PHRASES.en = {
   "Yeni mesaj": "New message",
   "Sadece çevrimiçi": "Online only",
 
-  // ---- groups ----
   "Gruplarım (": "My Groups (",
   "Davetler (": "Invitations (",
   "Grup Oluştur": "Create Group",
@@ -716,7 +701,6 @@ window.PHRASES.en = {
   "Grup sahipliğini bu kişiye devretmek istediğine emin misin? Bu işlem geri alınamaz.": "Are you sure you want to transfer group ownership to this person? This can't be undone.",
   "Gruplar yüklenemedi.": "Couldn't load groups.",
 
-  // ---- events ----
   "Etkinliğim": "My event",
   "Etkinliklerim": "My Events",
   "Etkinlik Oluştur": "Create Event",
@@ -814,7 +798,6 @@ window.PHRASES.en = {
   "Davetler": "Invitations",
   "Karşı Teklif": "Counter Offer",
 
-  // ---- marketplace ----
   "Ürün Sat": "Sell an Item",
   "Ürün Adı": "Item Name",
   "Ürün ara...": "Search items...",
@@ -912,7 +895,6 @@ window.PHRASES.en = {
   "Durum değiştirilemedi.": "Couldn't change the status.",
   "{0} ilanı satıldığı için teklifin kapandı.": "Your offer was closed because {0} was sold.",
 
-  // ---- small leftovers ----
   "\"{0}\" silinsin mi? Bu işlem geri alınamaz.": "Delete \"{0}\"? This can't be undone.",
   "\"{0}\" silinsin mi? Katılımcılar da etkinlikten düşer. Bu işlem geri alınamaz.": "Delete \"{0}\"? Attendees are removed from the event too. This can't be undone.",
   "Bu etkinlik": "This event",
@@ -934,7 +916,6 @@ window.PHRASES.en = {
   "gönderini paylaştı.": "shared your post.",
   "Hikaye": "Story",
 
-  // ---- admin panel and reports ----
   "Yönetim": "Admin",
   "Spam ya da reklam": "Spam or advertising",
   "Taciz ya da zorbalık": "Harassment or bullying",
@@ -1030,7 +1011,6 @@ window.PHRASES.en = {
   "Yönetim | Stoop": "Admin | Stoop",
   "Henüz kayıt yok.": "No log entries yet.",
 
-  // ---- X-O games (games.html, game.html, the notification and the shortcut list) ----
   "Oyunlar": "Games",
   "Oyunlar | Stoop": "Games | Stoop",
   "Oyun | Stoop": "Game | Stoop",
@@ -1074,7 +1054,6 @@ window.PHRASES.en = {
   "sana oyun teklif etti.": "invited you to a game.",
   "oyun davetini kabul etti.": "accepted your game invitation.",
 
-  // ---- Rock-paper-scissors (games.html cards and the picker, game.html) ----
   "Oyun": "Game",
   "Oyun seç": "Choose a game",
   "X-O": "Tic-tac-toe",
@@ -1086,7 +1065,6 @@ window.PHRASES.en = {
   "Seçimin gizli kalır: ikiniz de seçince açılır.": "Your pick stays secret: it is revealed when you have both picked.",
   "Seçim yapılamadı.": "Couldn't make the pick.",
 
-  // ---- Battleship (games.html card, game.html) ----
   "Amiral Battı": "Battleship",
   "Gemilerini diz, rakibin filosunu batır.": "Place your fleet and sink the other one.",
   "Filonu diz": "Place your fleet",
@@ -1153,7 +1131,6 @@ window.PHRASES.en = {
   "İlan öne çıkarılamadı.": "Couldn't feature the listing.",
   "kaydettiğin bir ilanın fiyatını düşürdü.": "lowered the price of a listing you saved.",
 
-  // Profile extras: share window, mutual list, story highlights, tagged tab
   "Profili Paylaş": "Share Profile",
   "Profil bağlantısının QR kodu": "QR code of the profile link",
   "Profil bağlantısı": "Profile link",
@@ -1226,7 +1203,6 @@ window.PHRASES.en = {
   "etkinliğini gönderide paylaştı.": "shared your event in a post.",
   "Hikâyelerinden birini seç ve öne çıkana bir ad ver.": "Pick one of your stories and give the highlight a name.",
 
-  // ---- Groups: chat, mute, pinned posts, rules, member search, group search, picture (group.html, groups.html) ----
   "Grup Sohbeti": "Group Chat",
   "Grup sohbeti": "Group chat",
   "Grup sohbeti açılamadı.": "Couldn't open the group chat.",

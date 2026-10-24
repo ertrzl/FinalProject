@@ -1,7 +1,3 @@
-/* =========================================================
-   Stoop — Bootstrap 5 theme overrides & custom bits
-   ========================================================= */
-
 :root {
   --bs-primary: #4a6cf7;
   --bs-primary-rgb: 74, 108, 247;
@@ -35,13 +31,11 @@ body { background: var(--bs-body-bg); }
 
 a { color: inherit; text-decoration: none; }
 
-/* ---------- Avatars ---------- */
 .avatar-xs { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
 .avatar-sm { width: 42px; height: 42px; border-radius: 50%; object-fit: cover; }
 .avatar-md { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; }
 .avatar-lg { width: 128px; height: 128px; border-radius: 50%; object-fit: cover; border: 5px solid #fff; background: #eef0f5; flex-shrink: 0; }
 
-/* ---------- Auth pages ---------- */
 .auth-gradient { background: var(--brand-gradient); min-height: 100vh; }
 .auth-logo { font-size: 26px; font-weight: 800; color: #4a6cf7; }
 .avatar-upload-btn {
@@ -50,34 +44,28 @@ a { color: inherit; text-decoration: none; }
   display: inline-block; cursor: pointer;
 }
 
-/* ---------- Navbar ---------- */
 .navbar-brand { font-weight: 800; color: #4a6cf7 !important; }
 .nav-pill-link {
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   font-size: 11px; font-weight: 600; color: #6b7385; padding: 6px 14px; border-radius: 10px;
 }
 .nav-pill-link i { font-size: 19px; }
-/* Each section of the menu has its own colour (set below by data-section); the tint works in light and dark mode. */
 .nav-pill-link:hover, .nav-pill-link.active {
   background: color-mix(in srgb, var(--nav-accent, #4a6cf7) 13%, transparent);
   color: var(--nav-accent, #4a6cf7);
 }
 .nav-pill-link { position: relative; }
 
-/* The menu is drawn by js/navbar.js; the space is kept so the page does not jump when it appears. */
 #siteNav { min-height: 59px; }
 
-/* The burger button of the phone's top bar. */
 .burger-btn {
   border: none; background: transparent; padding: 0 4px; font-size: 30px; line-height: 1; color: #1c2436;
   display: flex; align-items: center;
 }
 [data-bs-theme="dark"] .burger-btn { color: #e8eaf0; }
 .min-w-0 { min-width: 0; }
-/* The panel behind the burger is a drawer, not a full page: the page stays visible on its left and a tap there closes it. */
 #siteMenu { --bs-offcanvas-width: min(320px, 86vw); }
 
-/* ---------- Phone layout: the links move to a bar at the bottom (see js/navbar.js) ---------- */
 .phone-tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 1040;
   display: flex; padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
@@ -85,7 +73,6 @@ a { color: inherit; text-decoration: none; }
 .phone-tabbar .phone-tab { flex: 1; min-width: 0; padding: 6px 2px; }
 .phone-tabbar .phone-tab .badge { top: 2px !important; right: calc(50% - 26px) !important; }
 
-/* Tablets: nine links do not fit with their names, so the top menu shows only the icons (the name is the tooltip). */
 @media (min-width: 768px) and (max-width: 1199.98px) {
   #siteNav .nav-pill-link .nav-label { display: none; }
   #siteNav .nav-pill-link { padding: 8px 10px; }
@@ -93,13 +80,11 @@ a { color: inherit; text-decoration: none; }
 
 @media (max-width: 767.98px) {
   .site-brand { font-size: 1.15rem; margin-right: 0; }
-  /* room for the bottom bar, and nothing else may sit on top of it: the chat dock is for wide screens (phones use Mesajlar) */
   body { padding-bottom: 68px; }
   .chat-dock, .chat-popups { display: none !important; }
   .toast-container { bottom: 68px !important; }
 }
 
-/* ---------- Side nav ---------- */
 .side-nav {
   position: sticky; top: 84px;
 }
@@ -112,7 +97,6 @@ a { color: inherit; text-decoration: none; }
 .side-nav-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .side-nav-link:hover, .side-nav-link.active { background: #eef1ff; color: #4a6cf7; }
 
-/* ---------- Stories ---------- */
 .story-card {
   width: 108px; height: 176px; border-radius: 14px; overflow: hidden;
   position: relative; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,.08);
@@ -139,7 +123,6 @@ a { color: inherit; text-decoration: none; }
   background: linear-gradient(180deg, transparent 50%, rgba(0,0,0,.55) 100%);
 }
 
-/* ---------- Composer / posts ---------- */
 .composer textarea { border: none; background: #f2f4f8; border-radius: 14px; resize: none; }
 .composer textarea:focus { box-shadow: none; background: #eaedf5; }
 .attach-label {
@@ -152,21 +135,17 @@ a { color: inherit; text-decoration: none; }
 .comment-bubble { background: #f2f4f8; border-radius: 14px; padding: 8px 13px; }
 .comments-collapse .comment.reply { margin-left: 42px; }
 
-/* ---------- Profile ---------- */
 .profile-cover { height: 220px; border-radius: 16px; background: var(--brand-gradient); position: static; }
 .friend-tile img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 12px; }
 
-/* ---------- Notifications ---------- */
 .notif-unread { background: #eef1ff; }
 .notif-icon-badge {
   position: absolute; bottom: -3px; right: -3px; width: 20px; height: 20px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; font-size: 10px; color: #fff; border: 2px solid #fff;
 }
 
-/* ---------- Misc ---------- */
 .badge-count { font-size: 10px; }
 
-/* ---------- Bottom-right chat dock ---------- */
 .chat-dock { position: fixed; bottom: 0; right: 20px; width: 260px; z-index: 1050; }
 .chat-dock-bar {
   background: var(--bs-body-bg, #fff); border: 1px solid var(--bs-border-color, #dee2e6); border-bottom: none;
@@ -199,7 +178,6 @@ a { color: inherit; text-decoration: none; }
   .chat-popup { width: 88vw; }
 }
 
-/* ---------- Message bar (photo / sticker / emoji / like) ---------- */
 .chat-composer { position: relative; }
 .chat-composer-row { display: flex; align-items: center; gap: 2px; }
 .chat-input-wrap { position: relative; flex: 1; min-width: 0; }
@@ -232,7 +210,6 @@ a { color: inherit; text-decoration: none; }
   position: absolute; top: 4px; right: 4px; background-color: rgba(0, 0, 0, 0.55); border-radius: 50%; padding: 5px; opacity: 1;
 }
 .chat-image { object-fit: cover; cursor: zoom-in; }
-/* The story a message answers, above its text */
 .chat-story-label { font-size: 11px; opacity: .8; margin-bottom: 4px; }
 .chat-story-thumb { width: 96px; height: 140px; object-fit: cover; border-radius: 10px; cursor: zoom-in; }
 .chat-story-reply.compact .chat-story-thumb { width: 72px; height: 104px; }
@@ -244,7 +221,6 @@ a { color: inherit; text-decoration: none; }
 }
 .chat-image-viewer img { max-width: 92vw; max-height: 92vh; border-radius: 8px; }
 
-/* ---------- Full-size photo viewer (openPhotoViewer in js/api.js) ---------- */
 .photo-zoomable { cursor: zoom-in; }
 .photo-viewer {
   position: fixed; inset: 0; z-index: 2000; background: rgba(0, 0, 0, 0.92);
@@ -262,7 +238,6 @@ a { color: inherit; text-decoration: none; }
 .photo-viewer-next { right: 16px; top: 50%; transform: translateY(-50%); }
 .photo-viewer-count { position: absolute; top: 24px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 0.9rem; }
 
-/* ---------- Location autocomplete ---------- */
 .location-suggestions {
   position: absolute; top: 100%; left: 0; right: 0; z-index: 20; margin-top: 4px;
   background: var(--bs-body-bg, #fff); border: 1px solid var(--bs-border-color, #dee2e6);
@@ -274,7 +249,6 @@ a { color: inherit; text-decoration: none; }
 }
 .location-suggestion:hover, .location-suggestion.active { background: rgba(74, 108, 247, 0.12); }
 
-/* ---------- Reactions under a post (js/post-card.js) ---------- */
 .reaction-summary[role="button"] { cursor: pointer; }
 .reaction-summary[role="button"]:hover { text-decoration: underline; }
 .reaction-icons { font-size: 15px; letter-spacing: 1px; }
@@ -284,7 +258,6 @@ a { color: inherit; text-decoration: none; }
   background: var(--bs-body-bg, #fff); border: 1px solid var(--bs-border-color, #dee2e6);
   border-radius: 999px; box-shadow: 0 6px 20px rgba(20, 30, 60, 0.18);
 }
-/* padding-bottom bridges the gap between the button and the bar so the bar does not vanish while the mouse crosses it */
 .reaction-wrap:hover .reaction-bar, .reaction-wrap.open .reaction-bar { display: flex; }
 .reaction-bar button {
   border: none; background: none; font-size: 26px; line-height: 1; padding: 2px 5px; border-radius: 50%;
@@ -292,13 +265,11 @@ a { color: inherit; text-decoration: none; }
 }
 .reaction-bar button:hover { transform: scale(1.35) translateY(-3px); }
 
-/* ---------- A shared post inside a post ---------- */
 .shared-post {
   border: 1px solid var(--bs-border-color, #dee2e6); border-radius: 14px; padding: 12px;
   background: var(--bs-tertiary-bg, #f8f9fa);
 }
 
-/* ---------- Polls ---------- */
 .poll-row {
   position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 9px 14px; margin-bottom: 8px; overflow: hidden; border-radius: 999px;
@@ -313,7 +284,6 @@ a { color: inherit; text-decoration: none; }
 .poll-clickable { cursor: pointer; }
 .poll-clickable:hover { border-color: #4a6cf7; }
 
-/* ---------- "@" suggestions under a text box (js/mention-autocomplete.js) ---------- */
 .mention-menu {
   position: fixed; z-index: 1090; overflow: hidden;
   background: var(--bs-body-bg, #fff); border: 1px solid var(--bs-border-color, #dee2e6);
@@ -325,7 +295,6 @@ a { color: inherit; text-decoration: none; }
 }
 .mention-menu button:hover, .mention-menu button.active { background: rgba(74, 108, 247, 0.14); }
 
-/* ---------- Composer: chosen photos ---------- */
 #composerPreview { display: flex; flex-wrap: wrap; gap: 8px; }
 #composerPreview.d-none { display: none !important; }
 .composer-thumb-wrap { position: relative; width: 96px; height: 96px; border-radius: 12px; overflow: hidden; }
@@ -334,25 +303,19 @@ a { color: inherit; text-decoration: none; }
 .composer-thumb-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; padding: 0; line-height: 1; opacity: .85; }
 .post-carousel .carousel-control-prev, .post-carousel .carousel-control-next { width: 12%; }
 
-/* ---------- Messages page ---------- */
 .messages-card { height: calc(100vh - 130px); min-height: 480px; }
-/* A bubble is never wider than a comfortable line (on a big screen 70% of the conversation is a line of 1500 px). */
 .messages-thread-col .chat-msg-row > .rounded-4 { max-width: min(70%, 720px) !important; }
 @media (max-width: 767.98px) {
-  /* top bar + page padding + the bottom tab bar are around the card; and only one column shows at a time */
   .messages-card { height: calc(100vh - 175px); height: calc(100dvh - 175px); min-height: 360px; }
   .messages-thread-col { display: none !important; }
   #messagesLayout.thread-open .messages-list-col { display: none !important; }
   #messagesLayout.thread-open .messages-thread-col { display: flex !important; }
 }
 
-/* ---------- Chat: delete my own message ---------- */
 
-/* ---------- Seller ratings (yellow stars) ---------- */
 .rating-star { color: #ffc107; }
 .rating-stars { white-space: nowrap; letter-spacing: 1px; }
 
-/* ---------- Dark mode ---------- */
 [data-bs-theme="dark"] {
   --bs-body-bg: #14161f;
 }
@@ -372,7 +335,6 @@ a { color: inherit; text-decoration: none; }
 [data-bs-theme="dark"] .side-nav-link:hover, [data-bs-theme="dark"] .side-nav-link.active { color: #7f98ff; }
 [data-bs-theme="dark"] .bg-primary-subtle { background-color: rgba(74,108,247,0.18) !important; }
 
-/* Bootstrap's "light" button and badge are fixed pale shades; in dark mode they take the theme's greys instead. */
 [data-bs-theme="dark"] .btn-light {
   --bs-btn-color: var(--bs-body-color);
   --bs-btn-bg: var(--bs-tertiary-bg);
@@ -396,7 +358,6 @@ a { color: inherit; text-decoration: none; }
 }
 .theme-toggle-btn:hover { background: #eef1ff; }
 
-/* ---------- Live search suggestions ---------- */
 .nav-search-wrap { position: relative; flex: 1; max-width: 380px; min-width: 0; }
 .search-suggestions {
   position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 1060;
@@ -409,7 +370,6 @@ a { color: inherit; text-decoration: none; }
 }
 .search-suggestions button:hover { background: rgba(74,108,247,0.1); }
 
-/* ---------- Story viewer ---------- */
 .story-card { cursor: pointer; }
 .story-viewer {
   position: fixed; inset: 0; background: #000; z-index: 1100;
@@ -429,7 +389,6 @@ a { color: inherit; text-decoration: none; }
 .story-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
 .story-viewer-nav { position: absolute; inset: 0; display: flex; }
 .story-nav-zone { flex: 1; }
-/* Reply box + heart on somebody else's story (above the tap zones, so typing and tapping the heart do not skip it) */
 .story-reply-bar {
   position: absolute; left: 12px; right: 12px; bottom: 16px; z-index: 2;
   display: flex; align-items: center; gap: 10px; margin: 0;
@@ -467,7 +426,6 @@ a { color: inherit; text-decoration: none; }
   .story-viewer-image { border-radius: 0; }
 }
 
-/* ---------- Section colours of the menu ---------- */
 .nav-pill-link[data-section="explore"] { --nav-accent: #f4723c; }
 .nav-pill-link[data-section="friends"] { --nav-accent: #12a594; }
 .nav-pill-link[data-section="notifications"] { --nav-accent: #e8a317; }
@@ -476,7 +434,6 @@ a { color: inherit; text-decoration: none; }
 .nav-pill-link[data-section="marketplace"] { --nav-accent: #2fa35f; }
 .nav-pill-link[data-section="events"] { --nav-accent: #e5487f; }
 
-/* ---------- Small touches of motion ---------- */
 .btn { transition: background-color .15s, border-color .15s, color .15s, transform .12s, box-shadow .15s; }
 .btn:active:not(:disabled) { transform: scale(.97); }
 .card[data-post-id] { animation: fade-up .28s ease-out; }
@@ -488,12 +445,10 @@ a { color: inherit; text-decoration: none; }
 @keyframes pop-in { from { opacity: 0; transform: translateY(6px) scale(.96); } to { opacity: 1; transform: none; } }
 @keyframes like-pop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
 
-/* People who ask their device for less motion get none of it. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* ---------- Touch screens: finger-sized targets (44px is the usual minimum) ---------- */
 @media (pointer: coarse) {
   .btn-sm { min-height: 44px; padding-left: 1rem; padding-right: 1rem; display: inline-flex; align-items: center; justify-content: center; }
   .btn-sm.rounded-circle { min-width: 44px; padding-left: 0; padding-right: 0; }
@@ -504,12 +459,9 @@ a { color: inherit; text-decoration: none; }
   .reaction-bar button { padding: 6px 8px; }
 }
 
-/* ---------- Language picker ---------- */
 .lang-select { width: auto; min-width: 5.2rem; border-radius: 999px; font-weight: 600; cursor: pointer; }
 .lang-float { position: fixed; top: 12px; right: 12px; z-index: 1050; }
 
-/* ---------- Notched phones (the pages use viewport-fit=cover) ----------
-   The menu keeps clear of the status bar / notch at the top and of the rounded corners at the sides (landscape). */
 #siteNav {
   padding-top: calc(0.5rem + env(safe-area-inset-top)) !important;
   padding-left: env(safe-area-inset-left);
@@ -524,7 +476,6 @@ body > .container, body > .container-fluid, body > main {
   padding-right: max(var(--bs-gutter-x, .75rem) * .5, env(safe-area-inset-right));
 }
 
-/* ---------- The site's own question / link box (js/app.js: confirmDialog, linkDialog) ---------- */
 .confirm-overlay {
   position: fixed; inset: 0; z-index: 4000; padding: 16px;
   background: rgba(15, 18, 28, 0.55);
@@ -534,7 +485,6 @@ body > .container, body > .container-fluid, body > main {
 .confirm-box { width: 100%; max-width: 420px; animation: pop-in .16s ease-out; }
 @keyframes confirm-fade { from { opacity: 0; } to { opacity: 1; } }
 
-/* ---------- Reporting (js/app.js: reportDialog) and the admin panel (admin.html) ---------- */
 .report-reasons, .note-checks { display: flex; flex-direction: column; gap: 4px; }
 .report-reason { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; cursor: pointer; }
 .report-reason:hover { background: var(--bs-tertiary-bg); }
@@ -546,7 +496,15 @@ body > .container, body > .container-fluid, body > main {
 .admin-tabs { overflow-x: auto; flex-wrap: nowrap !important; scrollbar-width: none; }
 .admin-tabs .nav-link { white-space: nowrap; }
 
-/* A row that scrolls sideways fades out on the edge that has more behind it (js/app.js sets the two classes). */
+.password-field { position: relative; }
+.password-field > .form-control { padding-right: 44px; }
+.password-toggle {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 44px; padding: 0; border: 0; background: transparent;
+  color: var(--bs-secondary-color); display: flex; align-items: center; justify-content: center; font-size: 18px;
+}
+.password-toggle:hover { color: var(--bs-body-color); }
+.password-toggle:focus-visible { outline: 2px solid var(--bs-primary); outline-offset: -3px; border-radius: 8px; }
+
 .scroll-fade-start, .scroll-fade-end {
   --fade-start: 0px; --fade-end: 0px;
   -webkit-mask-image: linear-gradient(to right, transparent 0, #000 var(--fade-start), #000 calc(100% - var(--fade-end)), transparent 100%);
@@ -555,27 +513,18 @@ body > .container, body > .container-fluid, body > main {
 .scroll-fade-start { --fade-start: 28px; }
 .scroll-fade-end { --fade-end: 28px; }
 
-/* ---------- 404.html ---------- */
 .not-found-code { font-size: 4.5rem; font-weight: 800; line-height: 1; letter-spacing: -0.04em; color: var(--bs-primary); }
 
-/* The avatar of a notice from the admins (no person behind it). */
 .notif-system-avatar { display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bs-secondary-bg); color: var(--bs-secondary-color); font-size: 1.1rem; }
 
-/* ---------- Videos ----------
-   A video keeps its own proportions: a wide one fills the width, a tall one (a phone video) is as high as the screen allows
-   and sits in the middle on black, instead of being cut at the top and bottom. */
 .post-video { background: #000; }
 .post-video video { width: 100%; max-height: min(70vh, 560px); object-fit: contain; }
 #storyViewerVideo { object-fit: contain; background: #000; }
 
-/* ---------- Narrow screens: nothing pushes a row wider than the screen ----------
-   A long name or a word with no spaces wraps instead of widening its row, and the pieces that must keep their size
-   (pictures, buttons, icons) do not shrink while the text beside them does. */
 body { overflow-wrap: break-word; }
 .d-flex > div, .flex-grow-1 { min-width: 0; }
 .d-flex > img, .d-flex > .btn, .d-flex > i, .avatar-xs, .avatar-sm, .avatar-md, .avatar-lg { flex-shrink: 0; }
 
-/* ---------- Messages: the buttons beside a bubble, the emojis under it, replies and their quotes ---------- */
 .msg-action { border: 0; background: transparent; color: var(--bs-secondary-color, #6c757d); padding: 2px 5px; font-size: 14px; line-height: 1; opacity: 0; transition: opacity .15s; }
 .chat-msg-row:hover .msg-action, .msg-action:focus-visible { opacity: 1; }
 @media (hover: none) { .msg-action { opacity: .55; } }
@@ -606,10 +555,6 @@ body { overflow-wrap: break-word; }
 .chat-msg-flash > div:not(.msg-actions) { animation: chat-flash 1.6s ease; }
 @keyframes chat-flash { 0%, 60% { box-shadow: 0 0 0 3px rgba(255, 193, 7, .75); } 100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); } }
 
-/* ---------- X-O games (games.html and game.html) ----------
-   The tokens fall back to Bootstrap's own variables, so the classic design (which has no --surface, --ink...) looks right too.
-   X takes the accent of the design and O the pink of Bootstrap (the inbox design swaps it for teal, see inbox.css): the two
-   letters also differ in shape, so colour is never the only difference. */
 .xo-page, .xo-modal {
   --xo-surface: var(--surface, var(--bs-body-bg));
   --xo-ink: var(--ink, var(--bs-body-color));
@@ -623,7 +568,6 @@ body { overflow-wrap: break-word; }
 }
 .xo-page .text-muted, .xo-modal .text-muted { color: var(--xo-muted) !important; }
 
-/* The hub */
 .xo-hero { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; padding: 1rem; border: 1px solid var(--xo-line); border-radius: 14px; background: var(--xo-surface); }
 .xo-hero-text { flex: 1 1 14rem; min-width: 0; }
 .xo-logo { display: grid; grid-auto-flow: column; place-content: center; gap: 2px; width: 56px; height: 56px; flex-shrink: 0; border-radius: 14px; background: var(--xo-chip); font-size: 1.4rem; font-weight: 800; line-height: 1; }
@@ -652,7 +596,6 @@ body { overflow-wrap: break-word; }
 
 .xo-picker-list { max-height: 50vh; overflow-y: auto; }
 
-/* The board page */
 .xo-game { max-width: 560px; margin: 0 auto; }
 .xo-players { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
 .xo-player { display: flex; align-items: center; gap: .6rem; min-width: 0; padding: .6rem .75rem; border: 2px solid var(--xo-line); border-radius: 12px; background: var(--xo-surface); transition: border-color .15s, box-shadow .15s; }
@@ -666,7 +609,6 @@ body { overflow-wrap: break-word; }
 .xo-status.is-loss { color: var(--bs-danger-text-emphasis); }
 .xo-status-sub { min-height: 1.4rem; margin-bottom: 1rem; text-align: center; font-size: .9rem; color: var(--xo-muted); }
 
-/* The board is a square that never gets wider than 420 px; the marks scale with it (container query units) */
 .xo-board { container-type: inline-size; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: min(100%, 420px); aspect-ratio: 1; margin: 0 auto; padding: 8px; border-radius: 16px; background: var(--xo-chip); }
 .xo-board.is-idle { opacity: .55; }
 .xo-board.is-busy { pointer-events: none; }
@@ -679,7 +621,6 @@ body { overflow-wrap: break-word; }
 .xo-cell:focus-visible { outline: 3px solid var(--xo-accent); outline-offset: 2px; }
 .xo-cell.is-new > span { animation: pop-in .18s ease-out; }
 .xo-cell.is-win { background: color-mix(in srgb, var(--xo-accent) 22%, var(--xo-surface)); box-shadow: inset 0 0 0 3px var(--xo-accent); }
-/* On a mouse: the free cell shows the mark you would put there, faintly */
 @media (hover: hover) {
   .xo-cell.is-playable:hover { background: color-mix(in srgb, var(--xo-accent) 10%, var(--xo-surface)); }
   .xo-cell.is-playable:hover::after { content: attr(data-ghost); opacity: .25; }
@@ -688,21 +629,15 @@ body { overflow-wrap: break-word; }
 .xo-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; margin-top: 1.25rem; }
 .xo-actions .btn { min-height: 44px; }
 
-/* Menu colour of the games link */
 .nav-pill-link[data-section="games"] { --nav-accent: #0ea5e9; }
 
-/* ---------- Rock-paper-scissors (games.html cards, game.html) ----------
-   Uses the xo-* tokens above, so both designs and the dark theme follow along. The motion is switched off by the
-   prefers-reduced-motion rule further up (animation: none for everything). */
 
-/* The hub: one card per game, side by side when there is room */
 .xo-kinds { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: .75rem; }
 .xo-kinds .xo-hero { align-content: flex-start; }
 .xo-kinds .xo-hero > .btn { min-height: 44px; }
 .rps-logo { width: auto; min-width: 56px; padding: 0 .5rem; font-size: 1.15rem; letter-spacing: 1px; }
 .xo-kind { padding: .05rem .5rem; border: 1px solid var(--xo-line); border-radius: 999px; color: var(--xo-muted); font-size: .72rem; font-weight: 600; line-height: 1.4; white-space: nowrap; }
 
-/* The score under the two player cards */
 .rps-scoreboard { margin-top: 1rem; text-align: center; }
 .rps-score-line { display: flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: .25rem .6rem; }
 .rps-score-who { color: var(--xo-muted); font-size: .9rem; font-weight: 600; }
@@ -713,7 +648,6 @@ body { overflow-wrap: break-word; }
 
 .rps-area { margin-top: .5rem; }
 
-/* The running round: my hand and the closed hand of the other one */
 .rps-stage { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 1rem; }
 .rps-slot { display: flex; flex-direction: column; align-items: center; gap: .15rem; width: 5.5rem; padding: .6rem .25rem .4rem; border: 2px dashed var(--xo-line); border-radius: 14px; background: var(--xo-chip); }
 .rps-slot.is-filled { border-style: solid; border-color: var(--xo-accent); background: color-mix(in srgb, var(--xo-accent) 10%, var(--xo-surface)); }
@@ -721,7 +655,6 @@ body { overflow-wrap: break-word; }
 .rps-slot-who { color: var(--xo-muted); font-size: .75rem; font-weight: 600; }
 .rps-slot-vs { color: var(--xo-muted); font-size: .85rem; font-weight: 700; text-transform: uppercase; }
 
-/* Three big buttons */
 .rps-picks { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; max-width: 420px; margin: 0 auto; }
 .rps-picks.is-busy { pointer-events: none; }
 .rps-pick {
@@ -740,7 +673,6 @@ body { overflow-wrap: break-word; }
   .rps-pick.is-playable:hover { border-color: var(--xo-accent); background: color-mix(in srgb, var(--xo-accent) 10%, var(--xo-surface)); transform: translateY(-2px); }
 }
 
-/* The rounds played so far */
 .rps-history { max-width: 420px; margin: 1.5rem auto 0; }
 .rps-history:empty { display: none; }
 .rps-rounds { display: flex; flex-direction: column; gap: .5rem; margin: 0; padding: 0; list-style: none; }
@@ -765,24 +697,19 @@ body { overflow-wrap: break-word; }
   .rps-picks { gap: .5rem; }
 }
 
-/* ---------- Battleship / Amiral Batti (games.html card, game.html, js/game-battleship.js) ----------
-   The page around the boards follows the theme through the xo-* tokens; the boards themselves keep the light-blue sea in the dark theme
-   too (they are drawn in physical colours). The motion is switched off by the prefers-reduced-motion rule further up. */
 
 .bs-logo { padding: 0; overflow: hidden; background: #BFDDEC; }
 .bs-logo svg { display: block; }
 
-/* A wider page than the 560px of X-O: two boards side by side. */
 .xo-game.is-bs { max-width: 940px; }
 @media (max-width: 575.98px) {
-  html:root .xo-page.is-bs { padding-left: 6px; padding-right: 6px; } /* the boards are 10 cells wide: every pixel counts on a phone */
+  html:root .xo-page.is-bs { padding-left: 6px; padding-right: 6px; }
 }
 .is-bs .xo-players { max-width: 560px; margin-left: auto; margin-right: auto; }
 
 .bs-area { margin-top: .5rem; }
 .bs-hint { margin: 0 0 .75rem; text-align: center; color: var(--xo-muted); font-size: .9rem; }
 
-/* A board: the sea (svg), the frame of the newest shot, and a grid of buttons over it */
 .bs-board {
   position: relative; width: min(100%, 520px); aspect-ratio: 1; margin: 0 auto; overflow: hidden; border-radius: 10px; background: #BFDDEC;
   line-height: 0; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
@@ -812,7 +739,6 @@ body { overflow-wrap: break-word; }
   100% { transform: scale(1); }
 }
 
-/* Placing */
 .bs-place-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
 @media (min-width: 860px) {
   .bs-place-layout { grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
@@ -836,7 +762,6 @@ body { overflow-wrap: break-word; }
 .bs-tools .btn { flex: 1 1 0; min-height: 48px; }
 .bs-ready { min-height: 52px; font-weight: 700; }
 
-/* Battle (and the finished game) */
 .bs-counters { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; }
 .bs-counters:empty { display: none; }
 .bs-shot { display: flex; justify-content: center; min-height: 2.6rem; margin: .6rem 0; }
@@ -861,11 +786,10 @@ body { overflow-wrap: break-word; }
   .bs-tabs { display: flex; }
   .bs-boards { grid-template-columns: minmax(0, 1fr); }
   .bs-boards[data-tab="enemy"] .bs-panel-mine, .bs-boards[data-tab="mine"] .bs-panel-enemy { display: none; }
-  .bs-panel-title { display: none; } /* the tabs say it */
+  .bs-panel-title { display: none; }
 }
-.bs-battle.is-wait .bs-boards .bs-panel-mine { display: block; } /* waiting: only my fleet, whatever tab was chosen */
+.bs-battle.is-wait .bs-boards .bs-panel-mine { display: block; }
 
-/* ---- Music on stories: the chip in the viewer, and the song picker in the add-story window ---- */
 .story-music-chip {
   position: absolute; top: 62px; left: 12px; right: 12px; z-index: 3;
   display: flex; align-items: center; gap: 8px; width: fit-content; max-width: calc(100% - 24px);
@@ -893,7 +817,6 @@ body { overflow-wrap: break-word; }
 .story-music-pick img { width: 40px; height: 40px; border-radius: 6px; object-fit: cover; flex-shrink: 0; }
 .story-music-pick:hover, .story-music-play:hover { background: var(--bs-tertiary-bg); }
 
-/* ---- Story tags and "add to your story": chips under the viewer header, the tag picker in the add-story window ---- */
 .story-info-stack {
   position: absolute; top: 62px; left: 12px; right: 12px; z-index: 3;
   display: flex; flex-direction: column; align-items: flex-start; gap: 6px; pointer-events: none;
@@ -934,7 +857,6 @@ body { overflow-wrap: break-word; }
 .story-tag-row + .story-tag-row { border-top: 1px solid var(--bs-border-color); }
 .story-tag-row:hover, .story-tag-row.picked { background: var(--bs-tertiary-bg); }
 
-/* ---- Story viewer on wide screens: the story in the middle, the previous person's on the left and the next person's on the right ---- */
 .story-stage { position: relative; display: flex; align-items: center; justify-content: center; gap: 0; width: 100%; height: 100%; max-height: 100vh; }
 .story-side, .story-arrow { display: none; }
 @media (min-width: 992px) {
@@ -965,7 +887,6 @@ body { overflow-wrap: break-word; }
   .story-arrow.invisible { visibility: hidden; }
   .story-viewer-image { border-radius: 0; }
 }
-/* A different person's story slides in from the side it was on. */
 @keyframes storySlideFromRight { from { transform: translateX(70px); opacity: .35; } to { transform: none; opacity: 1; } }
 @keyframes storySlideFromLeft { from { transform: translateX(-70px); opacity: .35; } to { transform: none; opacity: 1; } }
 .story-viewer-inner.slide-from-right { animation: storySlideFromRight .28s ease-out; }
@@ -974,11 +895,10 @@ body { overflow-wrap: break-word; }
   .story-viewer-inner.slide-from-right, .story-viewer-inner.slide-from-left { animation: none; }
 }
 
-/* ---- Marketplace: status / condition / "Öne Çıkan" badges, seller buttons, boosted cards ---- */
 .listing-badges {
   position: absolute; top: .5rem; left: .5rem; z-index: 1;
   display: flex; flex-direction: column; align-items: flex-start; gap: .25rem;
-  max-width: calc(100% - 3.75rem); /* the heart sits in the opposite corner */
+  max-width: calc(100% - 3.75rem);
 }
 .listing-badges:empty { display: none; }
 .listing-featured { outline: 2px solid var(--bs-primary); outline-offset: -2px; }
@@ -988,10 +908,8 @@ body { overflow-wrap: break-word; }
 #listingModalRenewBtn, #listingModalFeatureBtn, .listing-owner-line .btn { min-height: 44px; }
 #browseFilters .form-check { min-height: 44px; display: flex; align-items: center; gap: .5rem; padding-left: 0; }
 #browseFilters .form-check-input { float: none; margin: 0; flex: 0 0 auto; }
-/* ---- Profile extras: mutual friends, story highlights, share window with QR code, tagged-posts tab ---- */
 .min-w-0 { min-width: 0; }
 
-/* "12 ortak arkadaş" under the handle: a few small faces and the counts; opens the full list */
 .profile-mutual {
   display: inline-flex; align-items: center; gap: 8px; min-height: 32px; padding: 0; border: 0; background: none;
   color: inherit; font-size: .875rem; text-align: left;
@@ -1002,7 +920,6 @@ body { overflow-wrap: break-word; }
 .profile-mutual-faces img:first-child { margin-left: 0; }
 @media (pointer: coarse) { .profile-mutual { min-height: 44px; } }
 
-/* Round covers under the header. Not a flex-wrap row of the header (inbox.css styles those): its own class. */
 .profile-highlights { display: flex; gap: 14px; margin: 18px 0 0; padding: 4px 8px 6px; overflow-x: auto; scrollbar-width: thin; }
 .highlight-tile { position: relative; flex: 0 0 auto; width: 76px; }
 .highlight-open {
@@ -1017,7 +934,6 @@ body { overflow-wrap: break-word; }
 .highlight-cover-new { box-shadow: 0 0 0 2px var(--bs-border-color); }
 .highlight-open:hover .highlight-cover { box-shadow: 0 0 0 3px var(--bs-primary); }
 .highlight-title { max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
-/* The owner's pencil: a small badge on the cover with a finger-sized area around it */
 .highlight-edit {
   position: absolute; top: -12px; right: -16px; width: 44px; height: 44px; padding: 0; border: 0; background: none;
   display: flex; align-items: center; justify-content: center;
@@ -1028,7 +944,6 @@ body { overflow-wrap: break-word; }
 }
 #hlVideo { object-fit: contain; background: #000; }
 
-/* Manage window: the stories of a highlight as small tiles (tap = cover, cross = remove) */
 .highlight-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
 .highlight-thumb { position: relative; aspect-ratio: 9 / 14; border-radius: 12px; overflow: hidden; border: 2px solid transparent; background: var(--bs-tertiary-bg); }
 .highlight-thumb.selected { border-color: var(--bs-primary); }
@@ -1047,11 +962,9 @@ body { overflow-wrap: break-word; }
   background: rgba(0, 0, 0, .65); font-size: 12px;
 }
 
-/* Profili Paylaş: the QR code sits on white (scanners need it), in the dark theme too */
 .share-qr-frame { width: fit-content; padding: 12px; border-radius: 16px; background: #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, .15); }
 .share-qr-frame canvas { display: block; width: min(256px, 62vw); height: auto; aspect-ratio: 1; image-rendering: pixelated; }
 
-/* Mutual friends and groups list */
 .mutual-row {
   display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 8px; border-radius: 12px; color: inherit;
 }
@@ -1062,10 +975,8 @@ body { overflow-wrap: break-word; }
   object-fit: cover; background: var(--bs-tertiary-bg); color: var(--bs-secondary-color);
 }
 
-/* The tagged tab: one column of posts, like the wall */
 .tagged-posts { max-width: 720px; margin: 0 auto; }
 
-/* Design "inbox": the row of covers is a white strip in the profile column; the tagged posts are plain rows like the wall */
 html[data-design="inbox"] .profile-page > .profile-highlights { background: var(--surface); border-right: 1px solid var(--line); margin: 0; padding: 10px 18px 6px; }
 html[data-design="inbox"] .highlight-cover { border-color: var(--surface); box-shadow: 0 0 0 2px var(--accent); }
 html[data-design="inbox"] .highlight-open:hover .highlight-cover { box-shadow: 0 0 0 3px var(--accent); }
@@ -1079,18 +990,16 @@ html[data-design="inbox"] .profile-page #taggedPostsList > .card {
 }
 html[data-design="inbox"] .profile-page #taggedPostsList > .card:hover { background: var(--surface-2); }
 html[data-design="inbox"] #taggedPostsList > .text-muted { padding: 24px 18px; display: block; }
-/* ---- Events: map, photo album, attendance list, event card inside a post ---- */
 .event-map {
   height: 260px; border-radius: 12px; overflow: hidden; background: var(--bs-tertiary-bg, #f1f3f5);
   border: 1px solid var(--bs-border-color, #dee2e6);
-  isolation: isolate; /* Leaflet's panes use z-index up to 1000: keep them inside the map, under the navbar and the dialogs */
+  isolation: isolate;
 }
 #eventMapPicker.event-map { height: 240px; }
-/* Leaflet's zoom buttons are 26-30 px: a fingertip needs more */
 .event-map .leaflet-bar a, .event-map.leaflet-touch .leaflet-bar a { width: 44px; height: 44px; line-height: 44px; font-size: 22px; }
 .event-pin { background: none; border: 0; text-align: center; color: #dc3545; font-size: 36px; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35)); }
 .event-pin i { display: block; line-height: 36px; }
-[data-bs-theme="dark"] .event-map .leaflet-tile-pane { filter: brightness(0.8) contrast(1.1); } /* the light map tiles are glaring on a dark page */
+[data-bs-theme="dark"] .event-map .leaflet-tile-pane { filter: brightness(0.8) contrast(1.1); }
 .event-map-btn, .ev-touch, #evActions .btn { min-height: 44px; }
 #evTabs .nav-link { min-height: 44px; display: flex; align-items: center; }
 
@@ -1114,14 +1023,11 @@ html[data-design="inbox"] #taggedPostsList > .text-muted { padding: 24px 18px; d
 .shared-event-body { padding: 12px; }
 .shared-event-btn { min-height: 44px; display: inline-flex; align-items: center; }
 
-/* ---- Profile: the story picker of the "Yeni" highlight window ---- */
 .highlight-pick {
   width: 72px; height: 112px; padding: 0; overflow: hidden; border: 3px solid transparent; border-radius: 10px;
   background: var(--bs-tertiary-bg);
 }
 .highlight-pick.picked { border-color: var(--bs-primary); }
-/* ---- Groups: group picture, header, pinned posts, rules, member search, group chat bubbles ---- */
-/* The group's round picture; without one, its initial on the brand colours (sizes come from the avatar-* class). */
 .group-avatar { flex-shrink: 0; }
 .group-avatar-empty {
   display: inline-flex; align-items: center; justify-content: center; background: var(--brand-gradient); color: #fff;
@@ -1130,10 +1036,8 @@ html[data-design="inbox"] #taggedPostsList > .text-muted { padding: 24px 18px; d
 .avatar-xs.group-avatar-empty { font-size: .8rem; }
 .avatar-md.group-avatar-empty { font-size: 1.3rem; }
 .avatar-lg.group-avatar-empty { font-size: 2.6rem; }
-/* Cards on groups.html: the picture sits on the edge of the cover. */
 .group-card-body { position: relative; }
 .group-card-avatar { display: inline-block; margin-top: -44px; margin-bottom: 6px; border-radius: 50%; border: 3px solid var(--bs-body-bg, #fff); background: var(--bs-body-bg, #fff); line-height: 0; }
-/* group.html header: the picture overlaps the cover, the texts wrap instead of pushing the page wider. */
 .group-head-main { min-width: 0; flex: 1 1 280px; }
 .group-head-text { min-width: 0; }
 .group-head-avatar { margin-top: -72px; position: relative; line-height: 0; }
@@ -1146,16 +1050,13 @@ html[data-design="inbox"] #taggedPostsList > .text-muted { padding: 24px 18px; d
   .group-head-actions { width: 100%; }
   .group-head-actions > .btn { flex: 1 1 auto; }
 }
-/* Search inside the group and in its members. */
 .group-search-box, .group-member-search { min-height: 44px; }
 .group-search-box .btn { min-width: 44px; min-height: 44px; }
 .group-member-role { width: auto; min-width: 150px; min-height: 44px; }
 .member-action { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
-/* Pinned announcements. */
 .group-pinned-title { letter-spacing: .04em; }
 .group-pinned-card { box-shadow: inset 4px 0 0 var(--bs-warning, #ffc107), 0 .125rem .25rem rgba(0, 0, 0, .075) !important; }
 .group-pinned-badge { background: rgba(255, 193, 7, .2); color: inherit; font-weight: 600; font-size: 11px; }
-/* Rules: the tab, the box to accept them, the editor. */
 .group-rule-text { white-space: pre-line; overflow-wrap: anywhere; }
 .group-rules-list { max-height: 50vh; overflow-y: auto; padding-right: 4px; }
 .group-rule-item { padding: 8px 0; border-bottom: 1px solid var(--bs-border-color, #dee2e6); overflow-wrap: anywhere; }
@@ -1163,12 +1064,10 @@ html[data-design="inbox"] #taggedPostsList > .text-muted { padding: 24px 18px; d
 .group-rules-accept { min-height: 44px; cursor: pointer; }
 .group-rules-accept .form-check-input { width: 1.25em; height: 1.25em; flex-shrink: 0; }
 .rule-remove { min-width: 44px; min-height: 44px; }
-/* Group chat bubbles: who wrote it, with their picture beside the bubble. */
 .chat-sender-name { font-size: 11px; font-weight: 600; opacity: .8; margin-bottom: 2px; }
 .chat-sender-avatar { line-height: 0; }
 .chat-popup-thread .chat-sender-avatar .avatar-xs { width: 24px; height: 24px; }
 
-/* ---- Messages: group chats made on the Messages page ("Yeni grup", "Grup bilgisi") ---- */
 .chat-group-picker {
   position: relative; width: 72px; height: 72px; border-radius: 50%; overflow: hidden; cursor: pointer;
   display: flex; align-items: center; justify-content: center; background: var(--bs-tertiary-bg); color: var(--bs-secondary-color);

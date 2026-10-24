@@ -4,10 +4,8 @@
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class AddMessageMedia : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
@@ -24,7 +22,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 defaultValue: 0);
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(

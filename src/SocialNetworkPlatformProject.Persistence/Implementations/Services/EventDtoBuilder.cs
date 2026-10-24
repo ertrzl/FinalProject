@@ -42,7 +42,6 @@ public class EventDtoBuilder : IEventDtoBuilder
     {
         var list = events.ToList();
 
-        // Who is coming is counted by the database for the whole page at once; the attendee rows stay where they are.
         var attendance = await _attendees.GetAttendanceAsync(list.Select(e => e.Id).ToList(), viewerId);
         var dtos = list.Select(e => Fill(e, attendance.GetValueOrDefault(e.Id, EventAttendance.None), viewerId)).ToList();
 
@@ -71,7 +70,6 @@ public class EventDtoBuilder : IEventDtoBuilder
         if (source.GroupId.HasValue)
             dto.GroupName = (await _groups.GetByIdAsync(source.GroupId.Value))?.Name;
 
-        // A pending invite to this event: lets the page show "X seni davet etti" with accept / decline.
         if (!dto.IsOwner && dto.CurrentUserStatus == "None")
         {
             var inviterId = await _invites
@@ -85,7 +83,6 @@ public class EventDtoBuilder : IEventDtoBuilder
         return dto;
     }
 
-    // The same numbers BuildMany gets from the database, read off an event whose Attendees are loaded.
     private static EventAttendance Summarize(Event source, Guid viewerId)
     {
         var mine = source.Attendees.FirstOrDefault(a => a.UserId == viewerId);
@@ -116,7 +113,6 @@ public class EventDtoBuilder : IEventDtoBuilder
         if (attendance.MyStatus == EventAttendeeStatus.Waitlisted)
             dto.MyWaitlistPosition = attendance.MyWaitlistPosition;
 
-        // The meeting link is for the people who are actually attending, not for everyone browsing events.
         if (source.IsOnline && (dto.IsOwner || attendance.MyStatus == EventAttendeeStatus.Going))
             dto.OnlineLink = source.OnlineLink;
 

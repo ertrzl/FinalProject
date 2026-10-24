@@ -6,7 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// F8: notifications.html feed
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]

@@ -8,7 +8,6 @@ public class PostHashtagConfiguration : IEntityTypeConfiguration<PostHashtag>
 {
     public void Configure(EntityTypeBuilder<PostHashtag> builder)
     {
-        // A post links to a given hashtag at most once.
         builder.HasIndex(ph => new { ph.PostId, ph.HashtagId }).IsUnique();
 
         builder.HasOne(ph => ph.Hashtag)

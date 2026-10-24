@@ -6,7 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// marketplace.html "Teklif Ver" button and the "Tekliflerim" tab (counter-offer bargaining)
 [ApiController]
 [Route("api/marketplace")]
 [Authorize]

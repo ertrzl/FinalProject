@@ -16,7 +16,6 @@ public class AuditLogRepository : Repository<AuditLog>, IAuditLogRepository
     {
         var query = _dbSet.AsNoTracking().AsQueryable();
 
-        // "user" shows every "user.*" line (the panel's filter by kind), "user.suspend" only that one.
         if (!string.IsNullOrWhiteSpace(action))
         {
             var kind = action.Trim();

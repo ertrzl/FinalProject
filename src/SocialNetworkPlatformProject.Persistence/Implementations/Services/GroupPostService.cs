@@ -12,7 +12,6 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class GroupPostService : IGroupPostService
 {
-    // What IPostDtoBuilder needs loaded with every post.
     private static readonly string[] PostIncludes = { "Hashtags.Hashtag", "Media", "Poll.Options" };
 
     private readonly IGroupService _groups;
@@ -43,7 +42,6 @@ public class GroupPostService : IGroupPostService
 
     public async Task<List<GetPostDto>> GetPinnedAsync(Guid currentUserId, Guid groupId)
     {
-        // Throws NotFoundException if the group doesn't exist or is private and the viewer isn't a member.
         await _groups.GetByIdAsync(currentUserId, groupId);
 
         return await PinnedForAsync(currentUserId, groupId);
@@ -57,7 +55,6 @@ public class GroupPostService : IGroupPostService
         if (post == null || post.GroupId != groupId)
             throw new NotFoundException(Loc.T("post.notFound"));
 
-        // Pinning what is already pinned changes nothing (and notifies nobody again).
         var pinnedIds = await _pins.GetPinnedPostIdsAsync(groupId);
         if (pinnedIds.Contains(postId))
             return await PinnedForAsync(currentUserId, groupId);
@@ -72,11 +69,9 @@ public class GroupPostService : IGroupPostService
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
-            // Another admin pinned it at the same moment: it is pinned, and they notified the members.
             return await PinnedForAsync(currentUserId, groupId);
         }
 
-        // An announcement: every member hears of it, except the ones who muted the group (NotificationService checks that).
         foreach (var member in group.Members.Where(m => m.UserId != currentUserId))
             await _notifications.CreateAsync(member.UserId, currentUserId, NotificationType.GroupPostPinned, postId: postId, groupId: groupId);
 
@@ -108,7 +103,6 @@ public class GroupPostService : IGroupPostService
         if (term.Length == 0)
             return new PagedResult<GetPostDto> { Page = page, PageSize = pageSize };
 
-        // As on search.html: "#kod" is the hashtag only, anything else the text or a hashtag of that exact name.
         Expression<Func<Post, bool>> filter;
         if (term.StartsWith('#') && term.Length > 1)
         {
@@ -122,7 +116,6 @@ public class GroupPostService : IGroupPostService
                 && ((p.Text != null && p.Text.Contains(term)) || p.Hashtags.Any(h => h.Hashtag!.Name == tag));
         }
 
-        // The wall's own rules (blocks included) are part of the query, so only what the viewer may see is counted and paged.
         var visible = _access.VisibleTo(_posts.GetAll(filter, asNoTracking: true), currentUserId);
         var total = await visible.CountAsync();
         var pagePosts = await visible
@@ -141,7 +134,6 @@ public class GroupPostService : IGroupPostService
         };
     }
 
-    // The pinned posts the viewer may see (a blocked author's stay hidden), in pinning order.
     private async Task<List<GetPostDto>> PinnedForAsync(Guid currentUserId, Guid groupId)
     {
         var pinnedIds = await _pins.GetPinnedPostIdsAsync(groupId);
@@ -157,7 +149,6 @@ public class GroupPostService : IGroupPostService
         return await _dtos.BuildAsync(ordered, currentUserId);
     }
 
-    // Pinning is the admins' (the owner is always one of them).
     private async Task<Group> GetAsAdminAsync(Guid currentUserId, Guid groupId)
     {
         var group = await _groupRows.GetByIdAsync(groupId, "Members")

@@ -3,8 +3,6 @@ using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Domain.Entities;
 
-// F5: "Beğen" button on posts (toggleLike() in app.js) and the emoji reactions next to it. One row per person and
-// post; changing a reaction changes Type, it never adds a second row.
 public class PostLike : BaseEntity
 {
     public Guid PostId { get; set; }

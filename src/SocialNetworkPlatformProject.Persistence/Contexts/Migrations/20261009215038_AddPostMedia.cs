@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class AddPostMedia : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -38,7 +36,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 table: "PostMedia",
                 columns: new[] { "PostId", "SortOrder" });
 
-            // Every existing post with a photo or video keeps it: it becomes the first (and only) media of the post.
             migrationBuilder.Sql(@"
                 INSERT INTO PostMedia (Id, PostId, Url, MediaType, SortOrder, CreatedAt)
                 SELECT NEWID(), Id, MediaUrl, MediaType, 0, CreatedAt
@@ -54,7 +51,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 table: "Posts");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<int>(
@@ -70,7 +66,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 type: "nvarchar(max)",
                 nullable: true);
 
-            // Only one media fits in a post again: the first one stays.
             migrationBuilder.Sql(@"
                 UPDATE p
                 SET p.MediaUrl = m.Url, p.MediaType = m.MediaType

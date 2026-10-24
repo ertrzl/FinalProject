@@ -1,6 +1,3 @@
-// "Arkadaşlık Önerileri": people you may know, with an "Ekle" button. Shared by home.html and explore.html, which
-// both have a #suggestionsList element for it.
-
 function suggestionCardHtml(user) {
   const mutualLabel = user.mutualFriendsCount > 0 ? `${user.mutualFriendsCount} ortak arkadaş` : "Yeni üye";
   return `

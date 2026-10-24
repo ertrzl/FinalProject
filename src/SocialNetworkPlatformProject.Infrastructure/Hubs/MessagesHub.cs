@@ -9,12 +9,9 @@ using SocialNetworkPlatformProject.Infrastructure.Services;
 
 namespace SocialNetworkPlatformProject.Infrastructure.Hubs;
 
-// Clients call SendMessage / MarkAsRead / Typing; the other participant receives "ReceiveMessage", "MessagesRead" and
-// "UserTyping" via SignalRNotifier. Every page keeps this connection open, so it doubles as the user's online presence.
 [Authorize]
 public class MessagesHub : Hub
 {
-    // Page navigations drop and re-open the connection within moments; only announce "offline" if it stays gone.
     private static readonly TimeSpan OfflineGracePeriod = TimeSpan.FromSeconds(4);
 
     private readonly IMessageService _messages;

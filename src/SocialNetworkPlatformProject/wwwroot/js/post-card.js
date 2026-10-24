@@ -1,12 +1,5 @@
-// Post cards with their comments and the like / edit / delete actions, shared by every page that shows posts
-// (home, profile, group, the single-post page). The server decides what the current user may do (post.canEdit,
-// post.canDelete, comment.canDelete) and what the card shows (post.isGroupPost); this file only draws the buttons
-// and calls the API.
-
-// The posts as they were last drawn, so "Düzenle" can fill its dialog without asking the server again.
 const drawnPosts = new Map();
 
-// What a post holds, for the filter tabs of the inbox design ("photo", "poll"; both, one or none).
 function postKinds(post) {
   return [post.media?.length ? "photo" : "", post.poll ? "poll" : ""].filter(Boolean).join(" ");
 }
@@ -88,8 +81,6 @@ function commentHtml(c) {
     ? `<a href="#" class="text-muted" onclick="event.preventDefault(); reportDialog('Comment', '${c.id}')">${i18n("report.menuItem")}</a>`
     : "";
 
-  // The server sends the comments thread by thread (a comment, then its replies); a reply is just drawn indented.
-  // Replying to a reply answers the original comment, so a thread never goes deeper than one level.
   const replyTarget = c.parentCommentId || c.id;
 
   return `
@@ -124,9 +115,6 @@ async function toggleCommentLike(event, link) {
   return false;
 }
 
-// Fills a post's comment box from the server. The first call (opening the box) loads once; force = true loads again,
-// which is how a live "new comment" or a deletion shows up with the right buttons for this viewer.
-// The comments come a page at a time (the server pages the top-level comments and sends each one's replies with it).
 const COMMENT_PAGE_SIZE = 20;
 
 async function loadComments(postId, force = false) {
@@ -135,7 +123,6 @@ async function loadComments(postId, force = false) {
   container.dataset.loaded = "1";
   const list = container.querySelector(".comments-list");
   try {
-    // A reload (after a deletion, a reply or a live push) brings back as many pages as were showing, not only the first.
     const wanted = force ? Math.max(Number(container.dataset.pages) || 1, 1) : 1;
     let comments = [];
     let page = null;
@@ -162,7 +149,6 @@ async function loadComments(postId, force = false) {
   }
 }
 
-// "Daha fazla yorum göster": draws the next page under the ones already showing.
 async function loadMoreComments(postId) {
   const container = document.getElementById(`comments-${postId}`);
   const list = container.querySelector(".comments-list");
@@ -171,7 +157,6 @@ async function loadMoreComments(postId) {
   button.disabled = true;
   try {
     const page = await apiFetch(`/api/comments/by-post/${postId}?page=${next}&pageSize=${COMMENT_PAGE_SIZE}`);
-    // A comment that a live push or the viewer's own post already put on the screen is not drawn twice.
     list.insertAdjacentHTML("beforeend", page.items.filter(c => !list.querySelector(`[data-comment-id="${c.id}"]`)).map(commentHtml).join(""));
     container.dataset.pages = String(next);
     showMoreCommentsButton(container, postId, page.hasMore);
@@ -189,7 +174,6 @@ function showMoreCommentsButton(container, postId, hasMore) {
     `<button type="button" class="comments-more btn btn-link btn-sm p-0 mb-3" onclick="loadMoreComments('${postId}')">Daha fazla yorum göster</button>`);
 }
 
-// The number next to "yorum" is the post's whole count, not what happens to be drawn.
 function setCommentCount(container, count) {
   const label = container.closest(".card[data-post-id]")?.querySelector(".comment-count-label");
   if (label) label.textContent = count;
@@ -207,9 +191,6 @@ async function submitComment(event, postId) {
     const list = form.closest(".comments-collapse").querySelector(".comments-list");
     input.value = "";
 
-    // The live "comment-added" event may have shown this comment (and the new count) before this response arrived
-    // (posting on your own post always echoes back to you). Only a comment that is not on the screen yet is added to the
-    // count, so it is right no matter which one lands first. (Not every comment is drawn: they come a page at a time.)
     if (!list.querySelector(`[data-comment-id="${comment.id}"]`)) {
       if (list.dataset.empty) { list.innerHTML = ""; delete list.dataset.empty; }
       list.insertAdjacentHTML("beforeend", commentHtml(comment));
@@ -230,7 +211,6 @@ async function removeComment(event, link) {
   const commentId = link.closest("[data-comment-id]").dataset.commentId;
   try {
     await apiFetch(`/api/comments/${commentId}`, { method: "DELETE" });
-    // Replies go with their comment on the server, so reload the list instead of guessing what disappeared.
     await loadComments(card.dataset.postId, true);
     toast("Yorum silindi.");
   } catch (err) {
@@ -239,7 +219,6 @@ async function removeComment(event, link) {
   return false;
 }
 
-// "Yanıtla": opens a small answer box right under the comment (a second click closes it again).
 function startReply(event, link) {
   event.preventDefault();
   const row = link.closest("[data-comment-id]");
@@ -270,7 +249,6 @@ async function submitReply(event, postId, parentCommentId) {
 
   try {
     await apiFetch("/api/comments", { method: "POST", body: { postId, text, parentCommentId } });
-    // The server arranges the thread (a reply goes right under its comment), so the list is simply loaded again.
     await loadComments(postId, true);
   } catch (err) {
     toast(err.message || "Yanıt eklenemedi.");
@@ -278,23 +256,19 @@ async function submitReply(event, postId, parentCommentId) {
   return false;
 }
 
-// ---- Tepkiler: the "Beğen" button, the emoji bar above it and the "who reacted" list ----
 
-// The button under a post: the viewer's own reaction (emoji + name) when there is one, a plain "Beğen" otherwise.
 function reactionButtonHtml(post) {
   const mine = post.myReaction ? REACTIONS[post.myReaction] : null;
   return `<button type="button" class="btn btn-sm w-100 fw-semibold like-btn ${mine ? "liked" : "text-muted"}" data-my-reaction="${post.myReaction || ""}" onclick="toggleLike(this)">${
     mine ? `<span class="reaction-emoji">${mine.emoji}</span> ${mine.label}` : `<i class="like-icon bi bi-heart"></i> Beğen`}</button>`;
 }
 
-// "👍❤️ 12 tepki": the three most used reactions and the total; a click lists who reacted.
 function reactionSummaryHtml(post) {
   const icons = (post.reactions || []).slice(0, 3).map(r => REACTIONS[r.type]?.emoji || "").join("");
   const clickable = post.likeCount > 0 ? `role="button" onclick="showReactors('${post.id}')"` : "";
   return `<span class="reaction-summary" ${clickable}><span class="reaction-icons">${icons || `<i class="bi bi-heart-fill text-danger"></i>`}</span> <span class="like-count-label">${post.likeCount}</span> tepki</span>`;
 }
 
-// Applies what the server answered (or pushed) to a card. `mine` is false for a push about somebody else's reaction.
 function applyReactionResult(card, result, mine = true) {
   const summary = card.querySelector(".reaction-summary");
   if (summary) summary.outerHTML = reactionSummaryHtml({ id: card.dataset.postId, likeCount: result.likeCount, reactions: result.reactions });
@@ -312,9 +286,8 @@ function applyReactionResult(card, result, mine = true) {
   }
 }
 
-// The button itself: takes any reaction back, or likes when there is none.
 async function toggleLike(btn) {
-  if (btn.dataset.longPress) { delete btn.dataset.longPress; return; } // the press only opened the emoji bar
+  if (btn.dataset.longPress) { delete btn.dataset.longPress; return; }
   const card = btn.closest(".card[data-post-id]");
   btn.disabled = true;
   try {
@@ -325,7 +298,6 @@ async function toggleLike(btn) {
   }
 }
 
-// One emoji of the bar: sets that reaction, or takes it back when it is already the viewer's.
 async function reactToPost(emojiButton, type) {
   const card = emojiButton.closest(".card[data-post-id]");
   const current = card.querySelector(".like-btn")?.dataset.myReaction;
@@ -341,7 +313,6 @@ async function reactToPost(emojiButton, type) {
   }
 }
 
-// On a touch screen there is no hover: pressing the button for a moment opens the emoji bar, a tap elsewhere closes it.
 (function setUpReactionBarOnTouch() {
   let timer = null;
 
@@ -378,7 +349,6 @@ function ensureReactorsModal() {
     </div>`);
 }
 
-// The people who reacted, newest first (the server sends the latest 100), with a filter per reaction.
 async function showReactors(postId) {
   ensureReactorsModal();
   const list = document.getElementById("reactorsList");
@@ -412,9 +382,7 @@ async function showReactors(postId) {
   }
 }
 
-// ---- Paylaş: a post you share shows the original in a frame under your own words ----
 
-// The original inside a share. When the viewer may not see it (deleted, or hidden from them) there is only a note.
 function sharedPostHtml(post) {
   const s = post.sharedPost;
   if (!s) {
@@ -435,8 +403,6 @@ function sharedPostHtml(post) {
     </div>`;
 }
 
-// The event card of a post that shares an event (event.html "Gönderide paylaş"). The server sends sharedEvent only when
-// the viewer may see the event; otherwise (deleted, turned private, hidden) there is only a note.
 function sharedEventHtml(post) {
   const e = post.sharedEvent;
   if (!e) {
@@ -523,7 +489,6 @@ async function submitShare() {
   }
 }
 
-// The "Kaydet" item of a post's menu. On the saved-posts page a removed post leaves the list (afterPostUnsaved).
 async function toggleSavePost(postId, item) {
   try {
     const saved = await apiFetch(`/api/posts/${postId}/save`, { method: "POST" });
@@ -539,7 +504,6 @@ async function toggleSavePost(postId, item) {
   }
 }
 
-// ---- Anket: the answers of a poll as buttons (before voting) or as bars with the results ----
 
 function pollTimeLeft(endsAt) {
   const end = new Date(/Z$|[+-]\d\d:\d\d$/.test(endsAt) ? endsAt : `${endsAt}Z`).getTime();
@@ -549,7 +513,6 @@ function pollTimeLeft(endsAt) {
   return hours < 48 ? `${hours} saat kaldı` : `${Math.round(hours / 24)} gün kaldı`;
 }
 
-// What the server allows (post.poll.showResults / canVote) decides everything: this only draws it.
 function pollHtml(post) {
   const poll = post.poll;
 
@@ -576,7 +539,6 @@ function pollHtml(post) {
     </div>`;
 }
 
-// Draws only the poll again (after a vote here, or a push that somebody voted).
 function replacePoll(post) {
   const drawn = drawnPosts.get(post.id);
   if (drawn) drawn.poll = post.poll;
@@ -598,14 +560,13 @@ async function removePost(postId, btn) {
   try {
     await apiFetch(`/api/posts/${postId}`, { method: "DELETE" });
     btn.closest(".card").remove();
-    window.afterLivePostRemoved?.(); // the home page shows its "no posts yet" text when the last one is gone
+    window.afterLivePostRemoved?.();
     toast("Gönderi silindi.");
   } catch (err) {
     toast(err.message || "Gönderi silinemedi.");
   }
 }
 
-// ---- Düzenle: a small dialog (made on first use, so no page needs its own copy) for the text and the privacy ----
 
 function ensurePostEditModal() {
   if (document.getElementById("postEditModal")) return;
@@ -647,7 +608,7 @@ function editPost(postId) {
   modal.dataset.postId = postId;
   document.getElementById("postEditText").value = post.text || "";
   document.getElementById("postEditPrivacy").value = post.privacy;
-  document.getElementById("postEditPrivacyRow").classList.toggle("d-none", post.isGroupPost); // a group post follows its group
+  document.getElementById("postEditPrivacyRow").classList.toggle("d-none", post.isGroupPost);
   document.getElementById("postEditError").classList.add("d-none");
   bootstrap.Modal.getOrCreateInstance(modal).show();
 }
@@ -677,7 +638,6 @@ async function savePostEdit() {
   }
 }
 
-// Draws a post again where it is on the page (after it was edited here, or on another device).
 function replacePostCard(post) {
   const card = document.querySelector(`.card[data-post-id="${post.id}"]`);
   if (card) card.outerHTML = postCardHtml(post);

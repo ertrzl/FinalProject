@@ -7,15 +7,11 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// Uploaded photos and videos. They are not public files: the browser sends the photo cookie (MediaCookie) with every
-// picture it loads, and a picture is only given to someone who may see the thing it belongs to (IUploadAccessService).
-// A picture the person may not see is answered like one that does not exist.
 [ApiController]
 [Route("uploads")]
 [Authorize(AuthenticationSchemes = MediaCookie.Scheme)]
 public class UploadsController : ControllerBase
 {
-    // Only what LocalFileStorageService writes: <folder>/<32 hex digits>.<extension>. Nothing else is looked up on the disk.
     private static readonly Regex FilePattern = new(
         @"^(?<folder>avatars|covers|groups|group-avatars|chat-avatars|events|eventphotos|marketplace|posts|stories|highlights|messages)/[0-9a-f]{32}\.(jpg|jpeg|png|gif|webp|mp4|webm|mov)$",
         RegexOptions.Compiled);
@@ -49,7 +45,6 @@ public class UploadsController : ControllerBase
         if (!ContentTypes.TryGetContentType(physicalPath, out var contentType))
             contentType = "application/octet-stream";
 
-        // Kept by the browser for a few minutes, for this person only; videos can be played and skipped through (ranges).
         Response.Headers.CacheControl = "private, max-age=300";
         Response.Headers.Vary = "Cookie";
         return PhysicalFile(physicalPath, contentType, enableRangeProcessing: true);

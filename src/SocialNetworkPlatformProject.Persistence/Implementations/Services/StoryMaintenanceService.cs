@@ -6,8 +6,6 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class StoryMaintenanceService : IStoryMaintenanceService
 {
-    // Removed in slices so a big backlog (the server was off for a week, say) never becomes one huge statement;
-    // whatever is left after MaxBatchesPerRun is picked up on the next round.
     private const int BatchSize = 200;
     private const int MaxBatchesPerRun = 20;
 
@@ -32,7 +30,6 @@ public class StoryMaintenanceService : IStoryMaintenanceService
             if (expired.Count == 0)
                 break;
 
-            // The rows go first: once they are gone nobody can see the story, even if a file refuses to be deleted.
             removed += await _stories.DeleteByIdsAsync(expired.Select(s => s.Id).ToList());
 
             foreach (var story in expired)

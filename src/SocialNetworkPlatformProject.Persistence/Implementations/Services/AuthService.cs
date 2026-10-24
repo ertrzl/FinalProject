@@ -64,7 +64,6 @@ public class AuthService : IAuthService
             throw new BadRequestException(string.Join(" ", result.Errors.Select(e => e.Description)));
         }
 
-        // The name and the address of the new account may have been tried before it existed: they start clean.
         _unknownLogins.Forget(userName);
         _unknownLogins.Forget(email);
 
@@ -81,11 +80,8 @@ public class AuthService : IAuthService
             ? await _userManager.FindByEmailAsync(identifier)
             : await _userManager.FindByNameAsync(identifier);
 
-        // The name that was typed is not written: people sometimes type their password into that box.
         if (user == null)
         {
-            // Answered like a real account is: locked after five wrong tries, and as slow as a password check (see LoginThrottle),
-            // so neither the message nor the time tells whether the account exists.
             _unknownLogins.EnsureNotLocked(identifier);
             _passwords.SpendTimeLikeAWrongGuess(dto.Password);
 
@@ -103,7 +99,6 @@ public class AuthService : IAuthService
         user.LastSeenAt = DateTime.UtcNow;
         await _userManager.UpdateAsync(user);
 
-        // Asked after the session is made: a suspended account is refused there (and that is logged), it did not sign in.
         var session = await _sessions.IssueAsync(user);
         _logger.LogInformation("Signed in: {UserName} ({UserId:l})", user.UserName, user.Id.ToString());
         return session;

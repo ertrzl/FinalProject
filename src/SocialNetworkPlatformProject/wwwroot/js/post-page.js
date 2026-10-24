@@ -1,7 +1,3 @@
-// post.html — one post on its own page, with its comments open. This is where "Gönderiyi Gör" in a notification and
-// the link a post's "Paylaş" button copies lead. The card itself is the shared one in post-card.js, so likes,
-// comments, replies, editing and live updates all work as they do everywhere else.
-
 requireAuth();
 
 const pagePostId = new URLSearchParams(window.location.search).get("id");
@@ -22,16 +18,13 @@ async function loadPost() {
   try {
     postContainer.innerHTML = postCardHtml(await apiFetch(`/api/posts/${pagePostId}`));
 
-    // Open the comments right away: reading them is why people come to this page.
     document.getElementById(`comments-${pagePostId}`).classList.add("show");
     loadComments(pagePostId);
   } catch (err) {
-    // The server answers 404 both for a post that is gone and for one the viewer may not see.
     postContainer.innerHTML = POST_MISSING_HTML;
   }
 }
 
-// The post was deleted (here or by someone else while this page was open).
 window.afterLivePostRemoved = () => {
   postContainer.innerHTML = POST_MISSING_HTML;
 };

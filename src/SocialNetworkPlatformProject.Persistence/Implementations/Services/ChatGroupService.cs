@@ -9,7 +9,6 @@ using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
-// Group chats made on the Messages page (Conversation.IsCustomGroup). Messages themselves go through MessageService.
 public class ChatGroupService : IChatGroupService
 {
     private const string AvatarFolder = "chat-avatars";
@@ -71,7 +70,6 @@ public class ChatGroupService : IChatGroupService
         }
         catch
         {
-            // Nothing was made, so the picture must not stay behind.
             _files.Delete(avatarUrl);
             throw;
         }
@@ -119,7 +117,7 @@ public class ChatGroupService : IChatGroupService
             throw;
         }
 
-        _files.Delete(oldAvatar); // the replaced or removed picture is not needed any more
+        _files.Delete(oldAvatar);
 
         await PublishUpdatedAsync(conversationId, members.Select(m => m.UserId));
         return await BuildDetailsAsync(chat, members, currentUserId);
@@ -139,7 +137,6 @@ public class ChatGroupService : IChatGroupService
 
         await EnsureMayAddAsync(currentUserId, newIds);
 
-        // They start "read up to now": the chat's history is there to read, but does not count as unread.
         foreach (var id in newIds)
             await _participants.AddAsync(new ConversationParticipant { ConversationId = conversationId, UserId = id });
 
@@ -163,7 +160,6 @@ public class ChatGroupService : IChatGroupService
         var target = members.FirstOrDefault(m => m.UserId == memberId)
             ?? throw new NotFoundException(Loc.T("chatGroup.memberNotFound"));
 
-        // Somebody who runs the chat too has to be made an ordinary member first.
         if (target.IsAdmin)
             throw new ForbiddenException(Loc.T("chatGroup.removeAdmin"));
 
@@ -171,7 +167,6 @@ public class ChatGroupService : IChatGroupService
         await _participants.SaveChangesAsync();
         members.Remove(target);
 
-        // Their open chat windows close (and the list drops it); nothing is sent to them from now on.
         await _notifier.PublishToMessagesAsync(memberId, "ConversationRemoved", new { conversationId });
         await PublishUpdatedAsync(conversationId, members.Select(m => m.UserId));
 
@@ -188,7 +183,6 @@ public class ChatGroupService : IChatGroupService
 
         if (target.IsAdmin != isAdmin)
         {
-            // The chat always keeps somebody who runs it.
             if (!isAdmin && members.Count(m => m.IsAdmin) == 1)
                 throw new BadRequestException(Loc.T("chatGroup.lastAdmin"));
 
@@ -207,7 +201,6 @@ public class ChatGroupService : IChatGroupService
         var others = members.Where(m => m.UserId != currentUserId).ToList();
         if (others.Count == 0)
         {
-            // The last one out switches the light off: the chat, its messages and their photo files go.
             var files = await _conversations.GetMediaUrlsAsync(conversationId);
             var avatar = chat.AvatarUrl;
             _conversations.Delete(chat);
@@ -221,7 +214,6 @@ public class ChatGroupService : IChatGroupService
         {
             _participants.Delete(me);
 
-            // Nobody who runs it is left: the member who has been in it longest does.
             if (me.IsAdmin && others.All(m => !m.IsAdmin))
                 others.OrderBy(m => m.CreatedAt).First().IsAdmin = true;
 
@@ -241,17 +233,13 @@ public class ChatGroupService : IChatGroupService
             me.IsMuted = muted;
             await _participants.SaveChangesAsync();
 
-            // The person's other open tabs show the switch too.
             await _notifier.PublishToMessagesAsync(currentUserId, "ConversationUpdated", await _messages.GetConversationAsync(currentUserId, conversationId));
         }
 
         return await BuildDetailsAsync(chat, members, currentUserId);
     }
 
-    // ---- Helpers ----
 
-    // The chat, its people (tracked: the callers change them) and the viewer's own row. Somebody who is not in the chat, or a
-    // conversation that is not a chat of this kind, "does not exist".
     private async Task<(Conversation Chat, List<ConversationParticipant> Members, ConversationParticipant Me)> LoadAsync(Guid currentUserId, Guid conversationId)
     {
         var chat = await _conversations.GetByIdAsync(conversationId);
@@ -271,7 +259,6 @@ public class ChatGroupService : IChatGroupService
             throw new ForbiddenException(Loc.T("chatGroup.notAdmin"));
     }
 
-    // People added to a chat must exist, be friends of the one who adds them, and not be blocked with them.
     private async Task EnsureMayAddAsync(Guid adderId, List<Guid> userIds)
     {
         foreach (var id in userIds)
@@ -287,7 +274,6 @@ public class ChatGroupService : IChatGroupService
         }
     }
 
-    // Each person who was added gets the notice, and the chat shows up in their list at once.
     private async Task TellAddedAsync(Guid adderId, Guid conversationId, List<Guid> addedIds)
     {
         foreach (var id in addedIds)
@@ -297,7 +283,6 @@ public class ChatGroupService : IChatGroupService
         }
     }
 
-    // Everybody in the chat gets it as their list shows it (name, picture, number of people, whether they run it).
     private async Task PublishUpdatedAsync(Guid conversationId, IEnumerable<Guid> memberIds)
     {
         foreach (var id in memberIds.Distinct().ToList())
@@ -318,7 +303,6 @@ public class ChatGroupService : IChatGroupService
             CanManage = me.IsAdmin,
             IsMuted = me.IsMuted,
             MaxMembers = ChatGroupLimits.MaxMembers,
-            // Whoever runs the chat first, then by name; a person whose account is gone is left out.
             Members = members
                 .Where(m => people.ContainsKey(m.UserId))
                 .Select(m => new GetChatGroupMemberDto

@@ -6,7 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// Any signed-in person can report a post, comment, profile or listing; the admins read the reports in the admin panel.
 [ApiController]
 [Route("api/reports")]
 [Authorize]

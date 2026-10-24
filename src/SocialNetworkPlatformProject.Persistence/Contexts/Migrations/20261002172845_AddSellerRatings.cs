@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class AddSellerRatings : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -43,7 +41,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 column: "SellerId");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

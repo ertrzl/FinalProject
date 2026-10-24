@@ -1,20 +1,9 @@
-/* =========================================================
-   Design "inbox": calm, dense lists, cool greys, one orange accent, Geist.
-   Loaded after style.css on every page. Every rule starts with html[data-design="inbox"] (set by js/design.js), so with
-   the design "classic" none of it applies and style.css alone gives the old look.
-   Order of this file: tokens, Bootstrap parts, the shell (column on the left + page), the lists (posts, comments),
-   then one section per page.
-   ========================================================= */
-
-/* The fonts come from the CDN the pages already use for Bootstrap (the content security policy allows only that one). */
 @import url("https://cdn.jsdelivr.net/npm/@fontsource-variable/geist@5.3.0/index.css");
 @import url("https://cdn.jsdelivr.net/npm/@fontsource-variable/geist-mono@5.3.0/index.css");
 
-/* Things only one of the designs shows. */
 html:not([data-design="inbox"]) .inbox-only { display: none !important; }
 html[data-design="inbox"] .classic-only { display: none !important; }
 
-/* ---------- Tokens ---------- */
 html[data-design="inbox"] {
   --ink: #1a1a18;
   --ink-2: #44443f;
@@ -89,7 +78,6 @@ html[data-design="inbox"] .cap, html[data-design="inbox"] .side-caption {
   font-family: var(--mono); font-size: 12px; font-weight: 400; color: var(--faint); text-transform: uppercase; letter-spacing: 0.08em;
 }
 
-/* ---------- Buttons: dark primary, quiet secondary; no pills ---------- */
 html[data-design="inbox"] .rounded-pill:not(.badge):not(.avatar-xs):not(.avatar-sm):not(.avatar-md) { border-radius: 8px !important; }
 html[data-design="inbox"] .btn { font-weight: 600; border-radius: 8px; }
 html[data-design="inbox"] .btn-primary {
@@ -120,7 +108,6 @@ html[data-design="inbox"] .btn-light, html[data-design="inbox"] .btn-secondary {
   --bs-btn-active-color: var(--ink); --bs-btn-active-bg: var(--line); --bs-btn-active-border-color: transparent;
 }
 
-/* ---------- Surfaces: flat, bordered, small radius, no shadows ---------- */
 html[data-design="inbox"] .card,
 html[data-design="inbox"] .modal-content,
 html[data-design="inbox"] .dropdown-menu,
@@ -150,7 +137,6 @@ html[data-design="inbox"] .link-primary, html[data-design="inbox"] .btn-link { c
 html[data-design="inbox"] .border-primary { border-color: var(--accent) !important; }
 html[data-design="inbox"] .btn-check:checked + .btn-outline-primary { background: var(--ink); border-color: var(--ink); color: var(--surface); }
 
-/* ---------- Tabs (Bootstrap nav-pills used by the pages become the underlined tabs of the design) ---------- */
 html[data-design="inbox"] .nav-pills, html[data-design="inbox"] .nav-tabs {
   --bs-nav-link-color: var(--muted); --bs-nav-link-hover-color: var(--ink);
   gap: 0; flex-wrap: nowrap; overflow-x: auto; border-bottom: 1px solid var(--line); padding: 0 8px; margin-bottom: 0 !important;
@@ -164,17 +150,11 @@ html[data-design="inbox"] .nav-pills .nav-link.active, html[data-design="inbox"]
   background: transparent; color: var(--ink); font-weight: 600; border-bottom-color: var(--accent);
 }
 
-/* ---------- Auth pages ---------- */
 html[data-design="inbox"] .auth-gradient { background: var(--canvas); }
 html[data-design="inbox"] .auth-logo { color: var(--ink); font-weight: 700; letter-spacing: -0.02em; display: flex; align-items: center; justify-content: center; }
 html[data-design="inbox"] .auth-logo::before { content: ""; display: inline-block; width: 14px; height: 14px; margin-right: 8px; border-radius: 3px; background: var(--accent); }
 html[data-design="inbox"] .avatar-upload-btn { color: var(--ink); border-color: var(--line-2); }
 
-/* =========================================================
-   The shell: a column of links on the left (from 992 px), the page to its right.
-   body becomes a two-column grid; the menu (nav#siteNav.inbox-nav) is the first column and everything else that takes
-   room (the page) is the second. Fixed things (bottom bar, dialogs, chat dock, toasts) are outside the grid.
-   ========================================================= */
 html[data-design="inbox"] body { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: start; min-height: 100vh; }
 html[data-design="inbox"] body > .inbox-nav {
   grid-column: 1; grid-row: 1 / span 200; position: sticky; top: 0; height: 100vh; overflow: visible; z-index: 1030;
@@ -183,11 +163,9 @@ html[data-design="inbox"] body > .inbox-nav {
 html[data-design="inbox"] body > :not(.inbox-nav) { grid-column: 2; min-width: 0; }
 html[data-design="inbox"] body > .modal, html[data-design="inbox"] body > .offcanvas, html[data-design="inbox"] body > .modal-backdrop { grid-column: auto; }
 
-/* The pages' own containers no longer centre themselves: the page fills the room beside the menu. */
 html[data-design="inbox"] body > .container,
 html[data-design="inbox"] body > .container-fluid { max-width: none !important; width: auto; margin: 0 !important; padding: 0 !important; }
 
-/* The column of links */
 html[data-design="inbox"] .side-menu { flex-direction: column; height: 100%; padding: 24px 14px 16px; gap: 2px; }
 html[data-design="inbox"] .side-brand { display: flex; align-items: center; gap: 8px; padding: 0 12px 14px; font-weight: 700; font-size: 18px; letter-spacing: -0.01em; color: var(--ink); }
 html[data-design="inbox"] .side-brand-mark { width: 12px; height: 12px; border-radius: 3px; background: var(--accent); display: inline-block; flex: none; }
@@ -216,19 +194,17 @@ html[data-design="inbox"] .side-me-name { overflow: hidden; text-overflow: ellip
 html[data-design="inbox"] .side-tool { border: 0; background: transparent; color: var(--muted); width: 40px; height: 44px; border-radius: 6px; font-size: 17px; display: flex; align-items: center; justify-content: center; }
 html[data-design="inbox"] .side-tool:hover { background: var(--chip); color: var(--ink); }
 
-/* ---------- The rail (from 992 px) ----------
-   Only the icons show; with the mouse on the column it opens over the page with the names, and closes again when the
-   mouse leaves (or the keyboard focus leaves it). The page does not move: the column keeps its 72 px. */
 @media (min-width: 992px) {
   html[data-design="inbox"] .side-menu {
     position: absolute; top: 0; left: 0; width: 72px; height: 100%; padding: 20px 12px 16px;
     background: var(--canvas); border-right: 1px solid var(--line);
+    overflow-x: hidden; overflow-y: auto; scrollbar-width: none;
     transition: width .22s cubic-bezier(.4, 0, .2, 1), box-shadow .22s;
   }
+  html[data-design="inbox"] .side-menu::-webkit-scrollbar { display: none; }
   html[data-design="inbox"] .inbox-nav:hover .side-menu,
   html[data-design="inbox"] .inbox-nav:has(:focus-visible) .side-menu { width: 244px; box-shadow: 10px 0 30px rgba(0, 0, 0, .14); }
 
-  /* The names: closed they have no width, open they slide out. */
   html[data-design="inbox"] .side-text {
     display: block; max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap;
     transition: max-width .22s cubic-bezier(.4, 0, .2, 1), opacity .15s;
@@ -246,7 +222,6 @@ html[data-design="inbox"] .side-tool:hover { background: var(--chip); color: var
   html[data-design="inbox"] .side-link.active .side-icon { color: var(--accent); }
   html[data-design="inbox"] .side-link-end { margin-left: auto; }
 
-  /* Closed: a counter sits on the corner of its icon; open: at the end of the row. */
   html[data-design="inbox"] .side-link .badge { position: absolute !important; top: 5px; left: 28px; font-size: 10px; padding: 2px 5px; }
   html[data-design="inbox"] .inbox-nav:hover .side-link .badge,
   html[data-design="inbox"] .inbox-nav:has(:focus-visible) .side-link .badge { position: static !important; }
@@ -254,14 +229,12 @@ html[data-design="inbox"] .side-tool:hover { background: var(--chip); color: var
   html[data-design="inbox"] .inbox-nav:hover .side-link .kbd,
   html[data-design="inbox"] .inbox-nav:has(:focus-visible) .side-link .kbd { display: inline-block; }
 
-  /* The search is the magnifier until the column opens. */
   html[data-design="inbox"] .side-search { overflow: hidden; flex-wrap: nowrap; }
   html[data-design="inbox"] .side-search .form-control { min-width: 0; }
   html[data-design="inbox"] .side-search::after { display: none; }
   html[data-design="inbox"] .inbox-nav:hover .side-search::after,
   html[data-design="inbox"] .inbox-nav:has(:focus-visible) .side-search::after { display: block; }
 
-  /* The groups and the account's buttons are only there when the column is open. */
   html[data-design="inbox"] .side-groups { opacity: 0; visibility: hidden; transition: opacity .15s; }
   html[data-design="inbox"] .inbox-nav:hover .side-groups,
   html[data-design="inbox"] .inbox-nav:has(:focus-visible) .side-groups { opacity: 1; visibility: visible; }
@@ -272,11 +245,17 @@ html[data-design="inbox"] .side-tool:hover { background: var(--chip); color: var
   html[data-design="inbox"] .inbox-nav:has(:focus-visible) .side-tool { width: 40px; opacity: 1; visibility: visible; }
 }
 
-/* The logo in the top bar of a phone and on the sign-in pages */
+@media (min-width: 992px) and (max-height: 860px) {
+  html[data-design="inbox"] .side-menu { padding-top: 12px; padding-bottom: 8px; }
+  html[data-design="inbox"] .side-brand { height: 40px; padding-bottom: 8px; }
+  html[data-design="inbox"] .side-search { margin-bottom: 8px; min-height: 36px; }
+  html[data-design="inbox"] .side-link { min-height: 40px; }
+  html[data-design="inbox"] .side-groups { margin-top: 10px; }
+}
+
 html[data-design="inbox"] .top-bar .side-brand-mark { width: 28px; height: 28px; border-radius: 0; background: url("/images/logo.svg") center / contain no-repeat; }
 html[data-design="inbox"] .auth-logo::before { width: 30px; height: 30px; margin-right: 10px; border-radius: 0; background: url("/images/logo.svg") center / contain no-repeat; }
 
-/* Below 992 px: the column becomes a bar at the top, and the links go to the bar at the bottom and the drawer (see js/navbar.js). */
 html[data-design="inbox"] .top-bar { align-items: center; gap: 10px; padding: calc(8px + env(safe-area-inset-top)) 14px 8px; background: var(--surface); }
 html[data-design="inbox"] .top-bar .side-brand { padding: 0; }
 html[data-design="inbox"] .top-bar-search { flex: 1; min-width: 0; margin: 0; padding: 0 12px !important; min-height: 40px; border: 1px solid var(--line-2); border-radius: 8px !important; background: var(--surface-2) !important; }
@@ -299,9 +278,6 @@ html[data-design="inbox"] .offcanvas { background: var(--surface); }
   html[data-design="inbox"] .toast-container { bottom: 68px !important; }
 }
 
-/* =========================================================
-   Pages: a white column of rows with a thin column of extras to its right
-   ========================================================= */
 html[data-design="inbox"] .page-row { display: flex; flex-wrap: nowrap; align-items: flex-start; margin: 0; --bs-gutter-x: 0; --bs-gutter-y: 0; }
 html[data-design="inbox"] .page-row > * { padding: 0; margin: 0; }
 html[data-design="inbox"] .page-main {
@@ -312,7 +288,6 @@ html[data-design="inbox"] .page-aside {
   position: sticky; top: 0; align-self: flex-start; max-height: 100vh; overflow-y: auto;
 }
 html[data-design="inbox"] .page-aside .card { border: 0 !important; background: transparent; padding: 0 !important; }
-/* The home page's column of extras is hidden below 1200 px; the marketplace's filters are not (they stack above the list). */
 html[data-design="inbox"] .page-aside.d-none { display: none !important; }
 @media (min-width: 1200px) { html[data-design="inbox"] .page-aside.d-none.d-lg-block { display: flex !important; } }
 @media (max-width: 1199.98px) {
@@ -322,19 +297,16 @@ html[data-design="inbox"] .page-aside.d-none { display: none !important; }
 }
 @media (max-width: 991.98px) { html[data-design="inbox"] .page-main { border-right: 0; min-height: 0; max-width: none; } }
 
-/* A page's title */
 html[data-design="inbox"] .page-head { padding: 20px 18px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 !important; }
 html[data-design="inbox"] .page-head h1, html[data-design="inbox"] .page-head .h4 { margin: 0 !important; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
 html[data-design="inbox"] .page-head p { margin: 2px 0 0; color: var(--muted); }
 
-/* ---------- Rows: the posts, comments and everything else drawn as a list ---------- */
 html[data-design="inbox"] .page-main .card {
   border: 0 !important; border-bottom: 1px solid var(--line) !important; border-radius: 0 !important; background: transparent; box-shadow: none !important;
   margin: 0 !important; padding: 14px 18px !important;
 }
 html[data-design="inbox"] .page-main .card:hover[data-post-id] { background: var(--surface-2); }
 
-/* The composer, the post box above the list */
 html[data-design="inbox"] .composer { background: var(--surface) !important; }
 html[data-design="inbox"] .composer textarea { background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 8px; color: var(--ink); }
 html[data-design="inbox"] .composer textarea:focus { background: var(--surface); border-color: var(--accent); box-shadow: 0 0 0 3px rgba(242, 96, 12, .16); }
@@ -344,15 +316,12 @@ html[data-design="inbox"] .attach-label { background: var(--chip); color: var(--
 html[data-design="inbox"] .attach-label:hover { background: var(--line); }
 html[data-design="inbox"] .privacy-select { border-radius: 6px !important; font-weight: 500; }
 
-/* Stories: a strip of small tiles */
 html[data-design="inbox"] .story-strip { padding: 14px 18px; border-bottom: 1px solid var(--line); margin: 0 !important; }
 html[data-design="inbox"] .story-card { width: 76px; height: 100px; border-radius: 10px; box-shadow: none; }
 html[data-design="inbox"] .story-card .story-ring { top: 5px; left: 5px; width: 26px; height: 26px; border-width: 2px; padding: 1px; border-color: var(--accent); }
 html[data-design="inbox"] .story-card .story-name { left: 6px; right: 6px; bottom: 6px; font-size: 12px; }
 html[data-design="inbox"] .story-card.story-seen .story-ring { border-color: var(--line-2); }
 
-/* A post: avatar on the left, the rest to its right, like a row of the inbox.
-   The first line (avatar, name, menu) is turned into grid cells of the card, so the text below lines up with the name. */
 html[data-design="inbox"] .card[data-post-id] {
   display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; column-gap: 14px; align-items: start; animation: none;
 }
@@ -386,14 +355,12 @@ html[data-design="inbox"] .reaction-bar { border-radius: 10px; }
 html[data-design="inbox"] .reaction-summary { font-family: var(--mono); font-size: 12px; }
 html[data-design="inbox"] .post-carousel, html[data-design="inbox"] .card[data-post-id] img.rounded-3 { border-radius: 8px; }
 
-/* Polls */
 html[data-design="inbox"] .poll-row { border-radius: 8px; background: var(--surface-2); }
 html[data-design="inbox"] .poll-fill { background: rgba(242, 96, 12, .16); }
 html[data-design="inbox"] .poll-mine { border-color: var(--accent); }
 html[data-design="inbox"] .poll-mine .poll-fill { background: rgba(242, 96, 12, .28); }
 html[data-design="inbox"] .poll-clickable:hover { border-color: var(--accent); }
 
-/* ---------- Profile, notifications, search, mentions ---------- */
 html[data-design="inbox"] .profile-cover { border-radius: 10px; background: linear-gradient(120deg, #1a1a18 0%, #44443f 55%, var(--accent) 150%); }
 html[data-design="inbox"] .avatar-lg { border-color: var(--surface); background: var(--chip); }
 html[data-design="inbox"] .friend-tile img { border-radius: 8px; }
@@ -409,19 +376,16 @@ html[data-design="inbox"] .mention-menu button.active,
 html[data-design="inbox"] .location-suggestion:hover,
 html[data-design="inbox"] .location-suggestion.active { background: var(--chip); }
 
-/* ---------- Chat ---------- */
 html[data-design="inbox"] .chat-dock-bar, html[data-design="inbox"] .chat-popup { border-radius: 10px 10px 0 0; }
 html[data-design="inbox"] .chat-popup-header { background: var(--ink); color: var(--surface); }
 html[data-design="inbox"] .chat-tool { color: var(--ink-2); }
 html[data-design="inbox"] .chat-tool:hover { background: var(--chip); }
 html[data-design="inbox"] .chat-sticker-grid button:hover { background: var(--chip); }
-/* Group chats: the sender's name in the accent colour, the group's initial on ink instead of the classic gradient. */
 html[data-design="inbox"] .chat-sender-name { color: var(--accent); opacity: 1; font-family: var(--mono); font-weight: 400; }
 html[data-design="inbox"] .group-avatar-empty { background: var(--ink); color: var(--surface); }
 html[data-design="inbox"] .group-pinned-card { box-shadow: inset 3px 0 0 var(--accent) !important; }
 html[data-design="inbox"] .group-pinned-badge { background: var(--accent-wash); color: var(--accent); }
 
-/* ---------- Dark: the places style.css fixes in blue ---------- */
 html[data-design="inbox"][data-bs-theme="dark"] .comment-bubble,
 html[data-design="inbox"][data-bs-theme="dark"] .composer textarea,
 html[data-design="inbox"][data-bs-theme="dark"] .attach-label { color: var(--ink); }
@@ -430,9 +394,6 @@ html[data-design="inbox"][data-bs-theme="dark"] .notif-unread { background: var(
 html[data-design="inbox"][data-bs-theme="dark"] .bg-primary-subtle { background-color: var(--accent-wash) !important; }
 html[data-design="inbox"][data-bs-theme="dark"] .btn-light { --bs-btn-bg: var(--chip); --bs-btn-hover-bg: var(--line); --bs-btn-active-bg: var(--line); }
 
-/* =========================================================
-   Home
-   ========================================================= */
 html[data-design="inbox"] #feedList[data-filter="photo"] .card[data-post-id]:not([data-kind~="photo"]),
 html[data-design="inbox"] #feedList[data-filter="poll"] .card[data-post-id]:not([data-kind~="poll"]) { display: none; }
 html[data-design="inbox"] #feedList .text-center.text-muted { padding: 40px 18px !important; }
@@ -443,10 +404,6 @@ html[data-design="inbox"] .upcoming-when { font-family: var(--mono); font-size: 
 html[data-design="inbox"] .upcoming-title { font-weight: 600; margin-top: 2px; }
 html[data-design="inbox"] .upcoming-place { color: var(--muted); font-size: 14px; }
 
-/* =========================================================
-   Pages made of a title, a list and a column of extras (.page-split).
-   In the DOM they come in the order title, extras, list (that is the classic order); the grid puts the extras beside both.
-   ========================================================= */
 html[data-design="inbox"] .page-split {
   display: grid; grid-template-columns: minmax(0, 880px) 300px; grid-template-rows: auto 1fr; align-items: stretch;
   grid-template-areas: "head aside" "main aside";
@@ -472,15 +429,11 @@ html[data-design="inbox"] .page-aside .btn-outline-primary.btn-sm, html[data-des
   font-family: var(--mono); font-size: 13px; background: var(--chip); border-color: transparent; color: var(--ink); min-height: 32px; padding: 0 10px;
 }
 
-/* Explore: the trending tags are rows with the count at the end */
 html[data-design="inbox"] #trendingTags { flex-direction: column; flex-wrap: nowrap; gap: 0 !important; }
 html[data-design="inbox"] #trendingTags .btn { display: flex; justify-content: space-between; align-items: center; width: 100%; background: transparent; border: 0; border-radius: 6px; min-height: 40px; padding: 0 4px; font-weight: 500; text-align: left; }
 html[data-design="inbox"] #trendingTags .btn:hover { background: var(--chip); }
 html[data-design="inbox"] #trendingTags .badge { font-family: var(--mono); font-weight: 400; background: transparent !important; color: var(--faint) !important; font-size: 13px; padding: 0; }
 
-/* =========================================================
-   Generic list rows (friends, notifications, search, saved ...): a row has an avatar, two lines of text and buttons at the end
-   ========================================================= */
 html[data-design="inbox"] .page-main .list-card { padding: 0 !important; border: 0 !important; }
 html[data-design="inbox"] .list-card > .page-head { padding: 20px 18px 14px; margin: 0 !important; }
 html[data-design="inbox"] .list-card > .page-head .fs-5 { font-size: 24px !important; font-weight: 700 !important; letter-spacing: -0.02em; }
@@ -489,7 +442,6 @@ html[data-design="inbox"] .page-main > .back-link, html[data-design="inbox"] .ba
 html[data-design="inbox"] .page-main > .text-center.text-muted, html[data-design="inbox"] .list-card .text-muted.small:only-child { padding: 28px 18px; display: block; }
 html[data-design="inbox"] .list-card .nav-tabs { margin-bottom: 0 !important; }
 
-/* The rows that were grey rounded boxes */
 html[data-design="inbox"] .page-main .tab-pane[id^="panel-"] > .card { padding: 0 !important; }
 html[data-design="inbox"] .page-main .row.g-3, html[data-design="inbox"] .page-main .row.g-2 { display: block; margin: 0; --bs-gutter-x: 0; --bs-gutter-y: 0; }
 html[data-design="inbox"] .page-main .row.g-3 > *, html[data-design="inbox"] .page-main .row.g-2 > * { width: 100%; max-width: 100%; padding: 0; margin: 0; }
@@ -504,7 +456,6 @@ html[data-design="inbox"] .page-main .btn-outline-primary.btn-sm:hover { backgro
 html[data-design="inbox"] .page-main .btn-outline-danger.btn-sm { background: var(--chip); border-color: transparent; color: var(--ink); }
 html[data-design="inbox"] .page-main .btn-outline-danger.btn-sm:hover { background: var(--line); color: var(--danger); }
 
-/* Notifications */
 html[data-design="inbox"] #notificationsList > [data-notification-id] {
   border-radius: 0 !important; border-bottom: 1px solid var(--line); margin: 0 !important; padding: 14px 18px !important; cursor: pointer;
 }
@@ -517,16 +468,12 @@ html[data-design="inbox"] #notificationsList .text-muted.small { font-family: va
 html[data-design="inbox"] .day-caption { padding: 12px 18px; background: var(--surface-2); border-bottom: 1px solid var(--line); border-top: 1px solid var(--line); }
 html[data-design="inbox"] .day-caption:first-child { border-top: 0; }
 
-/* Search */
 html[data-design="inbox"] .search-page-form { padding: 16px 18px; border-bottom: 1px solid var(--line); }
 html[data-design="inbox"] .search-page-form label { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 16px; border: 1px solid var(--ink); border-radius: 8px; background: var(--surface); margin: 0; }
 html[data-design="inbox"] .search-page-form input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 17px; color: var(--ink); }
 html[data-design="inbox"] #searchResultsUsers > .d-flex, html[data-design="inbox"] #searchResultsUsers > .p-3 { padding: 14px 18px !important; }
 html[data-design="inbox"] #searchResultsUsers, html[data-design="inbox"] #searchResultsPosts { padding: 0; }
 
-/* =========================================================
-   Messages: the list of conversations and the conversation fill the room beside the menu
-   ========================================================= */
 html[data-design="inbox"] .messages-card { height: 100vh; min-height: 480px; border: 0 !important; border-radius: 0 !important; background: var(--surface); }
 html[data-design="inbox"] .messages-card .messages-list-col { flex: 0 0 340px; width: 340px; max-width: 340px; background: var(--surface); }
 html[data-design="inbox"] .messages-card .messages-thread-col { flex: 1 1 0; width: auto; max-width: none; background: var(--surface); }
@@ -551,16 +498,11 @@ html[data-design="inbox"] .chat-msg-row .bg-body-tertiary { background: var(--bu
 html[data-design="inbox"] .chat-msg-row .text-white-50 { font-family: var(--mono); }
 html[data-design="inbox"] .chat-msg-row .text-muted { font-family: var(--mono); }
 @media (max-width: 991.98px) {
-  /* The card fills exactly what is between the top bar and the bottom bar (dvh: the part of the screen that is really
-     visible, the address bar of a phone browser not counted), so the box to write in is never under the bottom bar. */
   html[data-design="inbox"] .messages-card { height: calc(100vh - 138px); height: calc(100dvh - 74px - 68px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height: 300px; }
   html[data-design="inbox"] body > .container:has(.messages-card) { padding-top: 0 !important; padding-bottom: 0 !important; }
   html[data-design="inbox"] .messages-card .messages-list-col { flex: 0 0 100%; width: 100%; max-width: none; }
 }
 
-/* =========================================================
-   Groups and events: a card becomes a row (a picture or the date at the start, the text, the buttons at the end)
-   ========================================================= */
 html[data-design="inbox"] .page-head > .btn { min-height: 40px; }
 html[data-design="inbox"] .page-head > .btn > i { display: none; }
 html[data-design="inbox"] .page-main > .tab-content, html[data-design="inbox"] .page-main > .nav-pills + .tab-content { margin: 0; }
@@ -617,9 +559,6 @@ html[data-design="inbox"] .page-main .card .btn-outline-secondary.interested { b
   html[data-design="inbox"] .page-main .card > .p-3 > .btn, html[data-design="inbox"] .page-main .card > .p-3 > .d-flex:last-child { grid-column: 1 / -1 !important; grid-row: auto !important; margin-top: 10px !important; }
 }
 
-/* =========================================================
-   Event and group pages
-   ========================================================= */
 html[data-design="inbox"] .page-main > .text-decoration-none.small.text-muted { display: block; padding: 16px 18px 0; }
 html[data-design="inbox"] #eventPage, html[data-design="inbox"] #eventLoading, html[data-design="inbox"] #eventPageError { margin-left: 0; margin-right: 0; }
 html[data-design="inbox"] #eventLoading, html[data-design="inbox"] #groupLoading { padding: 24px 18px; }
@@ -651,10 +590,6 @@ html[data-design="inbox"] #groupEventsList > a:hover { background: var(--surface
 html[data-design="inbox"] #groupEventsList img { width: 52px !important; height: 52px !important; }
 html[data-design="inbox"] #groupPostsList { background: var(--surface); }
 
-/* =========================================================
-   Profile: the page is a grid of two columns. The cover, the name, the tabs and the posts / lists are in the white column;
-   "Hakkında" and "Arkadaşlar" of the posts tab move to the thin column beside it (display: contents lets the grid reach them).
-   ========================================================= */
 html[data-design="inbox"] .profile-page { display: grid; grid-template-columns: minmax(0, 880px) 300px; align-items: start; }
 html[data-design="inbox"] .profile-page > * { grid-column: 1; min-width: 0; }
 html[data-design="inbox"] .profile-page > .profile-cover { height: 150px; border-radius: 0; margin: 0; }
@@ -693,9 +628,6 @@ html[data-design="inbox"] #profileCoverEditBtn .btn { background: rgba(26, 26, 2
   html[data-design="inbox"] #tab-posts > .row > .col-lg-4 { grid-column: 1; grid-row: auto; position: static; background: var(--surface); border-bottom: 1px solid var(--line); }
 }
 
-/* =========================================================
-   Marketplace: the filters go to the thin column on the right, the listings are rows
-   ========================================================= */
 html[data-design="inbox"] .page-row > .page-aside { order: 2; }
 html[data-design="inbox"] .page-row > .page-main { order: 1; }
 html[data-design="inbox"] .page-main > .d-flex.justify-content-between.mb-3 { margin: 0 !important; padding-right: 18px; border-bottom: 1px solid var(--line); gap: 0 !important; flex-wrap: nowrap !important; }
@@ -730,15 +662,11 @@ html[data-design="inbox"] #listingsGrid .card > .p-2 > div:last-child:not(.text-
 html[data-design="inbox"] #listingsGrid .card > .btn { position: static !important; grid-column: 3; grid-row: 2; margin: 0 !important; justify-self: end; background: transparent; box-shadow: none !important; }
 html[data-design="inbox"] #listingsGrid .card > .badge { position: static !important; grid-column: 2; grid-row: 4; margin: 4px 0 0 !important; justify-self: start; }
 html[data-design="inbox"] #listingsGrid .badge.text-bg-warning { background: var(--accent-wash) !important; color: var(--accent-ink) !important; }
-/* Marketplace extras: the badges and the seller's "Yenile" line become cells of the row, like the heart and the old "Satıldı" badge. */
 html[data-design="inbox"] #listingsGrid .card > .listing-badges { position: static; grid-column: 2; grid-row: 4; flex-direction: row; flex-wrap: wrap; max-width: none; margin: 4px 0 0; }
 html[data-design="inbox"] #listingsGrid .card > .listing-owner-line { grid-column: 3; grid-row: 4; justify-self: end; align-self: end; max-width: 220px; padding: 0 !important; text-align: right; }
 html[data-design="inbox"] #listingsGrid .card > .listing-owner-line .btn { min-height: 44px; width: auto; }
 html[data-design="inbox"] #listingsGrid .card.listing-featured { outline: 0; box-shadow: inset 3px 0 0 var(--accent) !important; }
 
-/* =========================================================
-   Settings: a column of sections, then one long white column of them
-   ========================================================= */
 html[data-design="inbox"] .settings-row { align-items: stretch; }
 html[data-design="inbox"] .page-subnav { flex: 0 0 220px; width: 220px; max-width: 220px; background: var(--surface); border-right: 1px solid var(--line); position: sticky; top: 0; align-self: flex-start; height: 100vh; overflow-y: auto; padding: 24px 14px !important; }
 html[data-design="inbox"] .page-subnav > .card { background: transparent; border: 0 !important; padding: 0 !important; display: flex; flex-direction: column; gap: 2px; }
@@ -755,7 +683,6 @@ html[data-design="inbox"][data-bs-theme="dark"] .settings-row > .page-main > #se
 html[data-design="inbox"] .settings-row > .page-main > #section-danger > .fw-bold:first-child { color: var(--danger); }
 html[data-design="inbox"] .settings-row > .page-main .form-control, html[data-design="inbox"] .settings-row > .page-main .form-select { min-height: 44px; }
 @media (max-width: 991.98px) {
-  /* on a phone the list of sections is not shown, only the title of the page */
   html[data-design="inbox"] .settings-row { flex-wrap: wrap; }
   html[data-design="inbox"] .page-subnav { display: block !important; flex: 1 1 100%; width: 100%; max-width: none; height: auto; position: static; border-right: 0; border-bottom: 1px solid var(--line); padding: 16px 18px 12px !important; }
   html[data-design="inbox"] .page-subnav .side-nav-link { display: none; }
@@ -764,7 +691,6 @@ html[data-design="inbox"] .settings-row > .page-main .form-control, html[data-de
   html[data-design="inbox"] .settings-row > .page-main { max-width: none; }
 }
 
-/* The old side list (the section list of the settings): plain text rows */
 html[data-design="inbox"] .side-nav-link { font-weight: 500; font-size: 14px; color: var(--ink-2); border-radius: 6px; padding: 9px 12px; min-height: 40px; }
 html[data-design="inbox"] .side-nav-link i { display: none; }
 html[data-design="inbox"] .side-nav-link:hover { background: var(--chip); color: var(--ink); }
@@ -773,10 +699,8 @@ html[data-design="inbox"][data-bs-theme="dark"] .side-nav-link, html[data-design
 html[data-design="inbox"][data-bs-theme="dark"] .side-nav-link:hover { background: var(--chip); }
 html[data-design="inbox"][data-bs-theme="dark"] .side-nav-link.active { background: var(--canvas); }
 
-/* The post the keyboard (j / k) stopped on */
 html[data-design="inbox"] .card[data-post-id].kb-selected { box-shadow: inset 3px 0 0 var(--accent) !important; background: var(--accent-wash); }
 
-/* The sign-in / register / reset cards: a white panel with a thin border */
 html[data-design="inbox"] .auth-gradient .card { border-radius: 12px !important; padding: 28px 26px !important; border: 1px solid var(--line) !important; }
 html[data-design="inbox"] .auth-gradient .btn-primary { min-height: 48px; }
 html[data-design="inbox"] .auth-gradient .form-control { min-height: 48px; }
@@ -798,13 +722,11 @@ html[data-design="inbox"] #friendsTabList > .text-muted, html[data-design="inbox
 html[data-design="inbox"] .nav-pills, html[data-design="inbox"] .nav-tabs { scrollbar-width: none; }
 html[data-design="inbox"] .nav-pills::-webkit-scrollbar, html[data-design="inbox"] .nav-tabs::-webkit-scrollbar { display: none; }
 
-/* The suggestions under the search of the menu stay inside the column (it scrolls, so it would cut anything wider). */
 @media (min-width: 992px) { html[data-design="inbox"] body > .inbox-nav { overflow: visible; } }
 html[data-design="inbox"] .side-search .search-suggestions { min-width: 0; left: 0; right: 0; }
 html[data-design="inbox"] .side-search .search-suggestions button { padding: 8px 10px; min-width: 0; }
 html[data-design="inbox"] .side-search .search-suggestions span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ---- Admin panel + reports: flat rows like the other lists ---- */
 html[data-design="inbox"] .admin-row.card { box-shadow: none !important; border: 1px solid var(--line) !important; border-radius: 12px !important; background: var(--surface); }
 html[data-design="inbox"] .admin-stat.card { box-shadow: none !important; border: 1px solid var(--line) !important; border-radius: 12px !important; background: var(--surface); }
 html[data-design="inbox"] .admin-stat .fs-3 { font-family: var(--mono); letter-spacing: -0.03em; }
@@ -817,20 +739,21 @@ html[data-design="inbox"] .admin-row .badge.text-bg-light, html[data-design="inb
 html[data-design="inbox"] .report-reason:hover { background: var(--chip); }
 html[data-design="inbox"] .not-found-code { color: var(--accent); font-family: var(--mono); letter-spacing: -0.06em; }
 
-/* ---------- Big screens ----------
-   The page does not stick to the left edge of an endless row: from 1500 px it stays a block of at most 1280 px, in the
-   middle of the room beside the menu. */
 @media (min-width: 1500px) {
   html[data-design="inbox"] body > .container,
-  html[data-design="inbox"] body > .container-fluid { max-width: 1280px !important; margin-left: auto !important; margin-right: auto !important; }
+  html[data-design="inbox"] body > .container-fluid {
+    max-width: 1280px !important; width: min(1280px, calc(100% - 190px));
+    margin-left: max(190px, calc((100% - 1280px) / 2)) !important; margin-right: auto !important;
+  }
 
-  /* Messages is an app-like page (the list and the conversation, the height of the screen): the rule above made it shrink to
-     the width of its content and sit in the middle with a lot of empty room on both sides. It fills the room beside the menu. */
   html[data-design="inbox"] body > .container:has(.messages-card) { max-width: none !important; width: auto; margin: 0 !important; }
+
+  html[data-design="inbox"] .page-row { justify-content: center; }
+  html[data-design="inbox"] .page-main { max-width: 760px; }
+  html[data-design="inbox"] .page-split { grid-template-columns: minmax(0, 760px) 300px; justify-content: center; }
+  html[data-design="inbox"] .page-split.page-solo { grid-template-columns: minmax(0, 760px); }
 }
 
-/* ---------- X-O games (games.html, game.html; the shared part is in style.css) ---------- */
-/* The white column has no padding of its own (its rows bring theirs), so the page adds it; O is teal here, X is the orange accent. */
 html[data-design="inbox"] .xo-page { --xo-o: var(--bs-info-text-emphasis); padding: 18px; }
 html[data-design="inbox"] .xo-hero, html[data-design="inbox"] .xo-row, html[data-design="inbox"] .xo-player { border-radius: 10px; }
 html[data-design="inbox"] .xo-hero { background: var(--surface-2); }

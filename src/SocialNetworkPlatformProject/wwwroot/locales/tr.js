@@ -1,5 +1,3 @@
-// Türkçe — the texts of the pages (js/i18n.js: t("key") in scripts, data-i18n="key" in the HTML).
-// Turkish is the default language: a key missing in another language is shown in Turkish.
 window.LOCALES = window.LOCALES || {};
 window.LOCALES.tr = {
   "net.offline": "Sunucuya ulaşılamıyor. İnternet bağlantını kontrol edip tekrar dene.",
@@ -51,10 +49,11 @@ window.LOCALES.tr = {
   "settings.sessions.endedOthers": "{0} oturum kapatıldı.",
   "settings.sessions.noOthers": "Başka açık oturum yok.",
   "common.loading": "Yükleniyor...",
+  "password.show": "Şifreyi göster",
+  "password.hide": "Şifreyi gizle",
 
   "language.label": "Dil",
 
-  // Notification sentences ({0} the person, {1}... the group / listing / event / amount; already in bold where needed)
   "notif.friendRequestReceived": "{0} sana arkadaşlık isteği gönderdi.",
   "notif.friendRequestAccepted": "{0} arkadaşlık isteğini kabul etti.",
   "notif.postReacted": "{0} gönderine {1} tepkisi verdi.",
@@ -77,7 +76,6 @@ window.LOCALES.tr = {
   "story.age.minutes": "{0}dk",
   "story.age.hours": "{0}s",
 
-  // Profile extras (profile.html): mutual friends and groups
   "profile.mutualFriends": "{0} ortak arkadaş",
   "profile.mutualFriendsOne": "1 ortak arkadaş",
   "profile.mutualGroups": "{0} ortak grup",
@@ -119,7 +117,6 @@ window.LOCALES.tr = {
   "notif.gameInviteAccepted": "{0} oyun davetini kabul etti.",
   "notif.priceDropped": "{0} ilanının fiyatı {1}'den {2}'ye düştü.",
 
-  // Games: X-O and rock-paper-scissors (game.html, games.html)
   "game.invitedYou": "{0} seni {1} oynamaya davet etti.",
   "game.waitingPick": "Rakibin seçmesi bekleniyor",
   "game.opponentPicked": "{0} seçti, sıra sende",
@@ -140,7 +137,6 @@ window.LOCALES.tr = {
   "game.cellLabel": "{0}. satır, {1}. sütun: {2}",
   "game.cellEmpty": "boş",
 
-  // Battleship (game.html, games.html)
   "game.kindBattleship": "Amiral Battı",
   "game.shipCarrier": "Uçak gemisi",
   "game.shipBattleship": "Zırhlı",
@@ -177,7 +173,6 @@ window.LOCALES.tr = {
   "game.bsCellPlace": "{0}: buraya yerleştir",
   "game.bsCellShip": "{0}: {1}",
 
-  // Groups: pinned announcements, rules, search, group chat (group.html, groups.html, messages, chat dock)
   "notif.groupPostPinned": "{0}, {1} grubunda bir duyuru sabitledi.",
   "group.rulesIntro": "{0} grubuna katılmadan önce kuralları oku.",
   "group.searchFor": "{0} için sonuçlar",

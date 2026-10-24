@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class AddEventInvitesCommentsAndGroupEvents : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<Guid>(
@@ -90,7 +88,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 onDelete: ReferentialAction.Cascade);
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(

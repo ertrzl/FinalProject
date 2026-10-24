@@ -12,12 +12,8 @@ using DomainRefreshToken = SocialNetworkPlatformProject.Domain.Entities.RefreshT
 
 namespace SocialNetworkPlatformProject.Persistence.Identity;
 
-// Everything about logged-in sessions: handing out an access token + refresh token pair, trading a refresh
-// token for a new pair, and ending sessions. Only a hash of each refresh token is stored.
 public class SessionIssuer
 {
-    // A refresh token used a second time within this window is almost certainly two tabs refreshing together
-    // (the loser just retries with the new token). Later than that it means a copy of the token is out there.
     private static readonly TimeSpan ReuseGracePeriod = TimeSpan.FromSeconds(30);
 
     private readonly UserManager<ApplicationUser> _userManager;
@@ -46,11 +42,8 @@ public class SessionIssuer
         _logger = logger;
     }
 
-    // A sign-in starts a new session; a renewal (RotateAsync) passes the session it continues, so the device keeps its place
-    // in the list of open sessions.
     public async Task<TokenResponseDto> IssueAsync(ApplicationUser user, Guid? sessionId = null, DateTime? sessionStartedAt = null)
     {
-        // A suspended account gets no session, whatever way it asks (sign-in or a refresh token).
         if (user.IsSuspended)
         {
             _logger.LogWarning("Sign-in refused: {UserName} ({UserId:l}) is suspended", user.UserName, user.Id.ToString());
@@ -95,8 +88,6 @@ public class SessionIssuer
         };
     }
 
-    // The people who are admins are listed in appsettings.json ("Admin": { "Emails": [...] }). Whoever signs in (or
-    // renews a session) with one of those e-mail addresses gets the role: the first time it is created and given.
     private async Task EnsureConfiguredAdminAsync(ApplicationUser user)
     {
         var emails = _configuration.GetSection("Admin:Emails").Get<string[]>() ?? Array.Empty<string>();
@@ -110,7 +101,6 @@ public class SessionIssuer
             await _userManager.AddToRoleAsync(user, AppRoles.Admin);
     }
 
-    // Rotation: a used refresh token is dead even if it hadn't expired yet, so a leaked one has a single use.
     public async Task<TokenResponseDto> RotateAsync(string refreshToken)
     {
         var now = DateTime.UtcNow;
@@ -133,7 +123,6 @@ public class SessionIssuer
         var user = await _userManager.FindByIdAsync(stored.UserId.ToString())
             ?? throw new UnauthorizedException(Loc.T("auth.sessionInvalid"));
 
-        // Two requests with the same token at once: only the one that flips RevokedAt first gets a new pair.
         if (!await _refreshTokens.TryRevokeAsync(stored.Id, now))
             throw new UnauthorizedException(Loc.T("auth.sessionInvalid"));
 
@@ -147,7 +136,6 @@ public class SessionIssuer
             await _refreshTokens.TryRevokeAsync(stored.Id, DateTime.UtcNow);
     }
 
-    // Ends every session of the user (all devices).
     public async Task RevokeAllAsync(Guid userId)
     {
         await _refreshTokens.RevokeAllAsync(userId, DateTime.UtcNow);

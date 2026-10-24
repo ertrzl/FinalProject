@@ -4,10 +4,8 @@
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class AddStoryTagsNotificationSwitch : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<bool>(
@@ -18,7 +16,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 defaultValue: true);
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(

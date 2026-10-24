@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace SocialNetworkPlatformProject.Extensions;
 
-// What ASP.NET says when a request's values cannot be read (a letter where a number should be, a missing body...) is
-// English by default; the page shows it as it is, so it comes from the language files, in the request's language.
 public static class LocalizedModelBindingMessages
 {
     public static void Apply(MvcOptions options)

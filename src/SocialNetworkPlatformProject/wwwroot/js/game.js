@@ -1,24 +1,18 @@
-// game.html?id=... — one game: X-O (a board), rock-paper-scissors (three pick buttons and the rounds so far) or Battleship
-// (js/game-battleship.js draws that one).
-// The server decides everything (whose turn it is, whether a move or a pick is allowed, who won); this page draws the game it
-// sends and posts the clicks. Every answer of the server, and every live "GameUpdated" push, replaces what is on screen.
-
 requireAuth();
 
 const gameId = new URLSearchParams(window.location.search).get("id");
 const byId = id => document.getElementById(id);
 
-let game = null;       // the latest GetGameDto, as the server showed it to this person
-let busy = false;      // a request of this page is on its way: the board waits
-let shownBoard = null; // the board string drawn last, to pop only the marks that are new
-let shownStatus = null; // the status sentence drawn last
-let shownRounds = null; // rock-paper-scissors: how many scored rounds were drawn last (null = none drawn yet)
-let shownHistory = "";  // rock-paper-scissors: the rounds drawn last, to rebuild the list only when it changed
+let game = null;
+let busy = false;
+let shownBoard = null;
+let shownStatus = null;
+let shownRounds = null;
+let shownHistory = "";
 
 const isRps = () => gameKind(game) === "RockPaperScissors";
 const isBs = () => gameKind(game) === "Battleship";
 
-// The picks of rock-paper-scissors: what the server calls them -> the hand and the word.
 const CHOICES = {
   Rock: { emoji: "✊", key: "game.choiceRock" },
   Paper: { emoji: "✋", key: "game.choicePaper" },
@@ -27,7 +21,6 @@ const CHOICES = {
 const ROUND_RESULT = { Win: "win", Loss: "loss", Draw: "draw" };
 const choiceName = choice => CHOICES[choice] ? i18n(CHOICES[choice].key) : "";
 
-// ---- Board ----
 
 function buildBoard() {
   const board = byId("gameBoard");
@@ -39,7 +32,6 @@ function buildBoard() {
     if (cell && cell.getAttribute("aria-disabled") !== "true") makeMove(Number(cell.dataset.cell));
   });
 
-  // Not-playable cells stay focusable (aria-disabled, not disabled), so the arrow keys can walk the whole board.
   board.addEventListener("keydown", event => {
     const cell = event.target.closest("[data-cell]");
     const step = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] }[event.key];
@@ -66,7 +58,7 @@ function renderBoard() {
   board.classList.toggle("is-idle", game.status !== "Active" && game.status !== "Finished");
   board.classList.toggle("is-busy", busy);
 
-  const changed = shownBoard !== game.board; // the pop of a new mark must survive the second draw that follows a request
+  const changed = shownBoard !== game.board;
 
   [...board.children].forEach((cell, index) => {
     const char = game.board?.[index];
@@ -92,16 +84,14 @@ async function makeMove(cell) {
     applyGame(await apiFetch(`/api/games/${gameId}/move`, { method: "POST", body: { cell } }));
   } catch (err) {
     toast(err.message || "Hamle yapılamadı.");
-    await loadGame(); // the board may have changed under us (the other player moved, or resigned)
+    await loadGame();
   } finally {
     busy = false;
     if (game) renderBoard();
   }
 }
 
-// ---- The rest of the page ----
 
-// extra: what stands at the right end of the card when there is no mark (the "picked" sign of rock-paper-scissors)
 function playerHtml(person, mark, { isTurn = game.status === "Active" && !!mark && game.turn === mark, extra = "" } = {}) {
   const isMe = isSameId(person.id, getSession()?.userId);
   return `
@@ -115,7 +105,6 @@ function playerHtml(person, mark, { isTurn = game.status === "Active" && !!mark 
     </div>`;
 }
 
-// Rock-paper-scissors: the card of the person who still has to pick is lit; a check shows who has picked already.
 function rpsPlayerHtml(person) {
   const isMe = isSameId(person.id, getSession()?.userId);
   const active = game.status === "Active";
@@ -136,13 +125,11 @@ function renderPlayers() {
     return;
   }
 
-  // The marks are dealt when the invitation is accepted; before that the two people are shown without one.
   byId("gamePlayers").innerHTML = game.playerX && game.playerO
     ? playerHtml(game.playerX, "X") + playerHtml(game.playerO, "O")
     : playerHtml(game.inviter, "") + playerHtml(game.invitee, "");
 }
 
-// { text, tone, sub } of the line above the board.
 function statusInfo() {
   const other = game.opponent?.name || "";
 
@@ -154,7 +141,7 @@ function statusInfo() {
     case "Active":
       if (isBs()) return bsStatusInfo();
       if (isRps()) {
-        if (!game.isMyTurn) return { text: i18n("game.waitingPick", other) }; // I have picked: the other one is still choosing
+        if (!game.isMyTurn) return { text: i18n("game.waitingPick", other) };
         return game.opponentHasChosen
           ? { text: i18n("game.opponentPicked", other) }
           : { text: "Sıra sende", sub: "Seçimin gizli kalır: ikiniz de seçince açılır." };
@@ -170,14 +157,14 @@ function statusInfo() {
     }
     case "Declined": return { text: "Davet reddedildi." };
     case "Cancelled": return { text: "Davet iptal edildi." };
-    default: return { text: "Bu oyunun süresi doldu." }; // Expired
+    default: return { text: "Bu oyunun süresi doldu." };
   }
 }
 
 function renderStatus() {
   const info = statusInfo();
   const status = byId("gameStatus");
-  if (info.text !== shownStatus) status.textContent = info.text; // the same sentence is not announced twice
+  if (info.text !== shownStatus) status.textContent = info.text;
   shownStatus = info.text;
   status.classList.toggle("is-win", info.tone === "win");
   status.classList.toggle("is-loss", info.tone === "loss");
@@ -210,7 +197,7 @@ function render() {
   const rps = isRps();
   const battleship = isBs();
   byId("gameTitle").textContent = gameKindName(gameKind(game));
-  byId("gameView").closest(".xo-page").classList.toggle("is-bs", battleship); // Battleship needs a wider page
+  byId("gameView").closest(".xo-page").classList.toggle("is-bs", battleship);
   byId("gameView").closest(".xo-game").classList.toggle("is-bs", battleship);
   byId("gameBoard").classList.toggle("d-none", rps || battleship);
   byId("rpsScore").classList.toggle("d-none", !rps || (game.status !== "Active" && game.status !== "Finished"));
@@ -224,8 +211,6 @@ function render() {
   byId("gameActions").innerHTML = actionsHtml();
 }
 
-// Draws a game the server sent, unless the screen already shows a newer picture (a live push and the answer of a
-// request can cross each other).
 function applyGame(next) {
   if (game && parseServerDate(next.updatedAt) < parseServerDate(game.updatedAt)) return;
   game = next;
@@ -254,7 +239,6 @@ async function loadGame() {
   }
 }
 
-// ---- Rock-paper-scissors ----
 
 function buildPicks() {
   const picks = byId("rpsPicks");
@@ -269,7 +253,6 @@ function buildPicks() {
     if (pick && pick.getAttribute("aria-disabled") !== "true") makeChoice(pick.dataset.choice);
   });
 
-  // Not-playable buttons stay focusable (aria-disabled, not disabled): the arrow keys walk along the three.
   picks.addEventListener("keydown", event => {
     const pick = event.target.closest("[data-choice]");
     const step = { ArrowLeft: -1, ArrowRight: 1 }[event.key];
@@ -287,7 +270,7 @@ async function makeChoice(choice) {
     applyGame(await apiFetch(`/api/games/${gameId}/choose`, { method: "POST", body: { choice } }));
   } catch (err) {
     toast(err.message || "Seçim yapılamadı.");
-    await loadGame(); // the game may have changed under us (the other player resigned)
+    await loadGame();
   } finally {
     busy = false;
     if (game) renderRps();
@@ -308,7 +291,6 @@ function renderScoreboard() {
     <div class="rps-score-round">${escapeHtml(i18n("game.round", game.roundNumber || 1, game.totalRounds || 3))}</div>`;
 }
 
-// The two hands of the running round: mine (once I have picked) and the other one (only whether it has picked: its pick is secret).
 function renderStage() {
   const mine = CHOICES[game.myChoice];
   byId("rpsStage").innerHTML = `
@@ -336,13 +318,12 @@ function handHtml(choice) {
   return info ? `<span class="rps-hand" aria-hidden="true"><span class="rps-hand-emoji">${info.emoji}</span> ${escapeHtml(i18n(info.key))}</span>` : "";
 }
 
-// The scored rounds, oldest first. A round that came in since the last drawing gets a short highlight.
 function renderHistory() {
   const rounds = game.rounds || [];
   const signature = JSON.stringify(rounds);
-  if (signature === shownHistory) return; // the same rounds: keep the list (and a running highlight) as it is
+  if (signature === shownHistory) return;
 
-  const firstNew = shownRounds === null ? rounds.length : shownRounds; // the first drawing shows no round as "new"
+  const firstNew = shownRounds === null ? rounds.length : shownRounds;
   shownHistory = signature;
   shownRounds = rounds.length;
 
@@ -371,7 +352,6 @@ function renderRps() {
   renderHistory();
 }
 
-// ---- Buttons under the board ----
 
 async function runAction(action) {
   byId("gameActions").querySelectorAll("button").forEach(b => b.disabled = true);
@@ -387,7 +367,7 @@ async function runAction(action) {
     toast(err.message || "İşlem gerçekleştirilemedi.");
     if (action !== "rematch") await loadGame();
   }
-  byId("gameActions").innerHTML = actionsHtml(); // the buttons come back (or change) with the game
+  byId("gameActions").innerHTML = actionsHtml();
 }
 
 byId("gameActions").addEventListener("click", async event => {
@@ -399,7 +379,6 @@ byId("gameActions").addEventListener("click", async event => {
   runAction(button.dataset.act);
 });
 
-// ---- Live ----
 
 document.addEventListener("realtime:game-updated", event => {
   if (isSameId(event.detail?.id, gameId)) applyGame(event.detail);

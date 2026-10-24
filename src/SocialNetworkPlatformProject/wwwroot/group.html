@@ -60,7 +60,6 @@
     <div class="tab-content">
     <div class="tab-pane fade show active" id="groupTabPosts">
 
-    <!-- Search inside the group's wall (whoever may see the wall) -->
     <form class="group-search mb-3 d-none" id="groupSearchForm" onsubmit="return searchGroupPosts(event)" role="search">
       <div class="d-flex align-items-center bg-body-tertiary rounded-pill px-3 group-search-box">
         <i class="bi bi-search text-muted me-2"></i>
@@ -78,13 +77,11 @@
     </div>
 
     <div id="groupWall">
-      <!-- Pinned announcements (at most 3), above everything else -->
       <div id="groupPinnedSection" class="d-none mb-2">
         <div class="small fw-bold text-muted mb-2 group-pinned-title"><i class="bi bi-pin-angle-fill me-1"></i>SABİTLENEN GÖNDERİLER</div>
         <div id="groupPinnedList"></div>
       </div>
 
-      <!-- Composer, only shown to members -->
       <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 composer d-none" id="groupComposerWrap">
         <div class="d-flex gap-3">
           <img id="composerAvatar" src="images/default-avatar.png" class="avatar-sm flex-shrink-0 nav-profile-avatar" alt="">
@@ -146,7 +143,6 @@
             </div>
             <div id="groupInviteResultsList"></div>
           </div>
-          <!-- The members: searched and filtered by the server, a page at a time -->
           <div class="d-flex flex-wrap gap-2 mb-2 group-member-filters">
             <div class="d-flex align-items-center bg-body-tertiary rounded-pill px-3 flex-grow-1 group-member-search">
               <i class="bi bi-search text-muted me-2"></i>
@@ -166,7 +162,6 @@
     </div>
   </div>
 
-  <!-- Admin-only: edit name/description/privacy/cover/picture -->
   <div class="modal fade" id="editGroupModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content rounded-4">
@@ -218,7 +213,6 @@
     </div>
   </div>
 
-  <!-- Admin-only: the group's rules (at most 10) -->
   <div class="modal fade" id="editRulesModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content rounded-4">

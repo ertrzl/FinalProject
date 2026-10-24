@@ -57,7 +57,6 @@ public class PollService : IPollService
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
-            // Two requests of the same person at the same moment: the other one counted.
             throw new ConflictException(Loc.T("poll.voted"));
         }
 

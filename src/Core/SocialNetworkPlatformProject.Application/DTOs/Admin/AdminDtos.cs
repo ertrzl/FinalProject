@@ -2,7 +2,6 @@ using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Application.DTOs.Admin;
 
-// What an ordinary person sends to report something (POST api/reports).
 public class PostReportDto
 {
     public ReportTargetType TargetType { get; set; }
@@ -11,7 +10,6 @@ public class PostReportDto
     public string? Details { get; set; }
 }
 
-// One report in the admin's list.
 public class GetReportDto
 {
     public Guid Id { get; set; }
@@ -31,10 +29,8 @@ public class GetReportDto
     public string TargetOwnerName { get; set; } = string.Empty;
     public bool TargetOwnerSuspended { get; set; }
 
-    // False once the post / comment / listing / account is gone (the summary above is what it was).
     public bool TargetExists { get; set; }
 
-    // How many reports there are about the same thing (the pile-up is a sign worth seeing).
     public int ReportsAboutTarget { get; set; }
 
     public string? ResolvedByName { get; set; }
@@ -42,18 +38,14 @@ public class GetReportDto
     public string? AdminNote { get; set; }
 }
 
-// An admin closing a report. The actions are optional and done together with it.
 public class ResolveReportDto
 {
-    // The report is dismissed (nothing wrong) instead of resolved.
     public bool Dismiss { get; set; }
 
     public string? Note { get; set; }
 
-    // Resolve only: remove the reported post / comment / listing.
     public bool RemoveContent { get; set; }
 
-    // Resolve only: suspend the person behind it.
     public bool SuspendOwner { get; set; }
 }
 
@@ -76,7 +68,6 @@ public class GetAdminStatsDto
     public int ResolvedReports { get; set; }
 }
 
-// One account in the admin's user list.
 public class GetAdminUserDto
 {
     public Guid Id { get; set; }
@@ -94,7 +85,6 @@ public class GetAdminUserDto
     public int ReportsAgainst { get; set; }
 }
 
-// A thing an admin can find and remove (post, comment, listing, event or group).
 public class GetAdminContentDto
 {
     public string Type { get; set; } = string.Empty;

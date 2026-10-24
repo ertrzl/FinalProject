@@ -7,7 +7,6 @@ public class PostPostDtoValidator : AbstractValidator<PostPostDto>
 {
     public PostPostDtoValidator()
     {
-        // Matches publishPost()'s own check in feed.js/profile.js/group.js: a post needs text OR media, not necessarily both.
         RuleFor(x => x)
             .Must(x => !string.IsNullOrWhiteSpace(x.Text) || x.Media.Count > 0)
             .WithMessage(_ => Loc.T("post.needContent"));
@@ -15,7 +14,6 @@ public class PostPostDtoValidator : AbstractValidator<PostPostDto>
         RuleFor(x => x.Text)
             .MaximumLength(5000).WithMessage(_ => Loc.T("val.post.long"));
 
-        // Photos together (up to the limit) or a single video; mixing the two would make the card ambiguous.
         RuleFor(x => x.Media)
             .Must(files => files.Count <= PostLimits.MaxImages)
             .WithMessage(_ => Loc.T("val.post.photos", PostLimits.MaxImages));

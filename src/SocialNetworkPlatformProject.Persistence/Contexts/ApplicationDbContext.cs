@@ -12,7 +12,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     {
     }
 
-    // F3–F5: feed, comments, likes, saved posts
     public DbSet<Post> Posts => Set<Post>();
     public DbSet<PostMedia> PostMedia => Set<PostMedia>();
     public DbSet<Poll> Polls => Set<Poll>();
@@ -25,32 +24,26 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Hashtag> Hashtags => Set<Hashtag>();
     public DbSet<PostHashtag> PostHashtags => Set<PostHashtag>();
 
-    // F2: friends
     public DbSet<FriendRequest> FriendRequests => Set<FriendRequest>();
     public DbSet<Friendship> Friendships => Set<Friendship>();
     public DbSet<UserBlock> UserBlocks => Set<UserBlock>();
 
-    // F8: notifications
     public DbSet<Notification> Notifications => Set<Notification>();
 
-    // Stories
     public DbSet<Story> Stories => Set<Story>();
     public DbSet<StoryView> StoryViews => Set<StoryView>();
     public DbSet<StoryLike> StoryLikes => Set<StoryLike>();
     public DbSet<StoryTag> StoryTags => Set<StoryTag>();
 
-    // Profile extras: story highlights, and who is tagged with @ in a post
     public DbSet<StoryHighlight> StoryHighlights => Set<StoryHighlight>();
     public DbSet<StoryHighlightItem> StoryHighlightItems => Set<StoryHighlightItem>();
     public DbSet<PostMention> PostMentions => Set<PostMention>();
 
-    // Messages + chat dock
     public DbSet<Conversation> Conversations => Set<Conversation>();
     public DbSet<ConversationParticipant> ConversationParticipants => Set<ConversationParticipant>();
     public DbSet<Message> Messages => Set<Message>();
     public DbSet<MessageReaction> MessageReactions => Set<MessageReaction>();
 
-    // Groups
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
     public DbSet<GroupJoinRequest> GroupJoinRequests => Set<GroupJoinRequest>();
@@ -58,7 +51,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<GroupRule> GroupRules => Set<GroupRule>();
     public DbSet<GroupPinnedPost> GroupPinnedPosts => Set<GroupPinnedPost>();
 
-    // Marketplace
     public DbSet<MarketplaceListing> MarketplaceListings => Set<MarketplaceListing>();
     public DbSet<ListingImage> ListingImages => Set<ListingImage>();
     public DbSet<SavedListing> SavedListings => Set<SavedListing>();
@@ -67,29 +59,23 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<ListingOfferRound> ListingOfferRounds => Set<ListingOfferRound>();
     public DbSet<ListingBoost> ListingBoosts => Set<ListingBoost>();
 
-    // Events
     public DbSet<Event> Events => Set<Event>();
     public DbSet<EventAttendee> EventAttendees => Set<EventAttendee>();
     public DbSet<EventInvite> EventInvites => Set<EventInvite>();
     public DbSet<EventComment> EventComments => Set<EventComment>();
     public DbSet<EventPhoto> EventPhotos => Set<EventPhoto>();
 
-    // Games
     public DbSet<Game> Games => Set<Game>();
 
-    // Admin: reports and the log of what admins did
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
-    // Auth: refresh tokens
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        base.OnModelCreating(builder); // required — wires up Identity's own tables (Users, Roles, Claims, etc.)
+        base.OnModelCreating(builder);
 
-        // Each entity's Fluent API rules live in their own IEntityTypeConfiguration<T>
-        // class under Persistence/Configurations — this line auto-discovers all of them.
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 }

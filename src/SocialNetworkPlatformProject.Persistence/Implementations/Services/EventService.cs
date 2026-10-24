@@ -10,10 +10,9 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class EventService : IEventService
 {
-    // The attendee list drives capacity checks and who gets notified.
     private static readonly string[] AttendeeIncludes = { "Attendees" };
 
-    private const int MaxOnlineLinkLength = 500; // matches the OnlineLink column
+    private const int MaxOnlineLinkLength = 500;
 
     private readonly IEventRepository _events;
     private readonly IEventAttendeeRepository _attendees;
@@ -49,7 +48,6 @@ public class EventService : IEventService
 
     public async Task<GetEventDto> CreateAsync(Guid currentUserId, PostEventDto dto)
     {
-        // Checked before the cover is saved, so a refused request doesn't leave an orphan file behind.
         if (dto.GroupId.HasValue)
             await _access.EnsureCanCreateGroupEventAsync(currentUserId, dto.GroupId.Value);
 
@@ -102,12 +100,11 @@ public class EventService : IEventService
         var hasStarted = found.StartsAt <= now;
         ValidateReschedule(found, startsAt, endsAt, hasStarted, now);
         if (hasStarted)
-            startsAt = found.StartsAt; // the rounded value the form re-sent is not a change
+            startsAt = found.StartsAt;
 
         if (dto.IsPrivate && found.GroupId.HasValue)
             throw new BadRequestException(Loc.T("event.groupNotPrivate"));
 
-        // The limit can't drop below the people who already said they're coming.
         var goingNow = found.GoingCount;
         if (dto.Capacity.HasValue && dto.Capacity.Value < goingNow)
             throw new BadRequestException(Loc.T("event.capacityBelowGoing", goingNow));
@@ -116,7 +113,6 @@ public class EventService : IEventService
         var location = string.IsNullOrWhiteSpace(dto.Location) ? null : dto.Location.Trim();
         var onlineLink = CleanOnlineLink(dto);
 
-        // Only changes that affect whether people can still make it are worth a notification.
         var importantChange = found.Title != title || found.StartsAt != startsAt || found.EndsAt != endsAt
             || found.Location != location || found.IsOnline != dto.IsOnline || found.OnlineLink != onlineLink
             || found.Latitude != latitude || found.Longitude != longitude;
@@ -143,13 +139,12 @@ public class EventService : IEventService
         found.StartsAt = startsAt;
         found.EndsAt = endsAt;
         if (startMoved)
-            found.ResetReminders(now); // the reminders are for the new time
+            found.ResetReminders(now);
         found.Capacity = dto.Capacity;
         found.IsOnline = dto.IsOnline;
         found.OnlineLink = onlineLink;
-        found.IsPrivate = dto.IsPrivate; // switching to private keeps the people already in; everyone else loses sight of it
+        found.IsPrivate = dto.IsPrivate;
 
-        // A bigger (or removed) limit opens spots for the people waiting. Same save as the edit itself.
         var promoted = found.PromoteWaitlist();
 
         try
@@ -158,7 +153,6 @@ public class EventService : IEventService
         }
         catch
         {
-            // Nothing was saved (a competing change, say): the cover that was just uploaded belongs to nothing.
             _files.Delete(newCoverUrl);
             throw;
         }
@@ -181,7 +175,6 @@ public class EventService : IEventService
         var existing = found.Attendees.FirstOrDefault(a => a.UserId == currentUserId);
         var wasGoing = existing?.Status == EventAttendeeStatus.Going;
 
-        // Leaving ("None") is always fine; joining is open until the event has finished (an ongoing event can still be joined).
         if (dto.Status != "None" && found.EndsAt <= DateTime.UtcNow)
             throw new BadRequestException(Loc.T("event.ended"));
 
@@ -202,10 +195,8 @@ public class EventService : IEventService
             if (existing != null)
             {
                 existing.Status = newStatus.Value;
-                // Staying on the waiting list keeps your place in the queue; any other change drops it.
                 existing.WaitlistedAt = newStatus == EventAttendeeStatus.Waitlisted ? existing.WaitlistedAt ?? DateTime.UtcNow : null;
 
-                // A tick on the attendance list belongs to someone who is going; stepping back from "going" takes it away.
                 if (newStatus != EventAttendeeStatus.Going)
                 {
                     existing.CheckedInAt = null;
@@ -223,22 +214,17 @@ public class EventService : IEventService
                 });
             }
 
-            // Answering in any way (going, interested, waiting) uses up a pending invite.
             var invite = await _invites.GetAll(i => i.EventId == eventId && i.InvitedUserId == currentUserId).FirstOrDefaultAsync();
             if (invite != null)
                 _invites.Delete(invite);
         }
 
-        // Giving up a spot, or asking for one that has just opened, is settled in this same save: whoever has waited
-        // longest moves up. Bumping the version makes a competing change lose with a 409 instead of leaving a free
-        // spot next to a waiting list.
         if (wasGoing && newStatus != EventAttendeeStatus.Going && found.Capacity.HasValue)
             found.AttendanceVersion++;
         var promoted = found.PromoteWaitlist();
 
         await _attendees.SaveChangesAsync();
 
-        // The organizer hears about every new "Katılıyorum" (once per person: leaving and rejoining isn't news again).
         if (newStatus == EventAttendeeStatus.Going && !wasGoing)
             await _notifier.JoinedAsync(found, currentUserId);
 
@@ -249,7 +235,6 @@ public class EventService : IEventService
 
     public async Task DeleteAsync(Guid currentUserId, Guid eventId, bool asAdmin = false)
     {
-        // The admin does not have to be able to see the event (a private or group event) to remove it.
         var found = asAdmin
             ? await _events.GetByIdAsync(eventId, AttendeeIncludes) ?? throw new NotFoundException(Loc.T("event.notFound"))
             : await _access.GetViewableAsync(currentUserId, eventId, AttendeeIncludes);
@@ -257,8 +242,8 @@ public class EventService : IEventService
         if (!asAdmin && found.CreatedByUserId != currentUserId)
             throw new ForbiddenException(Loc.T("event.deleteCreatorOnly"));
 
-        var attendeeIds = found.Attendees.Select(a => a.UserId).ToList(); // read before the rows are deleted
-        var photoUrls = await _photos.GetUrlsByEventAsync(eventId); // the album goes with the event (cascade); its files are ours to remove
+        var attendeeIds = found.Attendees.Select(a => a.UserId).ToList();
+        var photoUrls = await _photos.GetUrlsByEventAsync(eventId);
 
         _events.Delete(found);
         await _events.SaveChangesAsync();
@@ -274,7 +259,6 @@ public class EventService : IEventService
     {
         var now = DateTime.UtcNow;
 
-        // Finished events keep their history; only what is still ahead matters.
         var affected = await _events.GetAll(
                 filter: e => e.GroupId == groupId && e.EndsAt > now
                     && (e.CreatedByUserId == userId || e.Attendees.Any(a => a.UserId == userId)),
@@ -295,7 +279,6 @@ public class EventService : IEventService
             _attendees.Delete(attendee);
             ev.Attendees.Remove(attendee);
 
-            // Same rules as leaving by hand: a freed spot is settled in this save, in queue order.
             if (wasGoing && ev.Capacity.HasValue)
                 ev.AttendanceVersion++;
 
@@ -314,8 +297,6 @@ public class EventService : IEventService
             await _notifier.PromotedAsync(ev, promoted, actingUserId: Guid.Empty);
     }
 
-    // The capacity rules for taking a status. Taking a spot ("Going") or queueing for one ("Waitlisted") bumps
-    // AttendanceVersion, so two people grabbing the last spot at the same moment can't both succeed (the second save hits a 409).
     private static void EnsureCanTakeStatus(Event ev, EventAttendee? existing, EventAttendeeStatus status)
     {
         if (status == EventAttendeeStatus.Going && existing?.Status != EventAttendeeStatus.Going && ev.Capacity.HasValue)
@@ -346,7 +327,6 @@ public class EventService : IEventService
         return (startsAt, endsAt);
     }
 
-    // The map pin. An online event has none, whatever the client sent; otherwise both numbers or neither.
     private static (double? Latitude, double? Longitude) ResolveCoordinates(EventInputDto dto)
     {
         if (dto.IsOnline)
@@ -358,13 +338,10 @@ public class EventService : IEventService
         return (latitude, longitude);
     }
 
-    // An upcoming event may be moved anywhere in the future; an ongoing one keeps its start (it already happened)
-    // and may only change when it ends. Nothing may end in the past.
     private static void ValidateReschedule(Event ev, DateTime startsAt, DateTime endsAt, bool hasStarted, DateTime now)
     {
         if (hasStarted)
         {
-            // The edit form re-sends the start it displays, which is rounded to the minute.
             if (Math.Abs((startsAt - ev.StartsAt).TotalMinutes) >= 1)
                 throw new BadRequestException(Loc.T("event.startLocked"));
         }
@@ -377,8 +354,6 @@ public class EventService : IEventService
             throw new BadRequestException(Loc.T("event.endPast"));
     }
 
-    // Offline events never keep a link, even if the client sent one. The stored form is Uri.AbsoluteUri, which
-    // percent-encodes characters like quotes and spaces, so it is safe to put in an href.
     private static string? CleanOnlineLink(EventInputDto dto)
     {
         if (!dto.IsOnline || string.IsNullOrWhiteSpace(dto.OnlineLink))

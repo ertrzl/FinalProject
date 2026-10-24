@@ -1,6 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.Common;
 
-// What the admin panel's user list needs about one account (UserSummary leaves out the e-mail and the suspension).
 public class AdminUserRow
 {
     public Guid Id { get; init; }

@@ -7,7 +7,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// event.html "Takvime Ekle": the event as an .ics file
 [ApiController]
 [Route("api/events")]
 [Authorize]
@@ -35,8 +34,6 @@ public class EventCalendarController : ControllerBase
         return await _calendar.GetGoogleCalendarLinkAsync(User.GetUserId(), id, PageUrl(id));
     }
 
-    // Behind a reverse proxy the request's own scheme/host are the internal ones, and the link ends up in
-    // people's calendars for good, so a public address can be configured ("App:PublicBaseUrl").
     private string PageUrl(Guid eventId)
     {
         var configuredBase = _configuration["App:PublicBaseUrl"];

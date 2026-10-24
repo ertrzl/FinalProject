@@ -10,7 +10,6 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class StoryHighlightService : IStoryHighlightService
 {
-    // Highlight files live in their own folder, so the clean-up of expired stories never touches them.
     private const string Folder = "highlights";
 
     private readonly IStoryHighlightRepository _highlights;
@@ -68,7 +67,6 @@ public class StoryHighlightService : IStoryHighlightService
                 ItemCount = own.Count,
                 CoverUrl = cover?.MediaUrl,
                 CoverMediaType = cover?.MediaType.ToString() ?? "Image",
-                // Asked for the owner's own list only: nobody else needs to know which stories are in which highlight.
                 ContainsStory = viewerId == userId && storyId != null && own.Any(i => i.SourceStoryId == storyId)
             };
         }).ToList();
@@ -101,7 +99,6 @@ public class StoryHighlightService : IStoryHighlightService
         }
         catch
         {
-            // The copy was made before the row was; nothing points at it now.
             _files.Delete(item.MediaUrl);
             throw;
         }
@@ -128,7 +125,6 @@ public class StoryHighlightService : IStoryHighlightService
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
-            // Another tap kept the same story a moment earlier: it is in already.
             _files.Delete(item.MediaUrl);
             throw new ConflictException(Loc.T("highlight.already"));
         }
@@ -138,7 +134,6 @@ public class StoryHighlightService : IStoryHighlightService
             throw;
         }
 
-        // Adding the item usually puts it in highlight.Items by itself (EF links it to the highlight it is tracking); make sure for the detail.
         if (!highlight.Items.Contains(item))
             highlight.Items.Add(item);
 
@@ -165,7 +160,6 @@ public class StoryHighlightService : IStoryHighlightService
         var item = highlight.Items.FirstOrDefault(i => i.Id == itemId)
             ?? throw new NotFoundException(Loc.T("highlight.itemNotFound"));
 
-        // A highlight without a story is nothing to show: taking out the last one deletes it.
         if (highlight.Items.Count == 1)
         {
             await DeleteAsync(currentUserId, highlightId);
@@ -185,7 +179,7 @@ public class StoryHighlightService : IStoryHighlightService
         var highlight = await GetOwnHighlightAsync(currentUserId, highlightId);
         var files = highlight.Items.Select(i => i.MediaUrl).ToList();
 
-        _highlights.Delete(highlight); // the items go with it (cascade)
+        _highlights.Delete(highlight);
         await _highlights.SaveChangesAsync();
 
         foreach (var file in files)
@@ -198,8 +192,6 @@ public class StoryHighlightService : IStoryHighlightService
         return ownerId != null && await CanViewAsync(viewerId, ownerId.Value);
     }
 
-    // Who sees somebody's highlights: the person, their friends, everybody else while the account is open (like the person's public
-    // posts); never people who blocked each other.
     private async Task<bool> CanViewAsync(Guid viewerId, Guid ownerId)
     {
         if (viewerId == ownerId)
@@ -226,7 +218,6 @@ public class StoryHighlightService : IStoryHighlightService
         return highlight;
     }
 
-    // Somebody else's story, or one that is over, is "not found" (the same answer for both, so ids cannot be probed).
     private async Task<Story> GetOwnRunningStoryAsync(Guid currentUserId, Guid storyId)
     {
         var story = await _stories.GetByIdAsync(storyId);
@@ -236,7 +227,6 @@ public class StoryHighlightService : IStoryHighlightService
         return story;
     }
 
-    // The item for a story: its file copied (the story's own file is deleted when the story expires) and its song noted.
     private async Task<StoryHighlightItem> CopyStoryAsync(Story story, Guid highlightId)
     {
         return new StoryHighlightItem

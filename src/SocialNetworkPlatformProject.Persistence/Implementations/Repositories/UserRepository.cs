@@ -58,7 +58,6 @@ public class UserRepository : IUserRepository
 
     public async Task<Dictionary<string, UserSummary>> GetSummariesByUserNamesAsync(IEnumerable<string> userNames)
     {
-        // Identity keeps an upper-cased copy of every user name; looking it up is case-insensitive and uses its index.
         var normalized = userNames.Select(name => name.ToUpperInvariant()).Distinct().ToList();
         if (normalized.Count == 0)
             return new Dictionary<string, UserSummary>();
@@ -103,7 +102,6 @@ public class UserRepository : IUserRepository
     public async Task<(List<UserSummary> Items, int TotalCount)> SearchAsync(
         string term, Guid currentUserId, IReadOnlyCollection<Guid> excludeIds, int page, int pageSize)
     {
-        // The current user is deliberately included: typing your own name should still find your own profile.
         var query = _context.Users.AsNoTracking()
             .Where(u => (u.FullName.Contains(term) || u.UserName!.Contains(term)) && !excludeIds.Contains(u.Id));
 
@@ -111,7 +109,7 @@ public class UserRepository : IUserRepository
 
         var items = await query
             .OrderBy(u => u.FullName)
-            .ThenBy(u => u.Id) // two people with the same name must not swap places between pages
+            .ThenBy(u => u.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(ToSummary)
@@ -204,14 +202,10 @@ public class UserRepository : IUserRepository
         var myPostIds = myPosts.Select(p => p.Id);
         var myComments = _context.Set<Comment>().Where(c => c.AuthorId == userId);
         var myCommentIds = myComments.Select(c => c.Id);
-        // The person's direct conversations (group chats of both kinds stay for the other people, see below).
         var myConversationIds = _context.Set<ConversationParticipant>()
             .Where(p => p.UserId == userId && p.Conversation!.DirectKey != null)
             .Select(p => p.ConversationId);
 
-        // The groups the person owns. A group with other members lives on: it is handed to the member best placed to run
-        // it (an admin, else a moderator, else whoever joined first), so the others keep their posts, events and
-        // discussions. Only a group nobody else belongs to goes with the account.
         var ownedGroups = await _context.Set<Group>().Include(g => g.Members).Where(g => g.CreatedByUserId == userId).ToListAsync();
         var groupIdsToDelete = new List<Guid>();
         foreach (var group in ownedGroups)
@@ -232,7 +226,6 @@ public class UserRepository : IUserRepository
             group.CreatedByUserId = heir.UserId;
         }
 
-        // Events the person organized inside a group that stays are handed to that group's owner (as when leaving a group).
         var eventsToHandOver = await _context.Set<Event>()
             .Include(e => e.Group)
             .Where(e => e.GroupId != null && e.CreatedByUserId == userId && !groupIdsToDelete.Contains(e.GroupId.Value))
@@ -242,17 +235,14 @@ public class UserRepository : IUserRepository
 
         await _context.SaveChangesAsync();
 
-        // What goes: events the person organized outside any group, and every event of a group that goes.
         var myEvents = _context.Set<Event>().Where(e =>
             (e.GroupId == null && e.CreatedByUserId == userId) || (e.GroupId != null && groupIdsToDelete.Contains(e.GroupId.Value)));
         var myEventIds = myEvents.Select(e => e.Id);
 
-        // Every post on the wall of a group that goes (other people's included) goes with it.
         var deletedGroupPostIds = _context.Set<Post>()
             .Where(p => p.GroupId != null && groupIdsToDelete.Contains(p.GroupId.Value))
             .Select(p => p.Id);
 
-        // Files that will be orphaned once the rows below are gone.
         var files = new List<string>();
         var profile = await _context.Users.Where(u => u.Id == userId).Select(u => new { u.AvatarUrl, u.CoverPhotoUrl }).FirstOrDefaultAsync();
         if (profile?.AvatarUrl != null) files.Add(profile.AvatarUrl);
@@ -261,18 +251,14 @@ public class UserRepository : IUserRepository
         files.AddRange(await _context.Set<PostMedia>().Where(m => deletedGroupPostIds.Contains(m.PostId)).Select(m => m.Url).ToListAsync());
         files.AddRange(await _context.Set<Story>().Where(s => s.UserId == userId).Select(s => s.MediaUrl).ToListAsync());
         files.AddRange(await _context.Set<ListingImage>().Where(i => i.Listing!.SellerId == userId).Select(i => i.Url).ToListAsync());
-        // The photos of the person's chats: the conversations go with the account, so both sides' messages do.
         files.AddRange(await _context.Set<Message>().Where(m => myConversationIds.Contains(m.ConversationId) && m.MediaUrl != null).Select(m => m.MediaUrl!).ToListAsync());
         files.AddRange(await _context.Set<Group>().Where(g => groupIdsToDelete.Contains(g.Id) && g.CoverImageUrl != null).Select(g => g.CoverImageUrl!).ToListAsync());
         files.AddRange(await _context.Set<Group>().Where(g => groupIdsToDelete.Contains(g.Id) && g.AvatarUrl != null).Select(g => g.AvatarUrl!).ToListAsync());
-        // Group chats: the photos the person sent there, and every photo of the chat of a group that goes.
         files.AddRange(await _context.Set<Message>()
             .Where(m => m.MediaUrl != null && (m.Conversation!.GroupId != null || m.Conversation.Title != null)
                 && (m.SenderId == userId || (m.Conversation.GroupId != null && groupIdsToDelete.Contains(m.Conversation.GroupId.Value))))
             .Select(m => m.MediaUrl!).ToListAsync());
 
-        // Group chats made on the Messages page: the ones where this person is the only one left go with them (their photos and
-        // picture too); in the others, if they were the only one who ran the chat, the member who has been in it longest takes over.
         var soloChatIds = await _context.Set<Conversation>()
             .Where(c => c.Title != null && c.GroupId == null && c.DirectKey == null
                 && c.Participants.Any(p => p.UserId == userId) && !c.Participants.Any(p => p.UserId != userId))
@@ -285,7 +271,6 @@ public class UserRepository : IUserRepository
             .Select(p => p.ConversationId)
             .ToListAsync();
         files.AddRange(await myEvents.Where(e => e.CoverImageUrl != null).Select(e => e.CoverImageUrl!).ToListAsync());
-        // The albums of the events that go, and the pictures the person added to other people's events.
         files.AddRange(await _context.Set<EventPhoto>().Where(p => myEventIds.Contains(p.EventId) || p.UploadedByUserId == userId).Select(p => p.Url).ToListAsync());
 
         await _context.Set<Notification>()
@@ -300,14 +285,11 @@ public class UserRepository : IUserRepository
         await _context.Set<CommentLike>().Where(l => l.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<SavedPost>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
 
-        // Replies to the user's comments first: the self-reference is Restrict, not cascade.
         await _context.Set<Comment>()
             .Where(c => c.ParentCommentId != null && myCommentIds.Contains(c.ParentCommentId.Value))
             .ExecuteDeleteAsync();
         await myComments.ExecuteDeleteAsync();
 
-        // Other people's shares of these posts stop pointing at them (a self-reference cannot null itself in SQL Server);
-        // the user's own shares go with the user's posts below.
         await _context.Set<Post>()
             .Where(p => p.SharedPostId != null && myPostIds.Contains(p.SharedPostId.Value))
             .ExecuteUpdateAsync(setters => setters.SetProperty(p => p.SharedPostId, (Guid?)null));
@@ -318,27 +300,21 @@ public class UserRepository : IUserRepository
         await _context.Set<Friendship>().Where(f => f.UserOneId == userId || f.UserTwoId == userId).ExecuteDeleteAsync();
         await _context.Set<UserBlock>().Where(b => b.BlockerId == userId || b.BlockedId == userId).ExecuteDeleteAsync();
 
-        // The user's own stories take their view and like rows with them (cascade); the ones they left on others' stories don't.
         await _context.Set<StoryView>().Where(v => v.ViewerId == userId).ExecuteDeleteAsync();
         await _context.Set<StoryLike>().Where(l => l.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<StoryTag>().Where(t => t.TaggedUserId == userId).ExecuteDeleteAsync();
         await _context.Set<Story>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
 
-        // Profile extras: the highlights keep copies of their own (their files go too; the items follow their highlight by cascade), and
-        // the person's tags in other people's posts (the tags on their own posts went with the posts).
         files.AddRange(await _context.Set<StoryHighlightItem>().Where(i => i.Highlight!.UserId == userId).Select(i => i.MediaUrl).ToListAsync());
         await _context.Set<StoryHighlight>().Where(h => h.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<PostMention>().Where(m => m.MentionedUserId == userId).ExecuteDeleteAsync();
 
-        await _context.Set<MessageReaction>().Where(r => r.UserId == userId).ExecuteDeleteAsync(); // emojis left on other people's messages (their own messages go with the conversations)
+        await _context.Set<MessageReaction>().Where(r => r.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<Conversation>().Where(c => myConversationIds.Contains(c.Id)).ExecuteDeleteAsync();
 
-        // Group chats stay for the other members: the person's own messages there go (the emojis on them with them), and
-        // they are no longer a participant. The chats of the groups that go are deleted with those groups below.
         await _context.Set<Message>().Where(m => m.SenderId == userId && (m.Conversation!.GroupId != null || m.Conversation.Title != null)).ExecuteDeleteAsync();
         await _context.Set<ConversationParticipant>().Where(p => p.UserId == userId).ExecuteDeleteAsync();
 
-        // The chats made on the Messages page that had only this person left are gone; in the others somebody runs the chat.
         await _context.Set<Conversation>().Where(c => soloChatIds.Contains(c.Id)).ExecuteDeleteAsync();
         foreach (var chatId in chatsIRanIds.Except(soloChatIds))
         {
@@ -354,11 +330,8 @@ public class UserRepository : IUserRepository
                 await _context.Set<ConversationParticipant>().Where(p => p.Id == successorId).ExecuteUpdateAsync(s => s.SetProperty(p => p.IsAdmin, true));
         }
 
-        // Games, invitations and finished ones alike: the opponent has nobody left to play or answer.
         await _context.Set<Game>().Where(g => g.InviterId == userId || g.InviteeId == userId).ExecuteDeleteAsync();
 
-        // Marketplace trail: reviews written by or about the user, their offers on other people's listings
-        // (their own listings' offers go with the listings) and their favourites.
         await _context.Set<SellerRating>().Where(r => r.BuyerId == userId || r.SellerId == userId).ExecuteDeleteAsync();
         await _context.Set<ListingOffer>().Where(o => o.BuyerId == userId).ExecuteDeleteAsync();
         await _context.Set<SavedListing>().Where(s => s.UserId == userId).ExecuteDeleteAsync();
@@ -369,20 +342,15 @@ public class UserRepository : IUserRepository
         await _context.Set<EventInvite>().Where(i => i.InvitedUserId == userId || i.InvitedByUserId == userId).ExecuteDeleteAsync();
         await _context.Set<EventPhoto>().Where(p => p.UploadedByUserId == userId).ExecuteDeleteAsync();
         await _context.Set<EventAttendee>().Where(a => a.CheckedInByUserId == userId)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(a => a.CheckedInByUserId, (Guid?)null)); // the ticks they gave stay, only the name of who gave them goes
+            .ExecuteUpdateAsync(setters => setters.SetProperty(a => a.CheckedInByUserId, (Guid?)null));
         await _context.Set<EventAttendee>().Where(a => a.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<Event>().Where(e => e.GroupId == null && e.CreatedByUserId == userId).ExecuteDeleteAsync();
 
-        // Groups: the person's membership, the requests and invitations they made or got (in the groups that stay), then
-        // the groups that go (with their members, wall posts and events, by cascade).
         await _context.Set<GroupMember>().Where(m => m.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<GroupJoinRequest>().Where(r => r.UserId == userId).ExecuteDeleteAsync();
         await _context.Set<GroupInvite>().Where(i => i.UserId == userId || i.InvitedByUserId == userId).ExecuteDeleteAsync();
         await _context.Set<Group>().Where(g => groupIdsToDelete.Contains(g.Id)).ExecuteDeleteAsync();
 
-        // Reports: the ones the person made, and the ones about them or about anything of theirs (the content is gone, there is
-        // nothing left for the admins to look at). The reports an admin closed stay when that admin's account goes; only the
-        // name of who closed them is dropped. (The admin log keeps its own copy of every name, so it is left as it is.)
         await _context.Set<Report>().Where(r => r.ReporterId == userId || r.TargetOwnerId == userId).ExecuteDeleteAsync();
         await _context.Set<Report>().Where(r => r.ResolvedById == userId)
             .ExecuteUpdateAsync(setters => setters.SetProperty(r => r.ResolvedById, (Guid?)null));

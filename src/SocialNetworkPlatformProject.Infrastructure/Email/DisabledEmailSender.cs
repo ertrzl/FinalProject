@@ -3,8 +3,6 @@ using SocialNetworkPlatformProject.Application.Interfaces.Services;
 
 namespace SocialNetworkPlatformProject.Infrastructure.Email;
 
-// Used outside Development when no SMTP account is set up. The message is dropped and only a warning is written: its
-// body holds a password reset link, and a link in a log file would let anyone who can read the log take over accounts.
 public class DisabledEmailSender : IEmailSender
 {
     private readonly ILogger<DisabledEmailSender> _logger;

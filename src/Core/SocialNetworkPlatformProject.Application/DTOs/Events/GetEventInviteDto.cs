@@ -1,11 +1,10 @@
 namespace SocialNetworkPlatformProject.Application.DTOs.Events;
 
-// events.html "Davetler" tab: one pending invite addressed to the current user.
 public class GetEventInviteDto
 {
     public Guid EventId { get; set; }
     public string Title { get; set; } = string.Empty;
-    public DateTime StartsAt { get; set; } // UTC
+    public DateTime StartsAt { get; set; }
     public DateTime EndsAt { get; set; }
     public string? CoverImageUrl { get; set; }
     public bool IsOnline { get; set; }

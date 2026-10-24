@@ -1,6 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.DTOs.Users;
 
-// "12 ortak arkadaş" and "3 ortak grup" on somebody else's profile (profile.html). The counts are the real totals; the lists hold the first 100 of each.
 public class GetMutualConnectionsDto
 {
     public int FriendCount { get; set; }

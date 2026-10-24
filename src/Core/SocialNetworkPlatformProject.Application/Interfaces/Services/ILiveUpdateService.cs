@@ -4,10 +4,6 @@ using SocialNetworkPlatformProject.Domain.Entities;
 
 namespace SocialNetworkPlatformProject.Application.Interfaces.Services;
 
-// Pushes feed/presence changes to open browsers over SignalR. Best effort: a failed push never fails the request that caused it.
-// Post and comment events go to the post's feed audience plus the author and the acting user (their other tabs):
-// the author's friends for a personal post, the members of the group for a group post (a private group's
-// comments must never reach people outside it).
 public interface ILiveUpdateService
 {
     Task PostCreatedAsync(Post post);
@@ -18,7 +14,6 @@ public interface ILiveUpdateService
 
     Task PostLikeCountChangedAsync(Post post, Guid actorId, int likeCount, IReadOnlyCollection<GetReactionCountDto> reactions);
 
-    // Somebody voted in the post's poll: pages showing it fetch the poll again (what they see depends on who they are).
     Task PollVotedAsync(Post post, Guid actorId);
 
     Task CommentAddedAsync(Post post, GetCommentDto comment, int commentCount);
@@ -27,6 +22,5 @@ public interface ILiveUpdateService
 
     Task CommentLikeCountChangedAsync(Post post, Guid actorId, Guid commentId, int likeCount);
 
-    // Tells every client whether the user is online (always "offline" for users who hide their status).
     Task PresenceChangedAsync(Guid userId);
 }

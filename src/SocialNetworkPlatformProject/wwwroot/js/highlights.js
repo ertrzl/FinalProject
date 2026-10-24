@@ -1,24 +1,16 @@
-// profile.html — story highlights: the round covers under the profile header, the viewer that plays one (like the story viewer of
-// home.html: progress bars, tap to go on, a song), and the owner's manage window.
-//
-// A highlight keeps copies of stories, so it stays after the 24 hours are over. Which stories go in is chosen in the story viewer
-// of home.html ("Öne çıkanlara ekle", js/stories.js). Every rule (who sees it, how many, who may change it) is decided by the server.
+let highlightCards = [];
 
-let highlightCards = [];     // the covers on screen: [{ id, title, itemCount, coverUrl, coverMediaType }]
-
-// ---- The row under the header ----
 async function loadHighlights(profile) {
   try {
     highlightCards = await apiFetch(`/api/users/${profile.id}/highlights`);
   } catch (err) {
-    highlightCards = []; // a missing row is not worth an error on the profile page
+    highlightCards = [];
   }
   renderHighlightRow(profile.isOwnProfile);
 }
 
 function highlightCoverHtml(card) {
   if (!card.coverUrl) return `<i class="bi bi-collection-play"></i>`;
-  // A video cover shows its first picture (the #t=0.1 asks for a frame just after the start).
   return card.coverMediaType === "Video"
     ? `<video src="${escapeHtml(card.coverUrl)}#t=0.1" muted playsinline preload="metadata"></video>`
     : `<img src="${escapeHtml(card.coverUrl)}" alt="">`;
@@ -41,7 +33,6 @@ function renderHighlightRow(isOwn) {
       ${isOwn ? `<button type="button" class="highlight-edit" onclick="openManageHighlight('${card.id}')" aria-label="Düzenle" title="Düzenle"><i class="bi bi-pencil-fill"></i></button>` : ""}
     </div>`).join("");
 
-  // The owner's "new" tile explains how a highlight is made: it starts from a running story.
   const addTile = isOwn ? `
     <div class="highlight-tile">
       <button type="button" class="highlight-open" onclick="explainNewHighlight()">
@@ -54,8 +45,6 @@ function renderHighlightRow(isOwn) {
   row.classList.remove("d-none");
 }
 
-// "Yeni" on your own profile: pick one of your running stories right here and give the highlight a name. With no running
-// story there is nothing to pick, so the window says how it starts (from a story) and points to the stories.
 async function explainNewHighlight() {
   let mine = [];
   try {
@@ -142,8 +131,7 @@ function explainHowHighlightsStart() {
     });
 }
 
-// ---- The viewer ----
-const HL_IMAGE_MS = 4000;       // how long a picture stays (a video stays as long as it is, up to HL_VIDEO_MAX_MS)
+const HL_IMAGE_MS = 4000;
 const HL_VIDEO_MAX_MS = 30000;
 const HL_HOLD_MS = 250;
 
@@ -193,7 +181,6 @@ function ensureHighlightViewer() {
       </div>
     </div>`);
 
-  // Holding a finger or the mouse button on the story stops it, like in the story viewer; the click that ends a hold is not a tap.
   const nav = document.getElementById("hlNav");
   nav.addEventListener("pointerdown", event => {
     if (event.button > 0) return;
@@ -248,7 +235,7 @@ async function openHighlight(id) {
 
 function closeHighlightViewer() {
   clearTimeout(hl.timer);
-  hl.loadToken++; // a picture still on its way is no longer wanted
+  hl.loadToken++;
   hl.loading = false;
   document.getElementById("hlViewer")?.classList.add("d-none");
   document.getElementById("hlVideo")?.pause();
@@ -256,9 +243,8 @@ function closeHighlightViewer() {
   document.body.style.overflow = "";
 }
 
-// A tap or an arrow: one story on (-1 = back). Past the last one the viewer closes; before the first one the first starts again.
 function hlStep(delta) {
-  if (Date.now() - hl.holdEndedAt < 400) {   // the click that ends a hold
+  if (Date.now() - hl.holdEndedAt < 400) {
     hl.holdEndedAt = 0;
     return;
   }
@@ -292,7 +278,6 @@ function showHighlightItem(index) {
   prepareHighlightMusic(item);
 }
 
-// The picture or video goes on screen first; the bar starts when it is really there (a slow connection must not eat the story).
 function loadHighlightMedia(item) {
   const img = document.getElementById("hlImage");
   const video = document.getElementById("hlVideo");
@@ -336,7 +321,7 @@ function loadHighlightMedia(item) {
     video.removeAttribute("src");
     img.onload = loaded;
     img.onerror = failed;
-    img.removeAttribute("src"); // the previous picture goes at once
+    img.removeAttribute("src");
     img.src = item.mediaUrl;
   }
 }
@@ -360,7 +345,7 @@ function startHighlightIfReady() {
   if (fill) {
     fill.style.transition = "none";
     fill.style.width = "0%";
-    void fill.offsetWidth; // applies the empty bar before the transition starts
+    void fill.offsetWidth;
     fill.style.transition = `width ${duration}ms linear`;
     fill.style.width = "100%";
   }
@@ -381,14 +366,12 @@ function pauseHighlight() {
   }
 }
 
-// Letting go starts the story's bar over (the same as in the story viewer).
 function resumeHighlight() {
   if (document.getElementById("hlViewer").classList.contains("d-none")) return;
   hl.paused = false;
   startHighlightIfReady();
 }
 
-// ---- The song ----
 function prepareHighlightMusic(item) {
   const audio = document.getElementById("hlMusic");
   if (!item.musicUrl) {
@@ -396,7 +379,6 @@ function prepareHighlightMusic(item) {
     return;
   }
 
-  // The same song in the next story goes on without a break.
   if (audio.dataset.url !== item.musicUrl) {
     audio.pause();
     audio.src = item.musicUrl;
@@ -417,7 +399,7 @@ function prepareHighlightMusic(item) {
 function playHighlightMusic() {
   const audio = document.getElementById("hlMusic");
   if (!audio.dataset.url || hl.paused) return;
-  audio.play().catch(() => { /* the browser wants a tap first: the button on the chip starts it */ });
+  audio.play().catch(() => { });
 }
 
 function stopHighlightMusic() {
@@ -431,7 +413,6 @@ function stopHighlightMusic() {
 
 function toggleHighlightMute() {
   const audio = document.getElementById("hlMusic");
-  // When the browser held the sound back, the first tap starts it instead of muting it.
   if (audio.paused && !hl.paused && audio.dataset.url) {
     audio.muted = hl.muted = false;
     playHighlightMusic();
@@ -456,9 +437,8 @@ function editFromViewer() {
   openManageHighlight(id);
 }
 
-// ---- The owner's manage window ----
-let managed = null;        // the highlight being edited (what the server last sent)
-let managedCover = null;   // the item chosen as the cover (null = the first one)
+let managed = null;
+let managedCover = null;
 
 async function openManageHighlight(id) {
   try {
@@ -504,7 +484,6 @@ async function removeHighlightItem(itemId) {
     return;
   }
 
-  // Taking out the last story deletes the highlight (the server does it): nothing left to edit.
   if (wasLast) {
     bootstrap.Modal.getInstance(document.getElementById("manageHighlightModal"))?.hide();
     toast("Öne çıkan silindi.");

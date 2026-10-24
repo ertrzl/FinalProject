@@ -34,7 +34,6 @@ public class AuditService : IAuditService
         });
         await _auditLogs.SaveChangesAsync();
 
-        // The same line goes to the log file, so what the admins did can be read there as well as in the panel.
         _logger.LogInformation("Admin action {Action} by {ActorName} ({ActorId:l}) on {TargetType} {TargetId:l}", action, actorName, actorId.ToString(), targetType, targetId?.ToString());
     }
 

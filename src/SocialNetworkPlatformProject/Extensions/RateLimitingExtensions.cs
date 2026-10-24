@@ -3,11 +3,6 @@ using System.Threading.RateLimiting;
 
 namespace SocialNetworkPlatformProject.Extensions;
 
-// Request limits, counted per minute:
-//  - "auth" policy (login, register, refresh): per client address, small. The account lockout stops guessing one
-//    account; this stops one machine from trying a password against thousands of accounts or mass-registering.
-//  - a general limit on everything else, per signed-in user (per address when anonymous), generous enough that
-//    normal use never notices it. Both numbers can be changed in appsettings ("RateLimiting").
 public static class RateLimitingExtensions
 {
     public const string AuthPolicy = "auth";
@@ -24,13 +19,11 @@ public static class RateLimitingExtensions
             options.AddPolicy(AuthPolicy, context =>
                 RateLimitPartition.GetFixedWindowLimiter(ClientAddress(context), _ => Window(authPerMinute)));
 
-            // The pictures of a page (/uploads) are not counted: a feed loads dozens at once, and they used to be plain static files.
             options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
                 context.Request.Path.StartsWithSegments("/uploads")
                     ? RateLimitPartition.GetNoLimiter("uploads")
                     : RateLimitPartition.GetFixedWindowLimiter(ClientKey(context), _ => Window(generalPerMinute)));
 
-            // Same body shape as every other error the API returns.
             options.OnRejected = async (context, cancellationToken) =>
             {
                 context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("RateLimiting")

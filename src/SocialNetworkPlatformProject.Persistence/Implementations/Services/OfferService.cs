@@ -11,7 +11,6 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class OfferService : IOfferService
 {
-    // The DTO shows the listing's cover and the whole price history, so both come along with every offer.
     private static readonly string[] OfferIncludes = { "Rounds", "Listing.Images" };
 
     private readonly IListingOfferRepository _offers;
@@ -48,12 +47,9 @@ public class OfferService : IOfferService
         if (listing.SellerId == currentUserId)
             throw new BadRequestException(Loc.T("offer.ownListing"));
 
-        // Blocked people can't bargain with each other, whichever of them blocked the other.
         if (await _blocks.AreBlockedAsync(currentUserId, listing.SellerId))
             throw new ForbiddenException(Loc.T("block.cannotOffer"));
 
-        // Reserved means the seller promised it to somebody: no new bargaining starts, but the negotiations already
-        // running stay open (see LoadAnswerableOfferAsync) so the reserved buyer can still close the deal.
         if (listing.Status == ListingStatus.Sold)
             throw new BadRequestException(Loc.T("offer.notForSale"));
 
@@ -124,8 +120,6 @@ public class OfferService : IOfferService
     {
         var offer = await LoadAnswerableOfferAsync(currentUserId, offerId);
 
-        // The price has to move toward the other side, but never all the way: strictly between the price
-        // they just proposed and the last one I proposed (the asking price, for the seller's first counter).
         var ownPrevious = offer.Rounds
             .Where(r => r.ProposerId == currentUserId)
             .OrderByDescending(r => r.CreatedAt)
@@ -232,9 +226,7 @@ public class OfferService : IOfferService
         return await _offers.AnyAsync(o => o.ListingId == listingId && o.Status == OfferStatus.Open);
     }
 
-    // ---- helpers ----
 
-    // A tracked offer (with rounds and listing) that the current user takes part in. Strangers get a 403.
     private async Task<ListingOffer> LoadParticipantOfferAsync(Guid currentUserId, Guid offerId)
     {
         var offer = await _offers.GetAll(o => o.Id == offerId, includes: OfferIncludes).AsSplitQuery().FirstOrDefaultAsync()
@@ -246,21 +238,17 @@ public class OfferService : IOfferService
         return offer;
     }
 
-    // Accept / counter / reject all need an open negotiation, a still-for-sale listing and the user to be the
-    // one who has to answer (i.e. not the author of the latest proposal).
     private async Task<ListingOffer> LoadAnswerableOfferAsync(Guid currentUserId, Guid offerId)
     {
         var offer = await LoadParticipantOfferAsync(currentUserId, offerId);
         EnsureOpen(offer);
 
-        // A negotiation that was running when one of them blocked the other can't go on.
         if (await _blocks.AreBlockedAsync(offer.BuyerId, offer.SellerId))
             throw new ForbiddenException(Loc.T("block.cannotOffer"));
 
         if (offer.LastProposerId == currentUserId)
             throw new BadRequestException(Loc.T("offer.otherTurn"));
 
-        // A reserved listing keeps its running negotiations alive; only a sold one ends them.
         if (offer.Listing!.Status == ListingStatus.Sold)
             throw new BadRequestException(Loc.T("offer.notForSale"));
 
@@ -289,13 +277,11 @@ public class OfferService : IOfferService
         return (await BuildDtosAsync(new[] { offer }, currentUserId))[0];
     }
 
-    // Names/avatars live on the Identity users, so they're resolved here in one batched lookup.
     private async Task<List<GetListingOfferDto>> BuildDtosAsync(IEnumerable<ListingOffer> offers, Guid currentUserId)
     {
         var list = offers.ToList();
         var people = await _users.GetSummariesAsync(list.SelectMany(o => new[] { o.BuyerId, o.SellerId }));
 
-        // Only accepted deals can carry a rating: one batched lookup for the whole inbox.
         var acceptedIds = list.Where(o => o.Status == OfferStatus.Accepted).Select(o => o.Id).ToList();
         var ratings = acceptedIds.Count == 0
             ? new Dictionary<Guid, SellerRating>()

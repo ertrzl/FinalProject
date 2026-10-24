@@ -27,7 +27,5 @@ public interface IRepository<T> where T : BaseEntity, new()
 
     Task SaveChangesAsync();
 
-    // Starts a transaction on the shared context: everything saved through any repository until CommitAsync is one step.
-    // Not for code that already runs inside one (a transaction cannot be nested).
     Task<IRepositoryTransaction> BeginTransactionAsync();
 }

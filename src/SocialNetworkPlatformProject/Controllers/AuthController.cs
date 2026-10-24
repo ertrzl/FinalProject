@@ -10,7 +10,6 @@ using SocialNetworkPlatformProject.Infrastructure.Services;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// F1: registration + login (index.html / register.html)
 [ApiController]
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
@@ -53,8 +52,6 @@ public class AuthController : ControllerBase
         return await _auth.RefreshTokenAsync(dto);
     }
 
-    // Signing out ends the session for good: the refresh token, and also the access token that came with this request and
-    // the photo cookie, which would otherwise keep working until they expire. (A token that is not valid anyway is ignored.)
     [HttpPost("logout")]
     [AllowAnonymous]
     public async Task<IActionResult> Logout(RefreshTokenDto dto)
@@ -70,7 +67,6 @@ public class AuthController : ControllerBase
         return NoContent();
     }
 
-    // A session that began before the photo cookie existed (or whose cookie is gone) asks for one.
     [HttpPost("media-session")]
     [Authorize]
     public ActionResult<MediaSessionDto> MediaSession()
@@ -84,7 +80,6 @@ public class AuthController : ControllerBase
         return new MediaSessionDto { ExpiresAt = token.ExpiresAt };
     }
 
-    // ---- Open sessions (settings page) ----
 
     [HttpGet("sessions")]
     [Authorize]
@@ -108,7 +103,6 @@ public class AuthController : ControllerBase
         return await _sessions.EndOthersAsync(User.GetUserId(), CurrentSessionId);
     }
 
-    // The session of this request; null for a token from before sessions existed.
     private Guid? CurrentSessionId => Guid.TryParse(User.FindFirst(TokenService.SessionClaim)?.Value, out var id) ? id : null;
 
     private void RevokeToken(ClaimsPrincipal? principal)

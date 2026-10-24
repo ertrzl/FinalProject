@@ -1,7 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.Common;
 
-// "Mozilla/5.0 (Windows NT 10.0; ...) Chrome/126 ..." -> "Chrome · Windows", for the list of open sessions.
-// Only the common browsers and systems are told apart; anything else is shown as what it is not known to be.
 public static class DeviceNames
 {
     public static string FromUserAgent(string? userAgent)
@@ -21,7 +19,6 @@ public static class DeviceNames
         };
     }
 
-    // The order matters: Edge and Opera also say "Chrome", and Chrome also says "Safari".
     private static string? BrowserOf(string ua)
     {
         if (ua.Contains("Edg/") || ua.Contains("EdgA/") || ua.Contains("EdgiOS/")) return "Edge";
@@ -32,7 +29,6 @@ public static class DeviceNames
         return null;
     }
 
-    // iPhone and iPad say "like Mac OS X", Android says "Linux": the more specific names are checked first.
     private static string? SystemOf(string ua)
     {
         if (ua.Contains("iPhone")) return "iPhone";

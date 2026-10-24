@@ -1,6 +1,3 @@
-// Navbar live search suggestions — every authenticated page includes this. F7.
-// Replaces the old hardcoded-name-list version that never called the backend.
-
 function initSearchSuggestions() {
   document.querySelectorAll(".nav-search-wrap input[name='q']").forEach(input => {
     const wrap = input.closest(".nav-search-wrap");

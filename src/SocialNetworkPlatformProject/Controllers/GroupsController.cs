@@ -7,7 +7,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// groups.html: Gruplarım / Keşfet tabs
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -55,7 +54,6 @@ public class GroupsController : ControllerBase
         return await _groups.UpdateAsync(User.GetUserId(), id, dto);
     }
 
-    // acceptRules: the person read the group's rules and ticked the box (required when the group has rules).
     [HttpPost("{id:guid}/join")]
     public async Task<ActionResult<GetGroupDto>> Join(Guid id, [FromQuery] bool acceptRules = false)
     {
@@ -142,7 +140,6 @@ public class GroupsController : ControllerBase
         return NoContent();
     }
 
-    // group.html "Kurallar"
     [HttpGet("{id:guid}/rules")]
     public async Task<ActionResult<List<GetGroupRuleDto>>> GetRules(Guid id)
     {
@@ -155,7 +152,6 @@ public class GroupsController : ControllerBase
         return await _groups.SetRulesAsync(User.GetUserId(), id, dto);
     }
 
-    // group.html "Üyeler": search by name, filter by role ("Owner" / "Admin" / "Moderator" / "Member"), paged.
     [HttpGet("{id:guid}/members")]
     public async Task<ActionResult<PagedResult<GetGroupMemberDto>>> GetMembers(
         Guid id, [FromQuery] string? search, [FromQuery] string? role, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
@@ -175,7 +171,6 @@ public class GroupsController : ControllerBase
         return await _groups.SetMutedAsync(User.GetUserId(), id, false);
     }
 
-    // group.html: the pinned announcements at the top of the wall.
     [HttpGet("{id:guid}/pinned-posts")]
     public async Task<ActionResult<List<GetPostDto>>> GetPinnedPosts(Guid id)
     {
@@ -194,7 +189,6 @@ public class GroupsController : ControllerBase
         return await _groupPosts.UnpinAsync(User.GetUserId(), id, postId);
     }
 
-    // group.html "Grupta ara"
     [HttpGet("{id:guid}/posts/search")]
     public async Task<ActionResult<PagedResult<GetPostDto>>> SearchPosts(
         Guid id, [FromQuery] string? q, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)

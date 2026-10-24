@@ -6,7 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// event.html's "Yoklama" tab (organizer only): who actually came
 [ApiController]
 [Route("api/events/{eventId:guid}/attendance")]
 [Authorize]

@@ -6,8 +6,6 @@ using SocialNetworkPlatformProject.Application.Interfaces.Services;
 
 namespace SocialNetworkPlatformProject.Infrastructure.Email;
 
-// Sends through the SMTP account in the settings (Email:Smtp). Works with any provider: Gmail (an app password),
-// Outlook, SendGrid, a company mail server, or a catch-all test inbox such as Ethereal or Mailtrap.
 public class SmtpEmailSender : IEmailSender
 {
     private const int TimeoutMilliseconds = 15_000;

@@ -5,9 +5,6 @@ using SocialNetworkPlatformProject.Application.Interfaces.Services;
 
 namespace SocialNetworkPlatformProject.Infrastructure.Services;
 
-// Once, when the application starts: fills the table of "@" tags (PostMention) from the text of the posts written before the table
-// existed, so the profile's "Etiketlendiklerim" tab finds old tags too. It does nothing when the table already has rows. Runs in the
-// background so a start is never held up by it, and a failure (the table not created yet, say) is only logged.
 public class PostMentionBackfillService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
@@ -23,7 +20,6 @@ public class PostMentionBackfillService : BackgroundService
     {
         try
         {
-            // A moment after the start, so the database is up (see the Docker setup) before the first query.
             await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
 
             using var scope = _scopes.CreateScope();
@@ -33,7 +29,6 @@ public class PostMentionBackfillService : BackgroundService
         }
         catch (OperationCanceledException)
         {
-            // The application is shutting down.
         }
         catch (Exception ex)
         {

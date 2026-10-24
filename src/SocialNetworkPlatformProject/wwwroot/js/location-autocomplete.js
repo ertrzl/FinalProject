@@ -1,6 +1,3 @@
-// Turns a plain text input into a city/country autocomplete backed by OpenStreetMap's free Nominatim search
-// (no API key). Usage: enableLocationAutocomplete(document.getElementById("editLocation")).
-
 function enableLocationAutocomplete(input) {
   const wrap = document.createElement("div");
   wrap.className = "position-relative";
@@ -35,8 +32,6 @@ function enableLocationAutocomplete(input) {
   function choose(item) {
     input.value = item.label;
     hide();
-    // Setting .value programmatically fires nothing, so pages that react to the field (e.g. a live filter)
-    // listen for "change". Not "input": that would restart the search and reopen the list.
     input.dispatchEvent(new Event("change", { bubbles: true }));
   }
 

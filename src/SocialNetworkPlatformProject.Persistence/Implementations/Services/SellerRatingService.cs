@@ -41,7 +41,6 @@ public class SellerRatingService : ISellerRatingService
         if (offer.Status != OfferStatus.Accepted)
             throw new BadRequestException(Loc.T("rating.afterAccepted"));
 
-        // A seller who blocked the buyer (or the other way round) doesn't get a review written about them.
         if (await _blocks.AreBlockedAsync(currentUserId, offer.SellerId))
             throw new ForbiddenException(Loc.T("block.cannotRate"));
 
@@ -75,11 +74,9 @@ public class SellerRatingService : ISellerRatingService
         }
         catch (DbUpdateException) when (isNew)
         {
-            // A double submit lost the race for the one-rating-per-deal unique index.
             throw new ConflictException(Loc.T("rating.justRated"));
         }
 
-        // Only the first rating notifies the seller; edits would just be noise.
         if (isNew)
             await _notifications.CreateAsync(offer.SellerId, currentUserId, NotificationType.MarketplaceRatingReceived,
                 offerId: offerId, amount: dto.Stars);
@@ -104,7 +101,6 @@ public class SellerRatingService : ISellerRatingService
         var seller = await _users.GetSummaryAsync(sellerId)
             ?? throw new NotFoundException(Loc.T("user.notFound"));
 
-        // Grouping happens in SQL: five rows at most, however many reviews the seller has.
         var perStar = await _ratings.GetAll(r => r.SellerId == sellerId, asNoTracking: true)
             .GroupBy(r => r.Stars)
             .Select(g => new { Stars = g.Key, Count = g.Count() })
@@ -150,7 +146,6 @@ public class SellerRatingService : ISellerRatingService
         };
     }
 
-    // Reviewer names/avatars live on the Identity users: one batched lookup for the whole page.
     private async Task<List<GetSellerRatingDto>> BuildDtosAsync(IEnumerable<SellerRating> ratings)
     {
         var list = ratings.ToList();

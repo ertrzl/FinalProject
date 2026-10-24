@@ -137,8 +137,6 @@ public class AdminService : IAdminService
         user.SuspendReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
         await _userManager.UpdateAsync(user);
 
-        // The tokens in the person's browsers carry the old stamp: from the next request on they are refused, and
-        // without refresh tokens no new ones can be made.
         await _userManager.UpdateSecurityStampAsync(user);
         _accessTokens.Revoke(userId, oldStamp);
         await _sessions.RevokeAllAsync(userId);
@@ -176,7 +174,6 @@ public class AdminService : IAdminService
         await _audit.RecordAsync(adminId, "user.delete", "User", userId, description);
     }
 
-    // ---- Content ----
 
     private sealed class ContentRow
     {
@@ -241,7 +238,6 @@ public class AdminService : IAdminService
             default: await _groups.DeleteAsync(adminId, id, asAdmin: true); break;
         }
 
-        // The owner is told that it was removed (not by whom). Nothing is sent when the admin removed their own thing.
         await _notifications.CreateAsync(ownerId, adminId, NotificationType.ContentRemoved, subject: string.IsNullOrWhiteSpace(title) ? null : Shorten(title, 150));
 
         var ownerName = (await _users.GetSummaryAsync(ownerId))?.FullName;
@@ -249,7 +245,6 @@ public class AdminService : IAdminService
         await _audit.RecordAsync(adminId, $"{kind}.remove", char.ToUpperInvariant(kind[0]) + kind[1..], id, details);
     }
 
-    // What the thing is called and whose it is, read before it is deleted (for the log).
     private async Task<(string Title, Guid OwnerId)> DescribeContentAsync(string kind, Guid id)
     {
         switch (kind)
@@ -277,7 +272,6 @@ public class AdminService : IAdminService
         }
     }
 
-    // ---- Helpers ----
 
     private static string NormalizeType(string type)
     {
@@ -287,7 +281,6 @@ public class AdminService : IAdminService
             : throw new BadRequestException(Loc.T("admin.typeInvalid"));
     }
 
-    // The account an admin acts on: it has to exist, and it can be neither the admin's own nor another admin's.
     private async Task<ApplicationUser> FindActableUserAsync(Guid adminId, Guid userId)
     {
         if (userId == adminId)

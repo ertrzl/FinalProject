@@ -3,10 +3,8 @@ using SocialNetworkPlatformProject.Application.Interfaces.Services;
 
 namespace SocialNetworkPlatformProject.Extensions;
 
-// The browser and the address of the current request, for the services that must not know about HttpContext.
 public class HttpClientInfo : IClientInfo
 {
-    // Longer than any real browser string needs; the session list only uses it to name the browser and the system.
     private const int MaxUserAgentLength = 512;
 
     private readonly IHttpContextAccessor _accessor;

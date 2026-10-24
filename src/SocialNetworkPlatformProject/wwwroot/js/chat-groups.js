@@ -1,12 +1,8 @@
-// messages.html — group chats made on the Messages page: "Yeni grup" (pick friends, a name, a picture) and "Grup bilgisi"
-// (name, picture, people, adding and removing, leaving). Every rule is decided by the server (who may add whom, who runs the
-// chat); these windows only collect input and show the answer.
-
-let chatGroupFriends = null;      // GET /api/friends: [{ userId, name, avatarUrl }], loaded once per visit
-const chatGroupPicked = new Set(); // the friends ticked in "Yeni grup"
-let chatGroupInfo = null;          // GetChatGroupDto of the open "Grup bilgisi" window
-let chatGroupAddOpen = false;      // the "Üye ekle" list inside it is open
-const chatGroupToAdd = new Set();  // the friends ticked in it
+let chatGroupFriends = null;
+const chatGroupPicked = new Set();
+let chatGroupInfo = null;
+let chatGroupAddOpen = false;
+const chatGroupToAdd = new Set();
 
 async function loadChatGroupFriends() {
   if (chatGroupFriends) return chatGroupFriends;
@@ -25,7 +21,6 @@ function chatGroupAvatarHtml(url, name, sizeClass) {
   return `<span class="${sizeClass} group-avatar group-avatar-empty" aria-hidden="true" data-no-i18n>${escapeHtml(initial)}</span>`;
 }
 
-// A list of friends to tick: avatar, name, a checkbox. `taken` are the ids that are not offered (already in the group).
 function chatGroupFriendRowsHtml(friends, picked, taken, search) {
   const term = (search || "").trim().toLocaleLowerCase(localeTag());
   const rows = friends
@@ -39,7 +34,6 @@ function chatGroupFriendRowsHtml(friends, picked, taken, search) {
   return rows.length ? rows.join("") : `<div class="text-muted small p-2">${i18n("chatGroup.noFriends")}</div>`;
 }
 
-// ---- Yeni grup ----
 
 async function openNewChatGroup() {
   chatGroupPicked.clear();
@@ -109,7 +103,6 @@ async function createChatGroup() {
   }
 }
 
-// ---- Grup bilgisi ----
 
 async function openChatGroupInfo(conversationId) {
   try {
@@ -123,7 +116,7 @@ async function openChatGroupInfo(conversationId) {
   chatGroupToAdd.clear();
   renderChatGroupInfo();
   bootstrap.Modal.getOrCreateInstance(document.getElementById("chatGroupInfoModal")).show();
-  loadChatGroupFriends(); // for "Üye ekle"
+  loadChatGroupFriends();
 }
 
 function renderChatGroupInfo() {
@@ -194,7 +187,6 @@ function renderChatGroupInfo() {
     </div>`;
 }
 
-// One request at a time; the answer is the group's new state.
 let chatGroupBusy = false;
 async function chatGroupRequest(request, doneText) {
   if (chatGroupBusy) return;

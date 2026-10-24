@@ -4,12 +4,8 @@ using SocialNetworkPlatformProject.Application.Exceptions;
 
 namespace SocialNetworkPlatformProject.Persistence.Identity;
 
-// The one place a typed-in password is checked against an account, so the lockout rule (Identity options:
-// a few wrong guesses and the account is locked for a while) applies to every route that asks for the password:
-// login, "change password" and "delete account". Without it the second and third would be free guessing oracles.
 public class PasswordVerifier
 {
-    // A password hash nobody can match, made once: SpendTimeLikeAWrongGuess checks against it.
     private static readonly ApplicationUser Decoy = new();
     private static string? _decoyHash;
 
@@ -22,9 +18,6 @@ public class PasswordVerifier
         _logger = logger;
     }
 
-    // Checking a password takes a noticeable moment (that is what a good hash is for). A sign-in with a name that is no account
-    // would answer at once, and the difference in time would give the account away. So that answer spends the same
-    // moment: a guess is checked against a hash that no password matches.
     public void SpendTimeLikeAWrongGuess(string password)
     {
         var hasher = _userManager.PasswordHasher;
@@ -32,8 +25,6 @@ public class PasswordVerifier
         hasher.VerifyHashedPassword(Decoy, _decoyHash, password);
     }
 
-    // True when the password is right. False when it is wrong. Throws a 429 while the account is locked
-    // (also on the guess that triggers the lock, so a client never gets a "try again" it cannot use).
     public async Task<bool> VerifyAsync(ApplicationUser user, string password)
     {
         await EnsureNotLockedOutAsync(user);

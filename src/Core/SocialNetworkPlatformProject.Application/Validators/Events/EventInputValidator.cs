@@ -3,7 +3,6 @@ using SocialNetworkPlatformProject.Application.DTOs.Events;
 
 namespace SocialNetworkPlatformProject.Application.Validators.Events;
 
-// Rules shared by creating and editing an event.
 public abstract class EventInputValidator<T> : AbstractValidator<T> where T : EventInputDto
 {
     protected EventInputValidator()
@@ -15,8 +14,6 @@ public abstract class EventInputValidator<T> : AbstractValidator<T> where T : Ev
         RuleFor(x => x.Location).MaximumLength(200);
         RuleFor(x => x.Description).MaximumLength(2000);
 
-        // The map pin: both numbers or none, latitude -90..90 and longitude -180..180. An online event has no pin, so
-        // whatever came with it is ignored (EventService drops it) and not checked.
         RuleFor(x => x.Latitude)
             .Must((dto, latitude) => EventCoordinates.TryParse(latitude, dto.Longitude, out _, out _))
             .WithMessage(_ => Loc.T("val.event.coordinates"))

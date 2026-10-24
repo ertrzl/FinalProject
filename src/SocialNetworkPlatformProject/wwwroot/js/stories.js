@@ -1,21 +1,13 @@
-// home.html story bar + fullscreen story viewer, wired to the real backend.
-//
-// The server sends a flat list of stories. The page shows one card per person and the viewer plays one person's
-// stories at a time (the bars at the top are that person's stories); when they end it moves on to the next person.
-// Your own stories are a person like any other, shown first.
-
 let storyGroups = [];
 const STORY_DURATION = 4000;
 let currentGroup = 0;
-let currentStory = 0; // index inside the current person's stories
-let renderedGroup = -1; // whose bars are on screen
+let currentStory = 0;
+let renderedGroup = -1;
 let storyTimer = null;
-let storyLoading = false; // the picture of the current story is not there yet
-let storyPaused = false;  // somebody is typing a reply or reading the viewers list
-let storyLoadToken = 0;   // tells a late picture of a story we left from the current one
+let storyLoading = false;
+let storyPaused = false;
+let storyLoadToken = 0;
 
-// One entry per person: { userId, userName, userAvatarUrl, stories: oldest first }. Your own first, then the people with
-// something you have not watched, then the rest; newest person first inside each part.
 function groupStories(stories, myId) {
   const byUser = new Map();
   stories.forEach(story => {
@@ -33,7 +25,6 @@ function groupStories(stories, myId) {
   return groups.sort((a, b) => rank(a) - rank(b) || newest(b) - newest(a));
 }
 
-// Where a person's stories start playing: the first one you have not watched, or the beginning.
 function firstUnviewedIndex(group) {
   const index = group.stories.findIndex(s => !s.isViewed);
   return index === -1 ? 0 : index;
@@ -69,7 +60,6 @@ async function loadStories() {
 const currentGroupItem = () => storyGroups[currentGroup];
 const currentStoryItem = () => storyGroups[currentGroup].stories[currentStory];
 
-// The bars at the top: one per story of the person being watched.
 function renderStoryBars() {
   const bars = document.getElementById("storyBars");
   bars.innerHTML = currentGroupItem().stories.map((_, i) => `<div class="bar" id="storyBar-${i}"><div class="fill"></div></div>`).join("");
@@ -81,8 +71,6 @@ function markBarsDone(upToIndex) {
     const bar = document.getElementById("storyBar-" + i);
     if (!bar) return;
 
-    // No transition here: a bar that was filling (or full) goes to its place at once. With the transition still set
-    // from the last run, going back made the bar to the right drain slowly instead of being empty.
     const fill = bar.querySelector(".fill");
     if (i < upToIndex) {
       bar.classList.add("done");
@@ -96,7 +84,6 @@ function markBarsDone(upToIndex) {
   });
 }
 
-// How long ago the story was posted, short: "şimdi", "27dk", "35dk", then "1s", "2s"... "23s" (a story lasts 24 hours).
 function storyAgeText(createdAt) {
   const minutes = Math.max(0, Math.floor((Date.now() - parseServerDate(createdAt).getTime()) / 60000));
   if (minutes < 1) return i18n("story.age.now");
@@ -104,7 +91,6 @@ function storyAgeText(createdAt) {
   return i18n("story.age.hours", Math.floor(minutes / 60));
 }
 
-// Shows one story of one person. Past the last story of a person comes the next person; before the first, the one before.
 function showStory(groupIndex, storyIndex) {
   if (storyIndex < 0) {
     if (groupIndex > 0) showStory(groupIndex - 1, 0);
@@ -116,11 +102,10 @@ function showStory(groupIndex, storyIndex) {
     return;
   }
 
-  // Moving to another person: that person's story slides in from the side it was on (not when the viewer has just been opened).
   const slideDirection = renderedGroup !== -1 && renderedGroup !== groupIndex ? (groupIndex > renderedGroup ? 1 : -1) : 0;
   currentGroup = groupIndex;
   currentStory = storyIndex;
-  storyLoading = true; // until the picture is there (below): nothing runs, and resumeStory() leaves the bar alone
+  storyLoading = true;
   storyPaused = false;
   if (renderedGroup !== currentGroup) {
     renderStoryBars();
@@ -137,8 +122,6 @@ function showStory(groupIndex, storyIndex) {
   storyViewerName.href = `profile.html?id=${group.userId}`;
   document.getElementById("storyViewerAge").textContent = storyAgeText(story.createdAt);
 
-  // Own story: the eye counter (who watched), the heart count and delete. Somebody else's: the heart and the
-  // reply box, and watching it is reported once.
   const isMine = story.userId === getSession().userId;
   document.getElementById("storyViewersBtn").classList.toggle("d-none", !isMine);
   document.getElementById("storyDeleteBtn").classList.toggle("d-none", !isMine);
@@ -164,9 +147,6 @@ function showStory(groupIndex, storyIndex) {
   preloadStory(nextStoryItem());
 }
 
-// Puts the story's picture or video on screen. The bar does not start until it is really there: on a slow connection a
-// photo takes longer than a story lasts, and the viewer used to keep showing the one before it (the stories looked
-// like the same one three times) while the bars ran on. A spinner shows meanwhile.
 function loadStoryMedia(story) {
   const img = document.getElementById("storyViewerImage");
   const video = document.getElementById("storyViewerVideo");
@@ -182,7 +162,6 @@ function loadStoryMedia(story) {
   img.classList.toggle("d-none", isVideo);
   video.classList.toggle("d-none", !isVideo);
 
-  // A story we have already left (tapped past, or closed) never finishes loading into the current one.
   const loaded = () => {
     if (token !== storyLoadToken) return;
     storyLoading = false;
@@ -211,12 +190,11 @@ function loadStoryMedia(story) {
     video.removeAttribute("src");
     img.onload = loaded;
     img.onerror = failed;
-    img.removeAttribute("src"); // the previous picture goes at once
+    img.removeAttribute("src");
     img.src = story.mediaUrl;
   }
 }
 
-// Starts the bar (and a video) once the picture is there and nobody is typing or reading the viewers list.
 function startStoryIfReady() {
   if (storyLoading || storyPaused) return;
   runProgress(currentStory);
@@ -224,7 +202,6 @@ function startStoryIfReady() {
   if (currentStoryItem().mediaType === "Video") document.getElementById("storyViewerVideo").play().catch(() => {});
 }
 
-// The next story of the same person, or the first one to watch of the next person.
 function nextStoryItem() {
   const next = currentGroupItem().stories[currentStory + 1];
   if (next) return next;
@@ -232,7 +209,6 @@ function nextStoryItem() {
   return nextGroup ? nextGroup.stories[firstUnviewedIndex(nextGroup)] : null;
 }
 
-// Fetches a picture ahead of time so it is there when its turn comes (videos are left to stream).
 function preloadStory(story) {
   if (story && story.mediaType !== "Video") new Image().src = story.mediaUrl;
 }
@@ -244,8 +220,6 @@ function runProgress(index) {
   if (fill) {
     fill.style.transition = "none";
     fill.style.width = "0%";
-    // Applies the empty bar before the transition starts. Without it a bar that was full (the story just before the one
-    // watched now) never saw "0%", so going back left it full instead of filling again.
     void fill.offsetWidth;
     fill.style.transition = "width " + STORY_DURATION + "ms linear";
     fill.style.width = "100%";
@@ -253,7 +227,6 @@ function runProgress(index) {
   storyTimer = setTimeout(() => nextStory(), STORY_DURATION);
 }
 
-// The story stands still while somebody reads the viewers list or types a reply; resuming starts its bar over.
 function pauseStory() {
   storyPaused = true;
   clearTimeout(storyTimer);
@@ -267,7 +240,7 @@ function pauseStory() {
 }
 
 function resumeStory() {
-  if (document.getElementById("storyViewer").classList.contains("d-none")) return; // closed meanwhile
+  if (document.getElementById("storyViewer").classList.contains("d-none")) return;
   storyPaused = false;
   startStoryIfReady();
 }
@@ -279,9 +252,6 @@ function openStory(groupIndex) {
   showStory(groupIndex, firstUnviewedIndex(storyGroups[groupIndex]));
 }
 
-// ---- Wide screens: the neighbours of the story on screen ----
-// The previous and the next person show on the left and right of the story (their story to watch first, dimmed). Clicking one goes
-// there, like the arrows next to the story do for the previous and next story. Narrow screens hide all of this (css).
 function storySideHtml(group) {
   const cover = group.stories[firstUnviewedIndex(group)];
   const media = cover.mediaType === "Video"
@@ -316,11 +286,10 @@ function goStoryGroup(delta) {
 function slideStoryIn(direction) {
   const inner = document.getElementById("storyViewerInner");
   inner.classList.remove("slide-from-right", "slide-from-left");
-  void inner.offsetWidth; // restarts the animation
+  void inner.offsetWidth;
   inner.classList.add(direction > 0 ? "slide-from-right" : "slide-from-left");
 }
 
-// The arrow keys go to the previous and next story, Escape closes the viewer (while it is open and nobody is typing).
 document.addEventListener("keydown", event => {
   if (document.getElementById("storyViewer").classList.contains("d-none")) return;
   if (event.target.matches?.("input, textarea")) return;
@@ -339,18 +308,16 @@ function prevStory() {
   showStory(currentGroup, currentStory - 1);
 }
 
-// Holding a finger or the mouse button down on the story stops it (the bar, the video and the song) and lets go resumes it,
-// like the real thing. The click that ends a hold must not count as a tap to the next or the previous story.
 const STORY_HOLD_MS = 250;
 let storyHoldTimer = null;
-let storyHeld = false;       // the story is paused because of a hold
+let storyHeld = false;
 let storyHoldEndedAt = 0;
 
 function startStoryHold(event) {
-  if (event.button > 0) return; // only the main button
+  if (event.button > 0) return;
   clearTimeout(storyHoldTimer);
   storyHoldTimer = setTimeout(() => {
-    if (storyPaused || storyLoading) return; // already stopped by something else (typing a reply, the viewers list)
+    if (storyPaused || storyLoading) return;
     storyHeld = true;
     pauseStory();
   }, STORY_HOLD_MS);
@@ -364,7 +331,6 @@ function endStoryHold() {
   resumeStory();
 }
 
-// True for the click that comes right after a hold was let go: it is ignored.
 function consumeHoldClick() {
   if (Date.now() - storyHoldEndedAt < 400) {
     storyHoldEndedAt = 0;
@@ -380,12 +346,12 @@ function consumeHoldClick() {
   nav.addEventListener("pointerup", endStoryHold);
   nav.addEventListener("pointercancel", endStoryHold);
   nav.addEventListener("pointerleave", endStoryHold);
-  nav.addEventListener("contextmenu", event => event.preventDefault()); // a long press on a phone must not open the picture menu
+  nav.addEventListener("contextmenu", event => event.preventDefault());
 })();
 
 function closeStory() {
   clearTimeout(storyTimer);
-  storyLoadToken++; // a picture still on its way is no longer wanted
+  storyLoadToken++;
   storyLoading = false;
   document.getElementById("storyViewer").classList.add("d-none");
   document.getElementById("storyViewerVideo").pause();
@@ -394,18 +360,14 @@ function closeStory() {
   hideStoryViewersPanel();
   resetStoryReply();
 
-  // The rings of the stories just watched turn grey.
   loadStories();
 }
 
-// Tells the server this story was watched (it keeps one count per person). The page keeps its own flag so going back
-// and forth between stories does not report it again.
 function reportStoryView(story) {
   story.isViewed = true;
   apiFetch(`/api/stories/${story.id}/view`, { method: "POST" }).catch(() => {});
 }
 
-// ---- Somebody else's story: the heart and the reply ----
 function showStoryLikeState(story) {
   const button = document.getElementById("storyLikeBtn");
   button.classList.toggle("liked", story.isLiked);
@@ -430,13 +392,11 @@ function resetStoryReply() {
   updateStoryReplyButton();
 }
 
-// The send arrow is there only while something is typed.
 function updateStoryReplyButton() {
   const hasText = document.getElementById("storyReplyInput").value.trim() !== "";
   document.getElementById("storyReplySend").classList.toggle("d-none", !hasText);
 }
 
-// The reply is an ordinary message to the story's owner: it lands in the same chat as any other (messages.html).
 async function sendStoryReply(event) {
   event.preventDefault();
   const input = document.getElementById("storyReplyInput");
@@ -454,7 +414,6 @@ async function sendStoryReply(event) {
   return false;
 }
 
-// ---- Your own story: who watched it, and delete ----
 function hideStoryViewersPanel() {
   document.getElementById("storyViewersPanel").classList.add("d-none");
 }
@@ -486,7 +445,6 @@ async function openStoryViewers() {
   }
 }
 
-// Closing the list lets the story run again (its bar starts over).
 function closeStoryViewers() {
   hideStoryViewersPanel();
   resumeStory();
@@ -507,10 +465,6 @@ async function deleteCurrentStory() {
   toast("Hikâyen silindi.");
 }
 
-// ---- Your own story: keep it on your profile (highlights) ----
-// The button next to the bin opens a small window: the highlights you already have (tap one to add this story) and a name for a new
-// one. The server copies the story's file, so the highlight stays after the 24 hours are over; the highlights are shown on the profile
-// page (js/highlights.js). The button is added here, next to the bin, so home.html needs no change.
 (function addHighlightButton() {
   document.getElementById("storyDeleteBtn")?.insertAdjacentHTML("beforebegin",
     `<button type="button" id="storyHighlightBtn" class="btn btn-sm btn-dark rounded-pill d-none" title="Öne çıkanlara ekle" aria-label="Öne çıkanlara ekle" onclick="openAddToHighlight()">` +
@@ -553,10 +507,8 @@ async function openAddToHighlight() {
       const finish = () => { close(); resumeStory(); };
       let busy = false;
 
-      // The arrow keys belong to this window while it is open (they would go to the next story behind it otherwise).
       box.addEventListener("keydown", event => { if (event.key.startsWith("Arrow")) event.stopPropagation(); });
 
-      // One request at a time; the window closes when the story is in.
       const send = async (request, doneText) => {
         if (busy) return;
         busy = true;
@@ -588,9 +540,6 @@ async function openAddToHighlight() {
     });
 }
 
-// ---- The song of a story (viewer) ----
-// A story can carry a 30-second song (see the add-story window). It starts with the story, stops when the story is paused,
-// left or closed, and the little button on the chip turns the sound off for the stories that follow too.
 let storyMusicMuted = false;
 
 function prepareStoryMusic(story) {
@@ -602,7 +551,6 @@ function prepareStoryMusic(story) {
     return;
   }
 
-  // The same song in the next story of a person goes on without a break.
   if (audio.dataset.url !== story.musicUrl) {
     audio.pause();
     audio.src = story.musicUrl;
@@ -623,7 +571,7 @@ function prepareStoryMusic(story) {
 function playStoryMusic() {
   const audio = document.getElementById("storyMusic");
   if (!audio.dataset.url || storyPaused) return;
-  audio.play().catch(() => { /* the browser wants a tap first: the button on the chip starts it */ });
+  audio.play().catch(() => { });
 }
 
 function stopStoryMusic() {
@@ -636,7 +584,6 @@ function stopStoryMusic() {
 
 function toggleStoryMusicMute() {
   const audio = document.getElementById("storyMusic");
-  // When the browser held the sound back, the first tap starts it instead of muting it.
   if (audio.paused && !storyPaused && audio.dataset.url) {
     audio.muted = storyMusicMuted = false;
     playStoryMusic();
@@ -655,9 +602,6 @@ function showStoryMusicMuteState() {
   button.title = label;
 }
 
-// ---- Tags and "add to your story" (viewer) ----
-// Under the header: "Story by @Owner" when this story was added from somebody else's, then the tagged people. A tagged
-// person also gets a button that puts the story on their own story.
 function showStoryTags(story) {
   const from = story.resharedFrom;
   const fromChip = document.getElementById("storyResharedChip");
@@ -694,7 +638,6 @@ async function reshareCurrentStory() {
     if (currentStoryItem() === story) button.classList.add("d-none");
     toast("Hikâyene eklendi.");
 
-    // The list is built again: my new story shows up (my own stories come first), so the viewer finds its place again.
     await loadStories();
     const group = storyGroups.findIndex(g => g.stories.some(s => s.id === story.id));
     if (group !== -1 && !document.getElementById("storyViewer").classList.contains("d-none")) {
@@ -710,10 +653,9 @@ async function reshareCurrentStory() {
   }
 }
 
-// ---- Add-story modal: tagging friends ----
 const MAX_STORY_TAGS = 5;
-let storyTagFriends = null; // my friends, loaded when the picker is first opened
-let chosenStoryTags = [];   // [{ userId, name, avatarUrl }]
+let storyTagFriends = null;
+let chosenStoryTags = [];
 
 async function toggleStoryTagPicker() {
   const panel = document.getElementById("addStoryTagPanel");
@@ -793,12 +735,11 @@ function resetStoryTags() {
   document.getElementById("addStoryTagPanel").classList.add("d-none");
 }
 
-// ---- Add-story modal: choosing a song ----
-let chosenStoryMusic = null;       // { title, artist, previewUrl, artworkUrl }
+let chosenStoryMusic = null;
 let storyMusicResults = [];
 let storyMusicSearchTimer = null;
 let storyMusicSearchToken = 0;
-let storyMusicPreview = null;      // the <audio> that plays a result while the person is choosing
+let storyMusicPreview = null;
 
 function toggleStoryMusicSearch() {
   const panel = document.getElementById("addStoryMusicPanel");
@@ -827,7 +768,7 @@ async function searchStoryMusic() {
   box.innerHTML = `<div class="small text-muted px-2 py-2">Aranıyor...</div>`;
   try {
     const found = await apiFetch(`/api/music/search?q=${encodeURIComponent(query)}`);
-    if (token !== storyMusicSearchToken) return; // a newer search is already running
+    if (token !== storyMusicSearchToken) return;
     storyMusicResults = found;
     box.innerHTML = found.length
       ? found.map((track, i) => `
@@ -882,10 +823,9 @@ document.getElementById("addStoryModal")?.addEventListener("hidden.bs.modal", ()
   stopStoryMusicPreview();
   document.getElementById("addStoryMusicPanel").classList.add("d-none");
   document.getElementById("addStoryTagPanel").classList.add("d-none");
-  storyTagFriends = null; // friends may have changed by the next time
+  storyTagFriends = null;
 });
 
-// ---- Add-story modal ----
 function previewNewStory(input) {
   const file = input.files && input.files[0];
   if (!file) return;
@@ -902,7 +842,6 @@ function previewNewStory(input) {
   wrap.classList.remove("d-none");
 }
 
-// With the "Hikaye Ekle" window open, a picture pasted anywhere in it becomes the story's picture.
 document.addEventListener("paste", event => {
   if (!document.getElementById("addStoryModal")?.classList.contains("show")) return;
   const pictures = getPastedImages(event);

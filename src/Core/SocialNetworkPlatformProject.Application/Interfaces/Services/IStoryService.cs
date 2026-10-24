@@ -7,23 +7,15 @@ public interface IStoryService
 {
     Task<GetStoryDto> CreateAsync(Guid currentUserId, PostStoryDto dto);
 
-    // Non-expired stories from the user and their friends: the ones the user has not watched yet first, then the
-    // watched ones, newest first within each group.
     Task<List<GetStoryDto>> GetActiveStoriesAsync(Guid currentUserId);
 
-    // The tagged friend adds somebody's story to their own ("Hikayene ekle"): a copy that lives its own 24 hours and names the original owner.
     Task<GetStoryDto> ReshareAsync(Guid currentUserId, Guid storyId);
 
     Task DeleteAsync(Guid currentUserId, Guid storyId);
 
-    // The user has watched this story. Counted once per person; your own stories are not counted; a story the user
-    // may not see is "not found". Calling it again changes nothing.
     Task RecordViewAsync(Guid currentUserId, Guid storyId);
 
-    // Likes the story if the user has not, takes the like back if they have. Same visibility rule as watching (friends
-    // only, "not found" otherwise); your own story cannot be liked. The story's owner is notified of a new like.
     Task<GetLikeResultDto> ToggleLikeAsync(Guid currentUserId, Guid storyId);
 
-    // Who watched one of your own stories, newest first (the latest 200).
     Task<List<GetStoryViewerDto>> GetViewersAsync(Guid currentUserId, Guid storyId);
 }

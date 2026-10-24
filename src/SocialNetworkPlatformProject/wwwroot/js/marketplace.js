@@ -1,6 +1,3 @@
-// Marketplace page — browse/filter/sort/page listings, "İlanlarım", "Kaydedilenler", multi-photo sell/edit form,
-// photo carousel, mark as sold and the seller's other listings; all wired to the backend.
-
 requireAuth();
 
 const PAGE_SIZE = 12;
@@ -9,27 +6,24 @@ const ALL_CATEGORIES = "Tümü";
 
 let categories = [];
 let activeCategory = ALL_CATEGORIES;
-let currentView = "all"; // "all" | "mine" | "saved"
+let currentView = "all";
 let currentListings = [];
 let currentPage = 1;
 let totalCount = 0;
 let selectedListing = null;
 let editingListingId = null;
-let requestSeq = 0; // drops responses of superseded requests (fast typing in the filters)
+let requestSeq = 0;
 let filterDebounce = null;
 
-// Every listing the page has seen (grid, saved, seller's others), so a card can always open its modal.
 const listingIndex = new Map();
 
-// "Tekliflerim": negotiations on my listings (received) and the ones I started (sent).
-let offersSide = "received"; // "received" | "sent"
+let offersSide = "received";
 const offerLists = { received: [], sent: [] };
-let offerModalState = null; // { kind: "new" | "counter", id, low, high } — what the offer modal is currently doing
+let offerModalState = null;
 
-// Sell/edit form photo state: photos already on the listing, and new files waiting to be uploaded.
 let existingPhotos = [];
 let removedPhotoIds = [];
-let pendingPhotos = []; // { file, url }
+let pendingPhotos = [];
 
 function formatPrice(n) {
   return n.toLocaleString(localeTag(), { maximumFractionDigits: 2 });
@@ -47,11 +41,8 @@ function isReserved(item) {
   return item.status === "Reserved";
 }
 
-// Shown as a badge on the cards and the detail; the codes are the API's, the words are only for display.
 const CONDITION_LABELS = { New: "Sıfır", LikeNew: "Sıfır gibi", Good: "İyi", Fair: "Orta" };
 
-// The status / condition / featured / expired badges of a listing, in the order they matter. The server decides
-// every one of these flags (item.isExpired, item.isFeatured, item.status); this only draws them.
 function listingBadgesHtml(item) {
   const badges = [];
   if (item.isFeatured) badges.push(`<span class="badge text-bg-primary"><i class="bi bi-stars me-1"></i>Öne Çıkan</span>`);
@@ -62,7 +53,6 @@ function listingBadgesHtml(item) {
   return badges.join("");
 }
 
-// A date from the server shown in the viewer's own time zone (display only).
 function limitDate(isoDate) {
   return parseServerDate(isoDate).toLocaleString(localeTag(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
@@ -84,7 +74,6 @@ function remember(items) {
   items.forEach(item => listingIndex.set(item.id, item));
 }
 
-// ---- Categories (single source of truth is the backend) ----
 
 async function loadCategories() {
   try {
@@ -109,7 +98,6 @@ function setCategory(cat) {
   renderListings();
 }
 
-// ---- Filters ----
 
 function onFilterInput() {
   clearTimeout(filterDebounce);
@@ -152,7 +140,6 @@ function buildBrowseParams(page) {
   return params;
 }
 
-// ---- Listing grid ----
 
 function heartButtonHtml(item) {
   if (isOwnListing(item)) return "";
@@ -161,7 +148,6 @@ function heartButtonHtml(item) {
           </button>`;
 }
 
-// The "Yenile" line of the seller's own card: the button when the server says it can be used, otherwise when it opens.
 function cardRenewHtml(item) {
   if (!isOwnListing(item)) return "";
   if (item.canRenew) {
@@ -209,7 +195,6 @@ function renderGrid() {
 }
 
 async function renderListings() {
-  // Listing actions (delete, sold, edit) can also be reached from the offers tab, which has no grid to redraw.
   if (currentView === "offers") return loadOffers();
 
   const seq = ++requestSeq;
@@ -244,7 +229,7 @@ async function loadMore() {
 
   try {
     const result = await apiFetch(`/api/marketplace?${buildBrowseParams(currentPage + 1).toString()}`);
-    if (seq !== requestSeq) return; // filters changed while loading
+    if (seq !== requestSeq) return;
     currentPage += 1;
     currentListings = currentListings.concat(result.items);
     totalCount = result.totalCount;
@@ -277,7 +262,6 @@ function setView(view) {
   else renderListings();
 }
 
-// ---- Favourites ----
 
 function updateHeart(id, saved) {
   document.querySelectorAll(`[data-heart-id="${id}"] i`).forEach(icon => {
@@ -304,7 +288,6 @@ async function toggleSave(id, event) {
   }
 }
 
-// ---- Detail modal ----
 
 function renderCarousel(item) {
   const urls = item.images && item.images.length ? item.images.map(i => i.url) : [coverOf(item)];
@@ -322,16 +305,12 @@ function renderModalHeart(item) {
   btn.querySelector("i").className = "bi " + (item.isSavedByCurrentUser ? "bi-heart-fill text-danger" : "bi-heart");
 }
 
-// The parts of the detail that depend on what the viewer may do right now (message, offer, owner buttons). They are drawn
-// from the cached card first and again when the fresh copy arrives, because the server alone knows e.g. whether the
-// seller can be messaged, and what the seller's renew / boost limits are.
 function renderModalDynamic(item) {
   const mine = isOwnListing(item);
 
   document.getElementById("listingModalBadges").innerHTML = listingBadgesHtml(item);
   renderModalHeart(item);
 
-  // The server says whether this person can be written to (blocks, private accounts); a sold or expired listing has no reason to ask.
   const messageLink = document.getElementById("listingModalMessageLink");
   messageLink.classList.toggle("d-none", mine || isSold(item) || item.isExpired || !item.canMessageSeller);
   messageLink.href = `messages.html?userId=${item.sellerId}`;
@@ -346,7 +325,6 @@ function renderModalDynamic(item) {
   renderModalOfferButtons(item, mine);
 }
 
-// Asks for the listing again and updates the cached copy in place (same object, so the grid cards see it too).
 async function refreshOpenListing(id) {
   try {
     const fresh = await apiFetch(`/api/marketplace/${id}`);
@@ -355,7 +333,6 @@ async function refreshOpenListing(id) {
     Object.assign(item, fresh);
     if (selectedListing && selectedListing.id === id) renderModalDynamic(item);
   } catch (err) {
-    // The cached copy stays on the screen; the buttons that need the server's answer simply stay hidden.
   }
 }
 
@@ -381,12 +358,9 @@ function openListing(id, { fresh = false } = {}) {
   loadSimilarListings(item);
   bootstrap.Modal.getOrCreateInstance(document.getElementById("listingModal")).show();
 
-  // The cached copy may be old (the status, the limits, whether the seller can be messaged): ask once more.
   if (!fresh) refreshOpenListing(id);
 }
 
-// The seller's controls: which status is the current one, how long the listing stays up, and "Yenile" / "Öne Çıkar"
-// with the reason (and the time) when the server says they are closed right now.
 function renderOwnerActions(item) {
   for (const [status, id, active] of [["Active", "statusBtnActive", "btn-success"], ["Reserved", "statusBtnReserved", "btn-warning"], ["Sold", "statusBtnSold", "btn-secondary"]]) {
     const btn = document.getElementById(id);
@@ -419,7 +393,6 @@ function renderOwnerActions(item) {
     : item.nextFeatureAt ? `Bir sonraki öne çıkarma hakkın: ${limitDate(item.nextFeatureAt)}` : "";
 }
 
-// The report box is not a Bootstrap modal, so it opens right over the listing.
 function reportListing() {
   if (selectedListing) reportDialog("Listing", selectedListing.id);
 }
@@ -428,8 +401,6 @@ function renderModalOfferButtons(item, mine) {
   const offerBtn = document.getElementById("listingModalOfferBtn");
   const ownerBtn = document.getElementById("listingModalOwnerOffersBtn");
 
-  // A new offer needs a listing that is on sale (Active, inside its 30 days). A reserved one takes no new offers but keeps
-  // the negotiation already running, so that buyer still sees "Teklifini Gör". The server enforces all of this.
   const canOffer = !mine && item.status === "Active" && !item.isExpired;
   const canViewOffer = !mine && !isSold(item) && !!item.myOpenOfferId;
   offerBtn.classList.toggle("d-none", !(canOffer || canViewOffer));
@@ -457,7 +428,6 @@ function onOfferButton() {
   else openOfferModal({ kind: "new", id: selectedListing.id, title: selectedListing.title, asking: selectedListing.price });
 }
 
-// The small cards under the detail ("Bu satıcının diğer ilanları", "Benzer ilanlar"): the same markup for both.
 function miniCardHtml(o) {
   return `
       <div class="col-4 col-md-2">
@@ -471,7 +441,6 @@ function miniCardHtml(o) {
       </div>`;
 }
 
-// Fills one of the two extra sections of the detail with the listings `fetchItems()` returns; hidden when there are none.
 async function loadExtraSection(item, sectionId, listId, fetchItems) {
   const section = document.getElementById(sectionId);
   const list = document.getElementById(listId);
@@ -480,14 +449,13 @@ async function loadExtraSection(item, sectionId, listId, fetchItems) {
 
   try {
     const items = await fetchItems();
-    if (!selectedListing || selectedListing.id !== item.id) return; // another listing was opened meanwhile
+    if (!selectedListing || selectedListing.id !== item.id) return;
     if (!items.length) return;
 
     remember(items);
     list.innerHTML = items.map(miniCardHtml).join("");
     section.classList.remove("d-none");
   } catch (err) {
-    // The extra section is a nicety; the listing itself is already shown.
   }
 }
 
@@ -498,7 +466,6 @@ function loadSellerOtherListings(item) {
   });
 }
 
-// Same category, closest price: the server picks them (and leaves out the seller's own, mine and blocked people's).
 function loadSimilarListings(item) {
   return loadExtraSection(item, "similarSection", "similarList", () => apiFetch(`/api/marketplace/${item.id}/similar`));
 }
@@ -538,7 +505,6 @@ async function setListingStatus(status) {
   }
 }
 
-// "Yenile": another 30 days. Used from the seller's card (the id and the click are passed) and from the detail.
 async function renewListing(id, event) {
   if (event) event.stopPropagation();
   const listingId = id || (selectedListing && selectedListing.id);
@@ -553,7 +519,6 @@ async function renewListing(id, event) {
   }
 }
 
-// "Öne Çıkar": first in the grid for a day. A weekly right, so it asks first.
 async function featureListing() {
   if (!selectedListing) return;
   if (!(await confirmDialog("Bu ilan 24 saat boyunca listenin en başında görünecek. Bu hakkı haftada bir kez kullanabilirsin. Devam edilsin mi?", { confirmText: "Öne Çıkar", danger: false }))) return;
@@ -567,7 +532,6 @@ async function featureListing() {
   }
 }
 
-// The server returned the listing as it is now: keep the cached copy in step, then redraw the list and the open detail.
 async function afterOwnerAction(updated) {
   const cached = listingIndex.get(updated.id);
   if (cached) Object.assign(cached, updated);
@@ -575,7 +539,6 @@ async function afterOwnerAction(updated) {
   await renderListings();
 }
 
-// ---- Sell / edit form (one modal for both) ----
 
 function totalPhotoCount() {
   return existingPhotos.length + pendingPhotos.length;
@@ -656,7 +619,6 @@ function openEditListing() {
   document.getElementById("sellDescription").value = item.description || "";
   renderSellPhotos();
 
-  // Two Bootstrap modals can't stack: let the detail modal finish closing, then open the form.
   document.getElementById("listingModal").addEventListener("hidden.bs.modal", () => {
     bootstrap.Modal.getOrCreateInstance(document.getElementById("sellModal")).show();
   }, { once: true });
@@ -675,7 +637,6 @@ async function submitListing() {
   const errorBox = document.getElementById("sellError");
   errorBox.classList.add("d-none");
 
-  // The server checks it too; this only saves a round trip for an empty choice.
   const conditionSelect = document.getElementById("sellCondition");
   if (!conditionSelect.value) {
     errorBox.textContent = "Ürünün durumunu seç: Sıfır, Sıfır gibi, İyi ya da Orta.";
@@ -707,7 +668,6 @@ async function submitListing() {
     bootstrap.Modal.getInstance(document.getElementById("sellModal"))?.hide();
     toast(isEdit ? "İlan güncellendi." : "İlanın yayınlandı!");
 
-    // A fresh listing should be visible right away, whatever filters were active.
     if (!isEdit && currentView === "all") resetFilterInputs();
     await renderListings();
   } catch (err) {
@@ -718,17 +678,13 @@ async function submitListing() {
   }
 }
 
-// Whenever the form closes (published, saved or cancelled) it goes back to a clean "new listing" state.
 document.getElementById("sellModal").addEventListener("hidden.bs.modal", resetSellForm);
 
-// ---- Offers: counter-offer bargaining ("Tekliflerim") ----
 
 function myId() {
   return getSession().userId;
 }
 
-// A counter must land strictly between the other side's latest price and my own previous price
-// (the asking price, for the seller's first counter) — same rule the backend enforces.
 function counterWindow(o) {
   const mine = o.rounds.filter(r => r.proposerId === myId());
   const ownPrevious = mine.length ? mine[mine.length - 1].price : o.listingPrice;
@@ -830,7 +786,6 @@ async function loadOffers() {
     offerLists.sent = sent;
     updateOffersChrome();
 
-    // First time in: open the side that has something waiting on me.
     if (!offersSideChosen && currentView === "offers") {
       offersSideChosen = true;
       if (!received.some(o => o.isMyTurn) && sent.some(o => o.isMyTurn)) offersSide = "sent";
@@ -859,14 +814,13 @@ function goToOffers(side) {
 
 async function openListingById(id) {
   try {
-    remember([await apiFetch(`/api/marketplace/${id}`)]); // always fresh: status / offer hints may have moved on
+    remember([await apiFetch(`/api/marketplace/${id}`)]);
     openListing(id, { fresh: true });
   } catch (err) {
     toast("İlan bulunamadı ya da kaldırılmış olabilir.");
   }
 }
 
-// ---- Sharing: marketplace.html?listing=<id> opens that listing's modal straight away ----
 
 function listingLink(id) {
   return `${window.location.origin}${window.location.pathname}?listing=${id}`;
@@ -879,12 +833,10 @@ async function copyListingLink() {
     await navigator.clipboard.writeText(link);
     toast("İlan bağlantısı kopyalandı.");
   } catch (err) {
-    // Clipboard access can be blocked (insecure origin, permissions): show the link so it can be copied by hand.
     linkDialog(link);
   }
 }
 
-// Offer modals can't stack on top of the listing detail modal: wait for it to close first.
 function openModalAfterListingModal(modalId) {
   const listingEl = document.getElementById("listingModal");
   const show = () => bootstrap.Modal.getOrCreateInstance(document.getElementById(modalId)).show();
@@ -976,7 +928,6 @@ async function respondOffer(offerId, action) {
     await apiFetch(`/api/marketplace/offers/${offerId}/${action}`, { method: "POST" });
     toast({ accept: "Teklif kabul edildi. İlan satıldı.", reject: "Teklif reddedildi.", withdraw: "Teklifin geri çekildi." }[action]);
 
-    // Keep the cached listing in step with what the negotiation just did to it.
     const item = listingIndex.get(o.listingId);
     if (item) {
       item.myOpenOfferId = null;
@@ -985,21 +936,19 @@ async function respondOffer(offerId, action) {
     await loadOffers();
   } catch (err) {
     toast(err.message || "İşlem gerçekleştirilemedi.");
-    await loadOffers(); // the other side may have answered in the meantime
+    await loadOffers();
   }
 }
 
-// ---- Seller ratings: yellow stars out of 5 ----
 
 const STAR_LABELS = ["", "Çok kötü", "Kötü", "Fena değil", "İyi", "Mükemmel"];
-let ratingState = null; // { offerId, stars, hadRating } — what the rate modal is editing
-let reviewsState = null; // { sellerId, page, total } — what the reviews modal is showing
+let ratingState = null;
+let reviewsState = null;
 
 function ratingQuote(rating) {
   return rating.comment ? ` <span class="text-muted">“${escapeHtml(rating.comment)}”</span>` : "";
 }
 
-// The rating part of an accepted negotiation card: the buyer rates (or edits), the seller sees the buyer's verdict.
 function offerRatingHtml(o) {
   if (o.status !== "Accepted") return "";
 
@@ -1014,8 +963,6 @@ function offerRatingHtml(o) {
     : `<div class="small mt-2 text-muted">Alıcı henüz puan vermedi.</div>`;
 }
 
-// The five stars are created once and only their classes change while hovering. Rebuilding them on every
-// mouseover would replace the element under the cursor between mousedown and mouseup and lose the click.
 function renderStarInput(hover = 0) {
   const box = document.getElementById("rateStarInput");
   if (!box.children.length) {
@@ -1177,12 +1124,10 @@ async function loadMoreReviews() {
   }
 }
 
-// A negotiation moved on the other side (counter, accept, ...): the notification arrives live, so refresh quietly.
 document.addEventListener("realtime:notification", e => {
   if (e.detail && e.detail.type && e.detail.type.startsWith("MarketplaceOffer")) loadOffers();
 });
 
-// Same city/country autocomplete as profile edit and settings, for the sell form and the location filter.
 enableLocationAutocomplete(document.getElementById("sellLocation"));
 enableLocationAutocomplete(document.getElementById("filterLocation"));
 
@@ -1195,15 +1140,15 @@ loadCategories().then(() => {
     setView("offers");
   } else {
     renderListings();
-    loadOffers(); // fills the "Tekliflerim" badge
+    loadOffers();
   }
 
-  const reviewsOfSeller = params.get("sellerReviews"); // from a profile's rating badge or a "you were rated" notification
+  const reviewsOfSeller = params.get("sellerReviews");
 
   if (sharedListingId) openListingById(sharedListingId);
   else if (reviewsOfSeller) openSellerReviews(reviewsOfSeller);
 
   if (sharedListingId || reviewsOfSeller) {
-    window.history.replaceState(null, "", window.location.pathname); // a refresh shouldn't pop the modal again
+    window.history.replaceState(null, "", window.location.pathname);
   }
 });

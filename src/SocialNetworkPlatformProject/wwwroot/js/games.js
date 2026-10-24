@@ -1,12 +1,9 @@
-// games.html — the games hub (X-O, rock-paper-scissors and Battleship): invitations, running games, recent results, and the friend picker that starts a game.
-// The server decides everything (who may invite, whose turn it is, who won); this page shows its answer and sends the clicks.
-
 requireAuth();
 
-let overviewRequest = 0; // answers can arrive out of order: only the newest one may draw
+let overviewRequest = 0;
 let reloadTimer = null;
 let pickerFriends = [];
-let pickerKind = "TicTacToe"; // the game the open friend picker will invite to
+let pickerKind = "TicTacToe";
 
 function gameRowHtml(game, { badge = "", sub = "", actions = "" }) {
   const other = game.opponent;
@@ -40,7 +37,6 @@ const sentRow = game => gameRowHtml(game, {
 });
 
 const activeRow = game => gameRowHtml(game, {
-  // Battleship, while the fleets are placed: "my turn" means the fleet is still to be placed
   badge: game.isMyTurn ? `<span class="xo-turn-badge">${game.kind === "Battleship" && game.phase === "Placing" ? "Filonu diz" : "Sıra sende"}</span>` : "",
   sub: `Son etkinlik · ${timeAgo(game.updatedAt)}`,
   actions: `<a href="game.html?id=${game.id}" class="btn btn-primary btn-sm rounded-pill">Oyna</a>`
@@ -77,7 +73,6 @@ async function loadOverview() {
   }
 }
 
-// ---- Answering an invitation (the buttons of the rows) ----
 
 async function answerInvite(gameId, action, row) {
   const buttons = row.querySelectorAll(".xo-row-actions button");
@@ -93,7 +88,7 @@ async function answerInvite(gameId, action, row) {
   } catch (err) {
     toast(err.message || "İşlem gerçekleştirilemedi.");
   }
-  await loadOverview(); // also after a failure: the game may have changed meanwhile (the other player answered first)
+  await loadOverview();
 }
 
 document.getElementById("xoPage").addEventListener("click", event => {
@@ -102,7 +97,6 @@ document.getElementById("xoPage").addEventListener("click", event => {
   if (row) answerInvite(row.dataset.gameId, button.dataset.gameAction, row);
 });
 
-// ---- The friend picker ----
 
 function pickerRowHtml(friend) {
   return `
@@ -162,9 +156,7 @@ document.getElementById("pickFriendList").addEventListener("click", event => {
   if (button) inviteFriend(button.closest("[data-friend-id]").dataset.friendId, button);
 });
 
-// ---- Live ----
 
-// A move, an answer or a new invitation anywhere: draw the overview again (a short wait gathers a burst into one request).
 function reloadSoon() {
   clearTimeout(reloadTimer);
   reloadTimer = setTimeout(loadOverview, 200);

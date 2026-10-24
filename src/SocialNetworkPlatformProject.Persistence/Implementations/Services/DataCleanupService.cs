@@ -10,8 +10,6 @@ public class DataCleanupService : IDataCleanupService
     private const int DefaultNotificationDays = 90;
     private const int DefaultAuditLogDays = 365;
 
-    // A hashtag row is created together with the post that uses it; leaving a day of room means a tag that a post is being
-    // saved with right now can never be removed under it.
     private static readonly TimeSpan HashtagGracePeriod = TimeSpan.FromDays(1);
 
     private readonly IRefreshTokenRepository _refreshTokens;
@@ -41,7 +39,6 @@ public class DataCleanupService : IDataCleanupService
 
     public async Task<int> CleanUpAsync(DateTime nowUtc)
     {
-        // A token that has expired can't be used and can't prove anything any more, signed out or not.
         var tokens = await _refreshTokens.DeleteAllExpiredAsync(nowUtc);
         var notifications = await _notifications.DeleteOlderThanAsync(nowUtc - _notificationAge);
         var hashtags = await _hashtags.DeleteUnusedCreatedBeforeAsync(nowUtc - HashtagGracePeriod);

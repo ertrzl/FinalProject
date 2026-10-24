@@ -1,16 +1,6 @@
-// Live SignalR connections (notifications + messages) shared by every authenticated page.
-// Pages react by listening to events on document:
-//   "realtime:notification"  detail = notification DTO
-//   "realtime:message"       detail = message DTO (cancelable: call preventDefault() if the page already shows it, to suppress the toast)
-//   "realtime:message-deleted"  detail = the message DTO after the sender took it back (isDeleted = true)
-//   "realtime:conversation-removed"  detail = { conversationId }: a group chat the user is no longer a member of
-//   "realtime:game-updated"  detail = the game (X-O or rock-paper-scissors) as this user sees it (games.html and game.html redraw from it)
-//   "realtime:reconnected"   the connection was lost and came back — reload anything that may have been missed
-
 (function () {
   if (!getSession()) return;
 
-  // SignalR client failed to load (e.g. CDN blocked): pages still work, just without live updates.
   if (typeof signalR === "undefined") {
     window.realtime = {
       sendTyping() {},
@@ -56,8 +46,6 @@
         }
       } catch (err) {
         needsResync = true;
-        // The server turned the token down (suspended account, password changed elsewhere, signed out): ask for a fresh one
-        // once. If that is refused too, getValidAccessToken sends the person to the login page, so the retries stop.
         if (/401|unauthori[sz]ed/i.test(String(err?.message))) {
           try { await getValidAccessToken(true); } catch { return; }
         }
@@ -65,7 +53,6 @@
       }
     }
 
-    // Built-in automatic reconnect gives up after its schedule; keep retrying so the page never goes silently dead.
     connection.onclose(() => {
       needsResync = true;
       setTimeout(start, 5000);
@@ -93,22 +80,17 @@
     if (m.isMine || event.defaultPrevented) return;
     const conversations = window.refreshChatConversations ? await window.refreshChatConversations() : [];
     const conversation = conversations.find(c => c.id === m.conversationId);
-    // A group the person muted makes no noise: the message is in the chat and the list, without a toast.
     if (conversation && conversation.isMuted) return;
     const preview = window.chatMessagePreviewText ? window.chatMessagePreviewText(m) : m.text;
-    // A group chat names the group and who wrote: "Kitap Kulübü · Ayşe: ...".
     const title = conversation ? conversation.otherUserName + (conversation.isGroup && m.senderName ? ` · ${m.senderName}` : "") : "Yeni mesaj";
     toast(`<b>${escapeHtml(title)}</b>: ${escapeHtml(preview)}`, { html: true });
   });
 
-  // The person left or was removed from a group: its chat is no longer theirs (pages close it and drop it from the list).
   messages.connection.on("ConversationRemoved", data => {
     document.dispatchEvent(new CustomEvent("realtime:conversation-removed", { detail: data }));
     window.refreshMessageBadge?.();
   });
 
-  // A group chat made on the Messages page: the person was added to one (it shows in their list at once), or its name,
-  // picture or people changed. detail = the conversation as this person's list shows it.
   for (const eventName of ["ConversationAdded", "ConversationUpdated"]) {
     messages.connection.on(eventName, conversation => {
       document.dispatchEvent(new CustomEvent("realtime:conversation-changed", { detail: conversation }));
@@ -116,7 +98,6 @@
     });
   }
 
-  // Feed changes pushed by the server, re-dispatched as "realtime:<name>" (see live-posts.js and feed.js).
   const FEED_EVENTS = {
     PostCreated: "post-created",
     PostUpdated: "post-updated",
@@ -132,7 +113,6 @@
       document.dispatchEvent(new CustomEvent("realtime:" + eventName, { detail: data })));
   });
 
-  // Elements showing someone's online state carry data-presence-user (+ data-presence-mode="text" for a "Çevrimiçi" label, otherwise a dot).
   notifications.connection.on("PresenceChanged", ({ userId, isOnline }) => {
     (window.chatConversationsCache || []).forEach(c => {
       if (c.otherUserId === userId) c.isOtherUserOnline = isOnline;
@@ -144,13 +124,11 @@
     document.dispatchEvent(new CustomEvent("realtime:presence", { detail: { userId, isOnline } }));
   });
 
-  // The sender took a message back: detail = the message as this user sees it now (isDeleted, no text or photo).
   messages.connection.on("MessageDeleted", m => {
     document.dispatchEvent(new CustomEvent("realtime:message-deleted", { detail: m }));
     window.refreshMessageBadge?.();
   });
 
-  // Somebody left or took back an emoji on a message: detail = the message as this user sees it now.
   messages.connection.on("MessageUpdated", m =>
     document.dispatchEvent(new CustomEvent("realtime:message-updated", { detail: m })));
 
@@ -160,11 +138,9 @@
   messages.connection.on("UserTyping", data =>
     document.dispatchEvent(new CustomEvent("realtime:typing", { detail: data })));
 
-  // An X-O game changed (invited, answered, a move, the end): detail = the game as this user sees it (same shape as GET /api/games/{id}).
   messages.connection.on("GameUpdated", game =>
     document.dispatchEvent(new CustomEvent("realtime:game-updated", { detail: game })));
 
-  // Same call the REST endpoint does; falls back to it when the live connection is down so a send never just fails.
   window.realtime = {
     sendTyping(conversationId) {
       if (messages.connection.state === signalR.HubConnectionState.Connected)

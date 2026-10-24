@@ -51,13 +51,11 @@ public class StoryService : IStoryService
 
     public async Task<GetStoryDto> CreateAsync(Guid currentUserId, PostStoryDto dto)
     {
-        // A song comes with its title and one of Apple's preview links, nothing else.
         var hasMusic = !string.IsNullOrWhiteSpace(dto.MusicUrl);
         if (hasMusic && (string.IsNullOrWhiteSpace(dto.MusicTitle) || dto.MusicTitle.Length > 150 || (dto.MusicArtist?.Length ?? 0) > 150
             || !MusicLinks.IsAllowedAudio(dto.MusicUrl) || (!string.IsNullOrWhiteSpace(dto.MusicArtworkUrl) && !MusicLinks.IsAllowedCover(dto.MusicArtworkUrl))))
             throw new BadRequestException(Loc.T("story.musicInvalid"));
 
-        // The friends to tag: not more than MaxTags, not yourself, every one of them a friend.
         var taggedIds = dto.TaggedUserIds.Distinct().ToList();
         if (taggedIds.Count > MaxTags)
             throw new BadRequestException(Loc.T("story.tagsTooMany"));
@@ -107,14 +105,12 @@ public class StoryService : IStoryService
         if (original.UserId == currentUserId)
             throw new BadRequestException(Loc.T("story.reshareOwn"));
 
-        // Only a person the owner tagged may add it: the tag is the owner's permission to share the story on.
         if (!await _tags.AnyAsync(t => t.StoryId == storyId && t.TaggedUserId == currentUserId))
             throw new ForbiddenException(Loc.T("story.reshareNotTagged"));
 
         if (await _stories.AnyAsync(s => s.UserId == currentUserId && s.ResharedFromStoryId == storyId))
             throw new BadRequestException(Loc.T("story.reshareAlready"));
 
-        // A copy of the picture or video, so it stays when the owner deletes theirs; the song comes along.
         var copy = new Story
         {
             UserId = currentUserId,
@@ -148,7 +144,6 @@ public class StoryService : IStoryService
                 asNoTracking: true)
             .ToListAsync();
 
-        // The story bar plays the stories in this order, so what is new comes first.
         var dtos = await BuildDtosAsync(stories, currentUserId);
         return dtos.OrderBy(s => s.IsViewed).ThenByDescending(s => s.CreatedAt).ToList();
     }
@@ -189,7 +184,6 @@ public class StoryService : IStoryService
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
-            // Another tab reported the same view a moment earlier: it is counted already.
         }
     }
 
@@ -222,7 +216,6 @@ public class StoryService : IStoryService
             }
             catch (DbUpdateException ex) when (ex.IsUniqueViolation())
             {
-                // Another tap liked it a moment earlier: it stays liked, and the owner was told by that one.
                 return new GetLikeResultDto { IsLiked = true, LikeCount = await CountLikesAsync(storyId) };
             }
 
@@ -250,7 +243,6 @@ public class StoryService : IStoryService
         var users = await _users.GetSummariesAsync(views.Select(v => v.ViewerId));
         var likers = await _likes.GetLikerIdsAsync(storyId);
 
-        // A viewer whose account is gone has no summary and is left out.
         return views
             .Where(v => users.ContainsKey(v.ViewerId))
             .Select(v => new GetStoryViewerDto
@@ -279,8 +271,6 @@ public class StoryService : IStoryService
             .Distinct().ToList();
         var users = await _users.GetSummariesAsync(personIds);
 
-        // Batched queries for the whole list: view and like counts of my own stories, and which of the others I
-        // watched and liked.
         var ownIds = list.Where(s => s.UserId == currentUserId).Select(s => s.Id).ToList();
         var othersIds = list.Where(s => s.UserId != currentUserId).Select(s => s.Id).ToList();
         var viewCounts = await _views.CountByStoryAsync(ownIds);
@@ -302,7 +292,6 @@ public class StoryService : IStoryService
             dtos[i].LikeCount = likeCounts.GetValueOrDefault(list[i].Id);
             dtos[i].IsLiked = likedIds.Contains(list[i].Id);
 
-            // A tagged person whose account is gone is left out.
             dtos[i].Tags = tagIds.GetValueOrDefault(list[i].Id, new List<Guid>())
                 .Where(users.ContainsKey)
                 .Select(id => new GetStoryPersonDto { UserId = id, Name = users[id].FullName, AvatarUrl = users[id].AvatarUrl })

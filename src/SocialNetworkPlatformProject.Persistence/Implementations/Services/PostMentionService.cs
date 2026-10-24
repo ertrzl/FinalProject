@@ -43,7 +43,6 @@ public class PostMentionService : IPostMentionService
         var names = MentionParser.ExtractUserNames(text);
         var users = names.Count == 0 ? new Dictionary<string, UserSummary>() : await _users.GetSummariesByUserNamesAsync(names);
 
-        // Tagging yourself is not being tagged by somebody.
         var wanted = users.Values.Select(u => u.Id).Where(id => id != post.AuthorId).ToHashSet();
         var stored = await _mentions.GetAll(m => m.PostId == post.Id).ToListAsync();
 
@@ -70,7 +69,6 @@ public class PostMentionService : IPostMentionService
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
-            // The same post was written twice at the same moment: the rows are there already.
         }
     }
 
@@ -85,7 +83,6 @@ public class PostMentionService : IPostMentionService
 
         if (profileUserId != viewerId)
         {
-            // The same doors as the profile's own wall: a blocker looks as if they do not exist, a private account is for its friends.
             if (await _blocks.HasBlockedAsync(profileUserId, viewerId))
                 throw new NotFoundException(Loc.T("user.notFound"));
             if (await _blocks.HasBlockedAsync(viewerId, profileUserId))
@@ -97,8 +94,6 @@ public class PostMentionService : IPostMentionService
         var tagged = _mentions.PostIdsMentioning(profileUserId);
         var posts = _posts.GetAll(p => tagged.Contains(p.Id), asNoTracking: true);
 
-        // Only what the viewer may see, and nothing the tagged person themselves could not open (a friends-only post of somebody they
-        // are not friends with would otherwise show up on their page).
         var visible = _access.VisibleTo(posts, viewerId);
         if (profileUserId != viewerId)
             visible = _access.VisibleTo(visible, profileUserId);
@@ -122,7 +117,6 @@ public class PostMentionService : IPostMentionService
 
     public async Task<int> BackfillAsync()
     {
-        // Once there are rows the table is being kept up to date by the posts themselves.
         if (await _mentions.AnyAsync(_ => true))
             return 0;
 

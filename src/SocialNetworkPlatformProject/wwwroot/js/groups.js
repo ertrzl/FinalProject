@@ -1,8 +1,5 @@
-// groups.html — real groups wired to the backend.
-
 requireAuth();
 
-// The groups and invitations as last drawn, so "Katıl" / "Kabul Et" know the name and whether there are rules to accept.
 const shownGroups = new Map();
 const shownInvites = new Map();
 
@@ -63,7 +60,6 @@ async function loadDiscoverGroups() {
 }
 
 async function joinGroup(groupId, btn) {
-  // A group with rules: they are shown first, and joining (or asking to) only goes ahead once they are accepted.
   const group = shownGroups.get(groupId);
   if (group && group.ruleCount > 0) {
     const label = group.privacy === "Private" ? "İstek Gönder" : "Gruba Katıl";
@@ -170,7 +166,6 @@ async function publishGroup() {
   }
 }
 
-// groups.html?tab=invites (e.g. from a notification whose invitation needs the rules accepted) opens that tab.
 if (new URLSearchParams(window.location.search).get("tab") === "invites") {
   document.addEventListener("DOMContentLoaded", () =>
     bootstrap.Tab.getOrCreateInstance(document.querySelector('[data-bs-target="#panel-invites"]')).show());

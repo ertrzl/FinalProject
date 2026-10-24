@@ -6,7 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// explore.html (Keşfet): what is popular right now. People to meet come from GET /api/friends/suggestions.
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]

@@ -14,8 +14,6 @@ public class EventCalendarService : IEventCalendarService
 
     public async Task<CalendarFileDto> GetCalendarFileAsync(Guid currentUserId, Guid eventId, string? pageUrl)
     {
-        // Going through the query service keeps every rule in one place: a stranger gets a 404 for a private or
-        // group event, and the online link is only filled in for the organizer and people who are going.
         var ev = await _queries.GetByIdAsync(currentUserId, eventId);
 
         return new CalendarFileDto

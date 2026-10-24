@@ -3,7 +3,6 @@ using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Domain.Entities;
 
-// F8: notifications.html feed + SignalR push (NotificationsHub)
 public class Notification : BaseEntity
 {
     public Guid RecipientId { get; set; }
@@ -15,14 +14,14 @@ public class Notification : BaseEntity
     public Guid? FriendRequestId { get; set; }
     public Guid? GroupId { get; set; }
     public Guid? OfferId { get; set; }
-    public Guid? EventId { get; set; } // soft reference (no FK), like OfferId; cleaned up when the event is deleted
-    public Guid? StoryId { get; set; } // soft reference (no FK): stories expire after a day, the notification stays
-    public Guid? GameId { get; set; } // soft reference (no FK): the game row may be gone with an account, the notification stays
-    public Guid? ConversationId { get; set; } // soft reference (no FK): the group chat somebody added you to
-    public Guid? ListingId { get; set; } // soft reference (no FK): price-drop alerts; removed together with the listing
-    public string? Subject { get; set; } // snapshot of a title whose source row is gone (e.g. a cancelled event)
-    public decimal? Amount { get; set; } // the price involved in a marketplace offer event
-    public decimal? PreviousAmount { get; set; } // price-drop alerts: the price before the cut (Amount is the new one)
+    public Guid? EventId { get; set; }
+    public Guid? StoryId { get; set; }
+    public Guid? GameId { get; set; }
+    public Guid? ConversationId { get; set; }
+    public Guid? ListingId { get; set; }
+    public string? Subject { get; set; }
+    public decimal? Amount { get; set; }
+    public decimal? PreviousAmount { get; set; }
 
     public bool IsRead { get; set; } = false;
 }

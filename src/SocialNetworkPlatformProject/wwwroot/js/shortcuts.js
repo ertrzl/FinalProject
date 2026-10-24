@@ -1,14 +1,3 @@
-// Keyboard shortcuts of the inbox design. Every signed-in page loads this after navbar.js and app.js; with the classic
-// design nothing is bound. A key is ignored while a box is being typed in, or when Ctrl / Alt / Cmd is held.
-//
-//   /           the search box
-//   g, then a   go to a page: a Ana Sayfa, k Keşfet, r Arkadaşlar, m Mesajlar, b Bildirimler, g Gruplar,
-//               e Etkinlikler, o Oyunlar, p Pazar, s Kaydedilenler, t Ayarlar   (the letters are the ones of the menu, js/navbar.js)
-//   n  (c)      write: the post box of the page, or the "create" button of a page (a group, an event, a listing)
-//   j / k       next / previous post of the list      Enter  open it
-//   l           like the post      r  answer (comments)      e  save it
-//   ?           this list
-
 if (getDesign() === "inbox") {
   const SHORTCUT_LIST = [
     ["/", "Ara"],
@@ -17,9 +6,9 @@ if (getDesign() === "inbox") {
     ["c", "Yaz / oluştur"], ["j  k", "Gönderiler arasında gez"], ["↵", "Gönderiyi aç"], ["l", "Beğen"], ["r", "Yanıtla"], ["e", "Kaydet"], ["?", "Bu liste"]
   ];
 
-  let waitingForPage = false;   // "g" was pressed, the next letter picks the page
+  let waitingForPage = false;
   let waitTimer = null;
-  let selected = null;          // the post that j / k stopped on
+  let selected = null;
 
   const isTyping = el => el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName));
   const visible = el => el && el.offsetParent !== null;
@@ -48,7 +37,6 @@ if (getDesign() === "inbox") {
     if (box) { box.focus(); box.select(); }
   }
 
-  // "Yaz": the post box if the page has one, else the main button of the page's heading.
   function startWriting() {
     const composer = document.getElementById("composerText");
     if (visible(composer)) { composer.focus(); return; }

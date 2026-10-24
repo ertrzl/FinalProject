@@ -1,8 +1,3 @@
-// Shared by groups.html and group.html: the group's round picture, and the rules a person must accept before joining.
-// Whether a group has rules, and that joining needs them accepted, is the server's rule (GroupService); this file only
-// shows them and asks.
-
-// The group's round picture, or its initial on a coloured circle when it has none.
 function groupAvatarHtml(group, sizeClass = "avatar-sm") {
   const url = group.avatarUrl || group.groupAvatarUrl;
   if (url) return `<img src="${url}" class="${sizeClass} group-avatar" alt="">`;
@@ -10,8 +5,6 @@ function groupAvatarHtml(group, sizeClass = "avatar-sm") {
   return `<span class="${sizeClass} group-avatar group-avatar-empty" aria-hidden="true" data-no-i18n>${escapeHtml(name.trim().charAt(0).toLocaleUpperCase(localeTag()) || "?")}</span>`;
 }
 
-// Shows the group's rules with a box to tick. Resolves true when the person accepted them (or the group has none),
-// false when they closed the box. confirmText: the button ("Gruba Katıl", "İstek Gönder", "Daveti Kabul Et").
 async function acceptGroupRulesDialog(groupId, groupName, confirmText = "Gruba Katıl") {
   let rules;
   try {

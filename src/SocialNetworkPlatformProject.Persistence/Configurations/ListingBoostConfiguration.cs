@@ -8,7 +8,6 @@ public class ListingBoostConfiguration : IEntityTypeConfiguration<ListingBoost>
 {
     public void Configure(EntityTypeBuilder<ListingBoost> builder)
     {
-        // The weekly limit asks for a seller's newest boost.
         builder.HasIndex(b => new { b.SellerId, b.CreatedAt });
     }
 }

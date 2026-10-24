@@ -1,5 +1,3 @@
-// notifications.html — real notification feed wired to the backend.
-
 requireAuth();
 
 const NOTIF_ICON = {
@@ -48,16 +46,12 @@ function offerMoney(n) {
   return n == null ? "" : n.toLocaleString(localeTag(), { maximumFractionDigits: 2 }) + " ₺";
 }
 
-// The title links to the listing itself; once the listing is deleted there is nothing left to link to.
 function offerListing(n) {
   if (!n.listingId) return `<b>${i18n("notif.deletedListing")}</b>`;
   return `<a href="marketplace.html?listing=${n.listingId}" class="fw-bold text-decoration-none" onclick="event.stopPropagation()">${escapeHtml(n.listingTitle || i18n("notif.listing"))}</a>`;
 }
 
-// The sentences are templates in the language files (the word order differs between languages): {0} is the person,
-// {1}... the group / listing / event and money, already made safe and in bold.
 const notifBold = text => `<b>${escapeHtml(text)}</b>`;
-// The person in a sentence is a link to their profile (the click does not count as a click on the whole notification).
 const notifPerson = n => n.actorId
   ? `<a href="profile.html?id=${n.actorId}" class="fw-bold text-body text-decoration-none" onclick="event.stopPropagation()">${escapeHtml(n.actorName)}</a>`
   : notifBold(n.actorName);
@@ -104,7 +98,6 @@ const NOTIF_TEXT = {
   GroupChatAdded: n => i18n("notif.groupChatAdded", notifPerson(n)),
   GameInviteReceived: n => i18n("notif.gameInviteReceived", notifPerson(n)),
   GameInviteAccepted: n => i18n("notif.gameInviteAccepted", notifPerson(n)),
-  // The admins are not named; the title of what was removed comes in the event-title field (the server's "subject").
   ContentRemoved: n => i18n("notif.contentRemoved", notifBold(n.eventTitle || i18n("notif.photoOrPoll"))),
   EventReminder: n => i18n("notif.eventReminder", notifBold(n.eventTitle || i18n("notif.anEvent")), n.eventStartsAt ? `: ${formatEventDate(n.eventStartsAt)}` : "")
 };
@@ -115,7 +108,6 @@ function notificationHtml(n) {
   const unreadClass = n.isRead ? "" : "notif-unread";
 
   let actions = "";
-  // The server says whether a request is still waiting for an answer: only then are its buttons shown, read or not.
   if (n.type === "FriendRequestReceived" && n.isPending) {
     actions = `<div class="d-flex gap-2 flex-shrink-0">
          <button class="btn btn-primary btn-sm rounded-pill" onclick="respondFromNotification('${n.friendRequestId}', '${n.id}', true)">Kabul Et</button>
@@ -169,8 +161,6 @@ function notificationHtml(n) {
     </div>`;
 }
 
-// The inbox design groups the list by day: a small caption ("Bugün", "Dün", a date) above the first notification of each day.
-// Drawn again whenever the list changes, so the captions are always right.
 function labelNotificationDays() {
   if (getDesign() !== "inbox") return;
 
@@ -192,7 +182,6 @@ function labelNotificationDays() {
   });
 }
 
-// 30 notifications at a time (pager.js).
 const notificationsPager = createPager({
   list: "notificationsList",
   url: page => `/api/notifications?page=${page}&pageSize=30`,
@@ -202,8 +191,6 @@ const notificationsPager = createPager({
   onLoaded: onNotificationsLoaded
 });
 
-// Going to the notifications is reading them: the first time the list is on the screen everything is marked read, so the
-// number on the bell is gone at once. The rows keep their "new" look until the page is left, so it is still clear what is new.
 let openedMarkedRead = false;
 function onNotificationsLoaded() {
   labelNotificationDays();
@@ -212,7 +199,7 @@ function onNotificationsLoaded() {
   if (!document.querySelector(".notif-unread")) return;
   apiFetch("/api/notifications/read-all", { method: "POST" })
     .then(() => window.refreshNotificationBadge?.())
-    .catch(() => { /* a background convenience; the single clicks still mark rows read */ });
+    .catch(() => { });
 }
 
 function loadNotifications() {
@@ -225,7 +212,6 @@ async function markRead(id) {
     document.querySelector(`[data-notification-id="${id}"]`)?.classList.remove("notif-unread");
     window.refreshNotificationBadge?.();
   } catch (err) {
-    // Silent: marking as read is a background convenience, not worth interrupting the user for.
   }
 }
 
@@ -248,8 +234,6 @@ async function respondFromNotification(requestId, notificationId, accepted) {
     await markRead(notificationId);
     await loadNotifications();
   } catch (err) {
-    // Already answered elsewhere (e.g. from friends.html) — the notification just hasn't caught up yet.
-    // Mark it read so the stale Accept/Decline buttons don't linger.
     if (err.message && err.message.includes("already been answered")) {
       await markRead(notificationId);
       await loadNotifications();
@@ -274,7 +258,6 @@ async function respondToGroupRequest(groupId, requesterId, notificationId, appro
 async function respondToGroupInvite(groupId, notificationId, accept) {
   event.stopPropagation();
   try {
-    // A group with rules is joined only after reading and accepting them: that happens on the invitations tab of groups.html.
     if (accept && (await apiFetch(`/api/groups/${groupId}/rules`)).length > 0) {
       await markRead(notificationId);
       window.location.href = "groups.html?tab=invites";
@@ -296,7 +279,7 @@ document.addEventListener("realtime:notification", e => {
   if (!list.querySelector("[data-notification-id]")) list.innerHTML = "";
   list.insertAdjacentHTML("afterbegin", notificationHtml(n));
   labelNotificationDays();
-  markRead(n.id); // the page is open in front of the person: it is read the moment it arrives
+  markRead(n.id);
 });
 
 document.addEventListener("realtime:reconnected", loadNotifications);

@@ -11,13 +11,10 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class NotificationService : INotificationService
 {
-    // Types where every occurrence is genuinely new (each counter-offer, each edit, each invitation...), so two
-    // look-alike notifications are never collapsed into one. Every other type is de-duplicated per actor and target:
-    // like -> unlike -> like again, or join -> leave -> join again, shouldn't spam the recipient.
     private static readonly HashSet<NotificationType> RepeatableTypes = new()
     {
         NotificationType.ContentRemoved,
-        NotificationType.GroupChatAdded, // each time somebody is added again (after being removed or leaving) it is news
+        NotificationType.GroupChatAdded,
         NotificationType.MarketplaceOfferReceived,
         NotificationType.MarketplaceOfferCountered,
         NotificationType.MarketplaceOfferAccepted,
@@ -77,23 +74,16 @@ public class NotificationService : INotificationService
         Guid? offerId = null, decimal? amount = null, Guid? eventId = null, string? subject = null, Guid? storyId = null,
         Guid? gameId = null, Guid? listingId = null, decimal? previousAmount = null, Guid? conversationId = null)
     {
-        // Nobody is notified about their own action, except reminders, which have no real actor (the organizer is
-        // named as one so the notification has an origin, and the organizer gets reminded of their own event too).
         if (recipientId == actorId && type != NotificationType.EventReminder)
             return;
 
-        // Nothing reaches somebody from a person they blocked or who blocked them. A notice from the admins is not
-        // from a person: it always arrives.
         if (type != NotificationType.ContentRemoved && recipientId != actorId && await _blocks.AreBlockedAsync(recipientId, actorId))
             return;
 
-        // The recipient may have switched this kind off in their settings: then there is nothing to create or push.
         var preferences = await _users.GetNotificationPreferencesAsync(recipientId);
         if (preferences != null && !preferences.Allows(type))
             return;
 
-        // The recipient muted the group this comes from (a wall post and what happens under it, a group event). A notice
-        // from the site's admins is not the group's activity: it always arrives.
         if (type != NotificationType.ContentRemoved && await _groups.IsActivityMutedAsync(recipientId, postId, eventId))
             return;
 
@@ -137,7 +127,6 @@ public class NotificationService : INotificationService
         if (type == NotificationType.ContentRemoved)
             HideActor(dto);
 
-        // A request is created together with its notification, so it is waiting for an answer at this very moment.
         dto.IsPending = IsRequestType(type);
 
         if (groupId.HasValue)
@@ -153,7 +142,6 @@ public class NotificationService : INotificationService
             dto.ListingTitle = offer?.Listing?.Title;
         }
 
-        // The subject holds a title for event notifications and the emoji's name for a reaction to a post.
         if (subject != null && type == NotificationType.PostLiked)
             dto.Reaction = subject;
         else if (subject != null && type == NotificationType.MarketplacePriceDropped)
@@ -174,8 +162,6 @@ public class NotificationService : INotificationService
     private static bool IsRequestType(NotificationType type) =>
         type is NotificationType.FriendRequestReceived or NotificationType.GroupJoinRequestReceived or NotificationType.GroupInviteReceived;
 
-    // Which of the request notifications on this page are still waiting for an answer: one batched lookup per kind.
-    // Joining a group or being declined deletes the request row, so "the row exists" is the same as "still pending".
     private async Task<HashSet<Guid>> FindPendingRequestNotificationsAsync(Guid currentUserId, List<Notification> items)
     {
         var pending = new HashSet<Guid>();
@@ -223,7 +209,6 @@ public class NotificationService : INotificationService
         return pending;
     }
 
-    // The admins speak as one: whoever pressed the button is not shown to the person whose content was removed.
     private static void HideActor(GetNotificationDto dto)
     {
         dto.ActorId = Guid.Empty;
@@ -254,7 +239,6 @@ public class NotificationService : INotificationService
             ? new Dictionary<Guid, string>()
             : await _groups.GetAll(g => groupIds.Contains(g.Id), asNoTracking: true).ToDictionaryAsync(g => g.Id, g => g.Name);
 
-        // Marketplace notifications show the listing's title: one batched lookup for the whole page.
         var offerIds = items.Where(n => n.OfferId.HasValue).Select(n => n.OfferId!.Value).Distinct().ToList();
         var offerListings = offerIds.Count == 0
             ? new Dictionary<Guid, (Guid ListingId, string Title)>()

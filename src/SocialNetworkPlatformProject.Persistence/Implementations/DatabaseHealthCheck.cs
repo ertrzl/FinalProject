@@ -3,7 +3,6 @@ using SocialNetworkPlatformProject.Persistence.Contexts;
 
 namespace SocialNetworkPlatformProject.Persistence.Implementations;
 
-// "Is the database reachable?" — what a monitor or a load balancer wants to know before sending traffic.
 public class DatabaseHealthCheck : IHealthCheck
 {
     private readonly ApplicationDbContext _context;

@@ -1,6 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.DTOs.Users;
 
-// settings.html "Şifre Değiştir" section
 public class PutPasswordDto
 {
     public string CurrentPassword { get; set; } = string.Empty;

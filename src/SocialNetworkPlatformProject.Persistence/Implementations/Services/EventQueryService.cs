@@ -11,15 +11,12 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class EventQueryService : IEventQueryService
 {
-    // The single-event page loads the attendees to read its numbers off them; lists count in the database instead.
     private static readonly string[] AttendeeIncludes = { "Attendees" };
 
     private const int MaxPageSize = 50;
 
-    // "Etkinliklerim" shows the most recent N; there is no paging UI for it.
     private const int MaxMineEvents = 100;
 
-    // The attendee tab lists at most this many people; the counts on the event itself stay exact.
     private const int MaxAttendeesListed = 200;
 
     private readonly IEventRepository _events;
@@ -53,7 +50,6 @@ public class EventQueryService : IEventQueryService
         EventAttendeeStatus? wanted = null;
         if (!string.IsNullOrWhiteSpace(status))
         {
-            // Names only: Enum.TryParse would also accept "2" or "99".
             if (!Enum.GetNames<EventAttendeeStatus>().Contains(status, StringComparer.OrdinalIgnoreCase))
                 throw new BadRequestException(Loc.T("eventQuery.status"));
             wanted = Enum.Parse<EventAttendeeStatus>(status, ignoreCase: true);
@@ -67,8 +63,6 @@ public class EventQueryService : IEventQueryService
                 asNoTracking: true)
             .ToListAsync();
 
-        // Going first, then interested, then the waiting list; within each group, whoever signed up first
-        // (the waiting list is in queue order).
         var listed = attendees
             .OrderBy(a => a.Status switch { EventAttendeeStatus.Going => 0, EventAttendeeStatus.Interested => 1, _ => 2 })
             .ThenBy(a => a.WaitlistedAt ?? a.CreatedAt)
@@ -97,7 +91,6 @@ public class EventQueryService : IEventQueryService
 
         var now = DateTime.UtcNow;
 
-        // Everything that hasn't finished yet (so ongoing events stay listed), limited to what this viewer may see.
         var events = _events.GetAll(filter: e => e.EndsAt > now, asNoTracking: true)
             .Where(await _access.GetVisibilityFilterAsync(currentUserId));
 
@@ -118,7 +111,6 @@ public class EventQueryService : IEventQueryService
             events = events.Where(e => e.EndsAt > from);
         }
 
-        // An explicit "to" and a quick range can both be given: the earlier limit wins.
         DateTime? latestStart = query.To?.ToUtc();
         if (!string.IsNullOrEmpty(query.When))
         {
@@ -135,7 +127,6 @@ public class EventQueryService : IEventQueryService
 
         var total = await events.CountAsync();
 
-        // The Id tie-breaker keeps paging stable when several events start at the same minute.
         var items = await events
             .OrderBy(e => e.StartsAt)
             .ThenBy(e => e.Id)
@@ -183,7 +174,6 @@ public class EventQueryService : IEventQueryService
         var query = _events.GetAll(filter: filter, asNoTracking: true)
             .Where(await _access.GetVisibilityFilterAsync(currentUserId));
 
-        // What's coming is listed soonest first; what already happened (or I organized) newest first.
         query = scope == EventMineScope.Attending
             ? query.OrderBy(e => e.StartsAt)
             : query.OrderByDescending(e => e.StartsAt);

@@ -1,6 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.DTOs.Users;
 
-// F7: search.html results + navbar live search suggestions dropdown
 public class GetUserSearchResultDto
 {
     public Guid Id { get; set; }

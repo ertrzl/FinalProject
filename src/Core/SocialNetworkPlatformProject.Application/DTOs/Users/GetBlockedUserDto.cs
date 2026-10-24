@@ -1,6 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.DTOs.Users;
 
-// settings.html "Engellenenler" list: the people the current user has blocked.
 public class GetBlockedUserDto
 {
     public Guid UserId { get; set; }

@@ -10,7 +10,6 @@ public class PollOptionConfiguration : IEntityTypeConfiguration<PollOption>
     {
         builder.Property(o => o.Text).HasMaxLength(PollLimits.MaxOptionLength);
 
-        // A poll's answers in the order the author wrote them.
         builder.HasIndex(o => new { o.PollId, o.SortOrder });
     }
 }

@@ -21,7 +21,6 @@
 
 <div class="container py-4 profile-page">
 
-  <!-- F6: User profile page showing posts, friends list, and about info -->
   <div class="profile-cover position-relative" id="profileCover">
     <div class="position-absolute d-flex gap-2" style="bottom:14px; right:14px;" id="profileCoverEditBtn">
       <label class="btn btn-dark btn-sm rounded-pill d-flex align-items-center gap-1" style="opacity:.85;">
@@ -52,7 +51,6 @@
         <h1 class="h4 mb-0" id="profileName">&nbsp;</h1>
         <p class="mb-0 small text-muted"><span id="profileHandle"></span> · <span id="profileFriendCount">0</span> arkadaş</p>
         <div class="small d-none" id="profileSellerRating"></div>
-        <!-- Somebody else's profile: the friends and groups you share, with a few small faces; opens the full list -->
         <button type="button" class="profile-mutual d-none" id="profileMutual" onclick="openMutualList()"></button>
       </div>
     </div>
@@ -62,7 +60,6 @@
     </div>
   </div>
 
-  <!-- Story highlights: round covers (js/highlights.js); the row is hidden while there is nothing to show -->
   <div class="profile-highlights d-none" id="highlightsRow" aria-label="Öne çıkanlar"></div>
 
   <ul class="nav nav-tabs mb-4 mt-4">
@@ -75,11 +72,9 @@
 
   <div class="tab-content">
 
-    <!-- Posts tab -->
     <div class="tab-pane fade show active" id="tab-posts">
       <div class="row g-4">
 
-        <!-- About summary -->
         <div class="col-lg-4">
           <div class="card border-0 shadow-sm rounded-4 p-3">
             <div class="fw-bold mb-3">Hakkında</div>
@@ -95,7 +90,6 @@
           </div>
         </div>
 
-        <!-- User's posts -->
         <div class="col-lg-8">
           <div class="card border-0 shadow-sm rounded-4 p-3 mb-4 composer" id="ownComposerWrap">
             <div class="d-flex gap-3">
@@ -120,7 +114,6 @@
       </div>
     </div>
 
-    <!-- Friends tab -->
     <div class="tab-pane fade" id="tab-friends">
       <div class="card border-0 shadow-sm rounded-4 p-3">
         <div class="fw-bold mb-3" id="friendsTabHeading">Arkadaşlar</div>
@@ -129,7 +122,6 @@
       </div>
     </div>
 
-    <!-- About tab -->
     <div class="tab-pane fade" id="tab-about">
       <div class="card border-0 shadow-sm rounded-4 p-3" style="max-width:520px;">
         <div class="fw-bold mb-3">Hakkında</div>
@@ -137,7 +129,6 @@
       </div>
     </div>
 
-    <!-- Photos tab -->
     <div class="tab-pane fade" id="tab-photos">
       <div class="card border-0 shadow-sm rounded-4 p-3">
         <div class="fw-bold mb-3">Fotoğraflar</div>
@@ -145,7 +136,6 @@
       </div>
     </div>
 
-    <!-- Tagged tab: posts where this person was tagged with @ (filled when the tab is first opened) -->
     <div class="tab-pane fade" id="tab-tagged">
       <div id="taggedPostsList" class="tagged-posts"><div class="text-muted small">Yükleniyor...</div></div>
     </div>
@@ -153,7 +143,6 @@
   </div>
 </div>
 
-<!-- Edit profile modal -->
 <div class="modal fade" id="editProfileModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4">
@@ -203,7 +192,6 @@
   </div>
 </div>
 
-<!-- Share profile modal: the short link, copy, and a QR code of it (PNG download) -->
 <div class="modal fade" id="shareProfileModal" tabindex="-1" aria-labelledby="shareProfileTitle">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4">
@@ -223,7 +211,6 @@
   </div>
 </div>
 
-<!-- Mutual friends and groups modal (somebody else's profile) -->
 <div class="modal fade" id="mutualModal" tabindex="-1" aria-labelledby="mutualTitle">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content rounded-4">
@@ -245,7 +232,6 @@
   </div>
 </div>
 
-<!-- Manage a highlight (own profile): name, cover, remove stories, delete -->
 <div class="modal fade" id="manageHighlightModal" tabindex="-1" aria-labelledby="manageHighlightTitle">
   <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content rounded-4">

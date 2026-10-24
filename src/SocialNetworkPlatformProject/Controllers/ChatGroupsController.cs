@@ -6,8 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// messages.html "Yeni grup" and the "Grup bilgisi" window of a group chat made on the Messages page.
-// Sending and reading its messages goes through api/messages like every other chat.
 [ApiController]
 [Route("api/messages/group-chats")]
 [Authorize]

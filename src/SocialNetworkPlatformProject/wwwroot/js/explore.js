@@ -1,6 +1,3 @@
-// explore.html (Keşfet) — what is popular this week. Which posts and tags make the list, and in what order, is decided
-// by the server; this page only draws them. The post cards are post-card.js, "Daha fazla yükle" is pager.js.
-
 requireAuth();
 
 const POPULAR_EMPTY_HTML = `<div class="text-center text-muted small py-4">Bu hafta henüz keşfedilecek bir gönderi yok.</div>`;
@@ -28,7 +25,6 @@ async function loadTrendingTags() {
   }
 }
 
-// Something shown here was deleted: say so when the last one is gone.
 window.afterLivePostRemoved = () => {
   const list = document.getElementById("popularList");
   if (!list.querySelector("[data-post-id]"))

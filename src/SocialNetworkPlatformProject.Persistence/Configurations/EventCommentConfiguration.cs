@@ -11,6 +11,6 @@ public class EventCommentConfiguration : IEntityTypeConfiguration<EventComment>
     public void Configure(EntityTypeBuilder<EventComment> builder)
     {
         builder.Property(c => c.Content).IsRequired().HasMaxLength(MaxContentLength);
-        builder.HasIndex(c => new { c.EventId, c.CreatedAt }); // the discussion list
+        builder.HasIndex(c => new { c.EventId, c.CreatedAt });
     }
 }

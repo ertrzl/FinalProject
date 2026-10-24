@@ -14,10 +14,8 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class PasswordResetService : IPasswordResetService
 {
-    // The same text for a wrong, used, expired or somebody else's code, so the reply says nothing about which it was.
     private static string InvalidLinkMessage => Loc.T("passwordReset.invalidLink");
 
-    // One reset mail per address per minute, so nobody can fill a stranger's inbox. Counted for unknown addresses too.
     private static readonly TimeSpan ResendCooldown = TimeSpan.FromMinutes(1);
 
     private readonly UserManager<ApplicationUser> _userManager;
@@ -65,14 +63,10 @@ public class PasswordResetService : IPasswordResetService
             return;
         }
 
-        // Identity's own reset code: tied to the account's security stamp (so it dies when the password changes) and
-        // valid for the time set in PasswordReset:LinkLifetimeMinutes.
         var code = await _userManager.GeneratePasswordResetTokenAsync(user);
         _logger.LogInformation("Password reset link requested for {UserName} ({UserId:l})", user.UserName, user.Id.ToString());
         var link = $"{linkBaseUrl}/reset-password?email={Uri.EscapeDataString(user.Email!)}&token={WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code))}";
 
-        // Not awaited on purpose: sending takes seconds, and only an address that has an account would wait for
-        // it. The reply would then show who is registered. Failures are logged by SendAsync.
         _ = SendAsync(BuildMessage(user, link));
     }
 
@@ -83,25 +77,20 @@ public class PasswordResetService : IPasswordResetService
         if (user == null || code == null)
             throw new BadRequestException(InvalidLinkMessage);
 
-        var oldStamp = user.SecurityStamp!; // Identity replaces it as part of the reset
+        var oldStamp = user.SecurityStamp!;
         var result = await _userManager.ResetPasswordAsync(user, code, dto.NewPassword);
         if (!result.Succeeded)
         {
-            // A concurrency failure means another request used the same code a moment earlier: it is spent now.
             if (result.Errors.Any(error => error.Code is nameof(IdentityErrorDescriber.InvalidToken) or nameof(IdentityErrorDescriber.ConcurrencyFailure)))
                 throw new BadRequestException(InvalidLinkMessage);
 
-            // A password the rules refuse (the code is still unused, so the person can simply try another one).
             throw new BadRequestException(string.Join(" ", result.Errors.Select(error => error.Description)));
         }
 
-        // Whoever had the old password is signed out everywhere: refresh tokens revoked, access tokens (which carry
-        // the old security stamp) refused from the next request on.
         _accessTokens.Revoke(user.Id, oldStamp);
         await _sessions.RevokeAllAsync(user.Id);
         _logger.LogInformation("Password reset done for {UserName} ({UserId:l}); all sessions ended", user.UserName, user.Id.ToString());
 
-        // The person may have been locked out by too many wrong guesses before giving up and asking for this reset.
         user.LockoutEnd = null;
         user.AccessFailedCount = 0;
         await _userManager.UpdateAsync(user);
@@ -125,7 +114,6 @@ public class PasswordResetService : IPasswordResetService
         var htmlLink = WebUtility.HtmlEncode(link);
         var htmlName = WebUtility.HtmlEncode(user.FullName);
 
-        // The e-mail is written in the language of the request that asked for it (the texts are in the language files).
         var hello = Loc.T("email.reset.hello", user.FullName);
         var helloHtml = Loc.T("email.reset.hello", htmlName);
         var validity = Loc.T("email.reset.validity", lifetime);

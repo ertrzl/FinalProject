@@ -2,9 +2,6 @@ using Microsoft.AspNetCore.Identity;
 
 namespace SocialNetworkPlatformProject.Persistence.Identity;
 
-// ASP.NET Identity's own error texts are English only; the ones a person can actually run into (password rules, taken
-// names) come from the language files here, in the language of the request (see Loc). Anything not listed keeps
-// Identity's default text.
 public class LocalizedIdentityErrorDescriber : IdentityErrorDescriber
 {
     public override IdentityError DefaultError() => Error(nameof(DefaultError), "identity.default");

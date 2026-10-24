@@ -1,6 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.DTOs.Events;
 
-// event.html's invite modal: who has already been invited (so they show "Davet edildi" instead of a button).
 public class GetEventInviteeDto
 {
     public Guid UserId { get; set; }

@@ -5,5 +5,4 @@ namespace SocialNetworkPlatformProject.Application.Interfaces.Repositories;
 
 public interface IStoryHighlightRepository : IRepository<StoryHighlight>
 {
-    // The generic queries are enough today.
 }

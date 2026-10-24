@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class AddSessions : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
@@ -39,8 +37,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 nullable: false,
                 defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
 
-            // The sign-ins that are open now become one session each, started when their token was made (their devices are
-            // not known: the list shows "Unknown device" until the next renewal names it).
             migrationBuilder.Sql("UPDATE RefreshTokens SET SessionId = Id, SessionStartedAt = CreatedAt;");
 
             migrationBuilder.CreateIndex(
@@ -49,7 +45,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 column: "SessionId");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(

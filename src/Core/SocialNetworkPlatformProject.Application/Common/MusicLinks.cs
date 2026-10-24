@@ -1,7 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.Common;
 
-// Where a story's music may come from. Only the preview clips and covers of Apple's music store are accepted: the page plays
-// whatever address the story holds, so an address typed by somebody else (a tracking pixel, a huge file) must never get in.
 public static class MusicLinks
 {
     private static readonly string[] AudioHosts = { "itunes.apple.com", "mzstatic.com" };

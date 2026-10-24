@@ -2,8 +2,6 @@ using Serilog.Context;
 
 namespace SocialNetworkPlatformProject.Middlewares;
 
-// Puts who is asking on every log line written while the request is handled (the services' own lines too): the signed-in
-// person's id ("-" when nobody is signed in) and the client's address. It runs after authentication, so the user is known.
 public class LogContextMiddleware
 {
     private readonly RequestDelegate _next;

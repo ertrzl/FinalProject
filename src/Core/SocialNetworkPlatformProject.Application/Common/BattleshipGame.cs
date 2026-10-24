@@ -2,11 +2,6 @@ using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Application.Common;
 
-// The rules of the board in battleship: the fleet, where ships may lie, and what a set of shots has done to a board.
-// Whose turn it is and who may play stay in GameService.
-//
-// A board is a string of 100 characters, row by row (cell = row * 10 + column): '.' is water, a letter is a part of the
-// ship with that letter. The shots one player fired are a second string of 100: '-' not shot, 'o' miss, 'x' hit.
 public static class BattleshipGame
 {
     public const int Size = 10;
@@ -31,7 +26,6 @@ public static class BattleshipGame
 
     public static string EmptyShots() => new string(NotShot, Cells);
 
-    // One of each ship, all inside the board, none on another. Ships may touch.
     public static bool TryBuildBoard(IReadOnlyCollection<Placement> placements, out string board)
     {
         board = string.Empty;
@@ -61,7 +55,6 @@ public static class BattleshipGame
         return true;
     }
 
-    // The ships lying on a board, read back from its letters (an empty board: none).
     public static List<PlacedShip> FindShips(string board)
     {
         var ships = new List<PlacedShip>();
@@ -82,7 +75,6 @@ public static class BattleshipGame
         return ships;
     }
 
-    // Every cell of this ship has been hit (no shots at all: nothing is sunk).
     public static bool IsSunk(string board, string shots, char letter)
     {
         if (board.Length != Cells || shots.Length != Cells)
@@ -102,14 +94,12 @@ public static class BattleshipGame
     public static bool IsSunk(string board, string shots, ShipKind kind) =>
         IsSunk(board, shots, Fleet.First(f => f.Kind == kind).Letter);
 
-    // Every ship of the board is sunk.
     public static bool AllSunk(string board, string shots) =>
         board.Length == Cells && Fleet.All(f => IsSunk(board, shots, f.Letter));
 
     public static int ShipsLeft(string board, string shots) =>
         board.Length != Cells ? Fleet.Count : Fleet.Count(f => !IsSunk(board, shots, f.Letter));
 
-    // A random valid layout (the "Rastgele diz" button).
     public static List<Placement> RandomFleet(Random random)
     {
         while (true)

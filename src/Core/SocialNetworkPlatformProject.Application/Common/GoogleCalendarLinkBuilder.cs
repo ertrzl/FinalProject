@@ -3,8 +3,6 @@ using SocialNetworkPlatformProject.Application.DTOs.Events;
 
 namespace SocialNetworkPlatformProject.Application.Common;
 
-// Builds Google Calendar's pre-filled "create event" address for one event. Like IcsBuilder it is pure formatting, and
-// the DTO is already what this viewer may see, so the online link only appears for the organizer and people going.
 public static class GoogleCalendarLinkBuilder
 {
     private const string BaseAddress = "https://calendar.google.com/calendar/render";

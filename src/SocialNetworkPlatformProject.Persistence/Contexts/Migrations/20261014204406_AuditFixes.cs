@@ -4,15 +4,10 @@
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class AuditFixes : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
-        {            // One-off clean-up of rows the older code left behind (a new database has none of them):
-            // - the same person's repeated reports of the same thing (the oldest is kept), which the unique index below refuses;
-            // - join requests, invitations and memberships of accounts that no longer exist (they showed up as blank names
-            //   in a group's request list and could be "approved").
+        {
             migrationBuilder.Sql(@"
 WITH numbered AS (
     SELECT Id, ROW_NUMBER() OVER (PARTITION BY ReporterId, TargetType, TargetId ORDER BY CreatedAt, Id) AS Position
@@ -85,7 +80,6 @@ DELETE FROM numbered WHERE Position > 1;");
                 filter: "[CoverImageUrl] IS NOT NULL");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(

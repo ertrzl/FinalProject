@@ -1,5 +1,3 @@
-// settings.html — account, privacy, password and account deletion wired to the backend.
-
 const session = requireAuth();
 
 let settingsAvatarMarkedForRemoval = false;
@@ -27,8 +25,6 @@ async function loadSettings() {
   }
 }
 
-// The four switches of "Bildirim Tercihleri" are stored on the server: a kind that is switched off is no longer
-// created for this user at all.
 async function loadNotificationSettings() {
   try {
     const settings = await apiFetch("/api/users/me/notification-settings");
@@ -112,7 +108,6 @@ async function savePrivacy() {
   }
 }
 
-// "Engellenenler": the people this user blocked, each with a button that lifts the block.
 async function loadBlockedUsers() {
   const list = document.getElementById("blockedList");
   try {
@@ -145,8 +140,6 @@ async function unblockUser(userId, btn) {
   }
 }
 
-// "Açık Oturumlar": every device the account is signed in on, each with a button that closes it.
-// A page that stays open renews its token every few minutes, so "last active" within this time reads as "active now".
 const ACTIVE_NOW_MS = 20 * 60 * 1000;
 
 async function loadSessions() {
@@ -222,7 +215,6 @@ async function submitPasswordForm(event) {
   }
 
   try {
-    // The server ends every other session and sends this device a fresh token pair.
     const tokens = await apiFetch("/api/users/me/password", {
       method: "PUT",
       body: { currentPassword: document.getElementById("currentPassword").value, newPassword, confirmNewPassword }
@@ -253,17 +245,14 @@ async function deleteAccount() {
   }
 }
 
-// A closed dialog must not keep the typed password or an old error around.
 document.getElementById("deleteAccountModal").addEventListener("hidden.bs.modal", () => {
   document.getElementById("deleteAccountPassword").value = "";
   document.getElementById("deleteAccountError").classList.add("d-none");
 });
 
-// "Dil": every language in locales/languages.js; picking one reloads the page in it.
 document.getElementById("languageSelect").innerHTML = (window.LANGUAGES || [])
   .map(l => `<option value="${l.code}" ${l.code === getLang() ? "selected" : ""}>${l.name}</option>`).join("");
 
-// "Görünüm": every design listed in js/design.js; picking one reloads the page in it.
 document.getElementById("designSelect").innerHTML = DESIGNS
   .map(d => `<option value="${d.code}" ${d.code === getDesign() ? "selected" : ""}>${d.name}</option>`).join("");
 

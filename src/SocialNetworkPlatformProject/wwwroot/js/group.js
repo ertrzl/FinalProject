@@ -1,7 +1,3 @@
-// group.html — a group's own wall: header, join/leave/delete, chat, mute, a members-only composer, pinned announcements,
-// search, its posts, events and rules. What anyone may do is decided by the server (the flags on the group); this file
-// shows the matching buttons.
-
 const session = requireAuth();
 const groupId = new URLSearchParams(window.location.search).get("id");
 
@@ -32,7 +28,6 @@ function muteButtonHtml(group) {
     : `<i class="bi bi-bell me-1"></i>Sessize Al`;
 }
 
-// Whoever may see the wall may search it: the members, and anyone for a public group.
 function canSeeWall(group) {
   return group.isCurrentUserMember || group.privacy === "Public";
 }
@@ -54,7 +49,6 @@ function renderGroup(group) {
   document.getElementById("groupPrivacyLabel").textContent = group.privacy === "Private" ? "Gizli Grup" : "Genel Grup";
   document.getElementById("groupActionArea").innerHTML = actionAreaHtml(group);
 
-  // The chat and muting are a member's own things.
   document.getElementById("groupChatBtn").classList.toggle("d-none", !group.isCurrentUserMember);
   const muteBtn = document.getElementById("groupMuteBtn");
   muteBtn.classList.toggle("d-none", !group.isCurrentUserMember);
@@ -66,7 +60,6 @@ function renderGroup(group) {
   document.getElementById("groupNonMemberNotice").classList.toggle("d-none", group.isCurrentUserMember);
   document.getElementById("groupSearchForm").classList.toggle("d-none", !canSeeWall(group));
 
-  // Events are for members only: non-members never see the tab. Admins and moderators may create group events.
   document.getElementById("groupEventsTabItem").classList.toggle("d-none", !group.isCurrentUserMember);
   document.getElementById("groupEventCreateBtn").classList.toggle("d-none", !(group.isCurrentUserAdmin || group.isCurrentUserModerator));
   groupEventsLoaded = false;
@@ -98,7 +91,6 @@ function renderGroup(group) {
   if (document.getElementById("groupMembersModal").classList.contains("show")) loadMembers();
 }
 
-// ---- Group chat: opens in the chat dock where there is one, otherwise on the messages page ----
 
 async function openGroupChat(btn) {
   btn.disabled = true;
@@ -118,7 +110,6 @@ async function openGroupChat(btn) {
   }
 }
 
-// ---- Mute: the member's own choice, kept by the server ----
 
 async function toggleGroupMute(btn) {
   btn.disabled = true;
@@ -135,7 +126,6 @@ async function toggleGroupMute(btn) {
   }
 }
 
-// ---- Events tab: upcoming events of this group (members only) ----
 
 let groupEventsLoaded = false;
 
@@ -169,12 +159,11 @@ function createGroupEvent() {
   openEventForm(null, () => loadGroupEvents(true), { group: { id: groupId, name: currentGroup.name } });
 }
 
-// ---- Rules tab, and the admins' editor ----
 
 let groupRulesLoaded = false;
 let groupRules = [];
 
-const MAX_RULES = 10; // the server's limit (GroupLimits.MaxRules); here only to hide "Kural Ekle" at the limit
+const MAX_RULES = 10;
 
 function ruleItemHtml(rule, index) {
   return `
@@ -237,7 +226,6 @@ function removeRuleRow(btn) {
 }
 
 async function saveRules(btn) {
-  // Rows left completely empty are simply not rules; the server checks the rest.
   const rules = [...document.querySelectorAll("#rulesEditorList .rule-editor-row")]
     .map(row => ({ title: row.querySelector(".rule-title").value.trim(), text: row.querySelector(".rule-text").value.trim() }))
     .filter(r => r.title || r.text);
@@ -257,7 +245,6 @@ async function saveRules(btn) {
   }
 }
 
-// ---- Admin-only: edit group details ----
 
 async function saveGroupEdit() {
   const name = document.getElementById("editGroupName").value.trim();
@@ -283,7 +270,6 @@ async function saveGroupEdit() {
     bootstrap.Modal.getInstance(document.getElementById("editGroupModal"))?.hide();
     document.getElementById("editGroupCoverInput").value = "";
     document.getElementById("editGroupAvatarInput").value = "";
-    // The update answers without the member list; the page keeps the one it has.
     group.members = currentGroup.members;
     renderGroup(group);
     toast("Grup güncellendi.");
@@ -292,7 +278,6 @@ async function saveGroupEdit() {
   }
 }
 
-// ---- Admin-only: pending join requests for private groups ----
 
 function joinRequestRowHtml(r) {
   return `
@@ -321,9 +306,7 @@ async function loadJoinRequests() {
   }
 }
 
-// ---- Admin-only: search any real user and invite them (not limited to friends) ----
 
-// The people already in the group get a badge instead of the "Davet Et" button (see user-search.js).
 const searchInviteCandidates = createUserSearch({
   resultsId: "groupInviteResultsList",
   actionFor: u => (currentGroup.members || []).some(m => m.userId === u.id)
@@ -336,8 +319,6 @@ async function inviteUser(userId, btn) {
   try {
     await apiFetch(`/api/groups/${groupId}/invites/${userId}`, { method: "POST" });
     toast("Davet gönderildi.");
-    // Not reloading the whole group here: an invite doesn't change membership (except the rare case
-    // where the user already had a pending join request, which just gets folded in silently).
     btn.outerHTML = `<span class="badge text-bg-light border text-muted fw-normal">Davet gönderildi</span>`;
   } catch (err) {
     btn.disabled = false;
@@ -365,7 +346,6 @@ async function rejectJoinRequest(userId) {
   }
 }
 
-// ---- Members list (modal): searched, filtered and paged by the server; roles, kicking, and ownership transfer ----
 
 function roleBadge(role) {
   if (role === "Admin") return `<span class="badge text-bg-primary">Yönetici</span>`;
@@ -417,7 +397,6 @@ function loadMembers() {
   if (!currentGroup) return;
   const search = document.getElementById("groupMemberSearch").value.trim();
   const role = document.getElementById("groupMemberRole").value;
-  // A new pager for each search: it starts from the first page again (and replaces the previous "Daha fazla yükle").
   membersPager = createPager({
     list: "groupMembersList",
     url: page => `/api/groups/${groupId}/members?page=${page}&pageSize=20${search ? "&search=" + encodeURIComponent(search) : ""}${role ? "&role=" + role : ""}`,
@@ -481,7 +460,6 @@ async function loadGroup() {
 }
 
 async function joinGroupPage(btn) {
-  // A group with rules lets nobody in who did not accept them: they are shown first.
   const needsRules = currentGroup.ruleCount > 0;
   if (needsRules && !(await acceptGroupRulesDialog(groupId, currentGroup.name, "Gruba Katıl"))) return;
 
@@ -517,13 +495,9 @@ async function deleteGroupPage() {
   }
 }
 
-// ---- Posts (the card, comments and like / edit / delete actions are in post-card.js, the button is pager.js) ----
 
-// The ids of the pinned posts: their cards carry "Sabitlendi", and the admins' menu offers to pin or unpin.
 let pinnedIds = new Set();
 
-// post-card.js draws the cards; this adds what belongs to a group wall. Done on every card that appears (also one that
-// post-card.js draws again after an edit), so it is watched for rather than called by hand.
 function decorateGroupCard(card) {
   if (card.dataset.groupDecorated === "1") return;
   card.dataset.groupDecorated = "1";
@@ -566,7 +540,6 @@ async function loadPinned() {
   }
 }
 
-// The pinned posts first, then the wall: the wall's pager leaves out what is already on the page (the pinned ones).
 async function reloadWall() {
   document.getElementById("groupPostsList").innerHTML = "";
   await loadPinned();
@@ -637,7 +610,6 @@ async function publishGroupPost(btn) {
   }
 }
 
-// ---- Search inside the group: the server searches the wall's text and hashtags; the wall steps aside meanwhile ----
 
 function searchGroupPosts(event) {
   event.preventDefault();
@@ -647,8 +619,6 @@ function searchGroupPosts(event) {
     return false;
   }
 
-  // The wall's cards are taken off the page while the results show, so each post is on the page once (live updates
-  // and "Düzenle" find the card by its id).
   document.getElementById("groupPinnedList").innerHTML = "";
   document.getElementById("groupPostsList").innerHTML = "";
   document.getElementById("groupPostsList-more")?.classList.add("d-none");
@@ -677,8 +647,6 @@ function clearGroupSearch() {
   reloadWall();
 }
 
-// Live like/comment updates on already-rendered post cards are handled by js/live-posts.js. When a post goes (deleted
-// here or elsewhere) and it was the last pinned one, the "Sabitlenen" heading goes with it.
 window.afterLivePostRemoved = () => {
   if (!document.querySelector("#groupPinnedList .card")) document.getElementById("groupPinnedSection").classList.add("d-none");
 };

@@ -3,7 +3,6 @@ using SocialNetworkPlatformProject.Application.DTOs.Marketplace;
 
 namespace SocialNetworkPlatformProject.Application.Validators.Marketplace;
 
-// Rules shared by creating and editing a listing.
 public abstract class MarketplaceListingInputValidator<T> : AbstractValidator<T> where T : MarketplaceListingInputDto
 {
     protected MarketplaceListingInputValidator()

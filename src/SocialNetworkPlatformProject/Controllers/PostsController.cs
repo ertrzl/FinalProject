@@ -6,7 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// F3/F4/F5: composer, feed, likes, saved posts (home.html / profile.html / saved.html)
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]

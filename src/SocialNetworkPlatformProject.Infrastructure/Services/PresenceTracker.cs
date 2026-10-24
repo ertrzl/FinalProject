@@ -2,13 +2,11 @@ using SocialNetworkPlatformProject.Application.Interfaces.Services;
 
 namespace SocialNetworkPlatformProject.Infrastructure.Services;
 
-// Counts live SignalR connections per user (one per open tab). In-memory: fine for a single server instance.
 public class PresenceTracker : IPresenceTracker
 {
     private readonly object _gate = new();
     private readonly Dictionary<Guid, HashSet<string>> _connections = new();
 
-    // Returns true when this was the user's first connection (they just came online).
     public bool Connected(Guid userId, string connectionId)
     {
         lock (_gate)
@@ -21,7 +19,6 @@ public class PresenceTracker : IPresenceTracker
         }
     }
 
-    // Returns true when that was the user's last connection.
     public bool Disconnected(Guid userId, string connectionId)
     {
         lock (_gate)

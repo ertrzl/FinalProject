@@ -7,7 +7,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// F5: threaded comments under a post (home.html / profile.html)
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]

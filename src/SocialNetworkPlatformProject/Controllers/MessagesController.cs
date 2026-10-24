@@ -6,8 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// messages.html + chat dock. Real-time delivery goes through MessagesHub (SignalR);
-// these endpoints cover history and the non-JS fallback.
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -26,7 +24,6 @@ public class MessagesController : ControllerBase
         return await _messages.GetConversationsAsync(User.GetUserId());
     }
 
-    // group.html "Grup Sohbeti": the group's chat (created on first use), members only.
     [HttpPost("groups/{groupId:guid}")]
     public async Task<ActionResult<GetConversationDto>> OpenGroupChat(Guid groupId)
     {

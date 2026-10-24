@@ -8,9 +8,6 @@ public class PostProfile : Profile
 {
     public PostProfile()
     {
-        // AuthorName/AuthorAvatarUrl, the like/comment counts and the per-viewer flags (liked, saved, may delete)
-        // need a join against ApplicationUser (Persistence-only type), the current user's id or a COUNT query —
-        // all are filled in by PostService after this mapping runs, not here.
         CreateMap<Post, GetPostDto>()
             .ForMember(dest => dest.Privacy, opt => opt.MapFrom(src => src.Privacy.ToString()))
             .ForMember(dest => dest.Media, opt => opt.MapFrom(src => src.Media.OrderBy(m => m.SortOrder)))

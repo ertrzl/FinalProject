@@ -58,7 +58,6 @@ public class UserService : IUserService
 
         var isOwnProfile = userId == currentUserId;
 
-        // Somebody who blocked the viewer looks as if they do not exist.
         if (!isOwnProfile && await _blocks.HasBlockedAsync(userId, currentUserId))
             throw new NotFoundException(Loc.T("user.notFound"));
 
@@ -149,7 +148,6 @@ public class UserService : IUserService
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
         {
-            // The photos were saved before the row was; nothing points at them now.
             if (dto.Avatar != null) _files.Delete(user.AvatarUrl);
             if (dto.CoverPhoto != null) _files.Delete(user.CoverPhotoUrl);
             throw new BadRequestException(JoinErrors(result));
@@ -204,14 +202,11 @@ public class UserService : IUserService
         if (!await _passwords.VerifyAsync(user, dto.CurrentPassword))
             throw new BadRequestException(Loc.T("user.currentPasswordWrong"));
 
-        var oldStamp = user.SecurityStamp!; // Identity replaces it as part of the password change
+        var oldStamp = user.SecurityStamp!;
         var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
         if (!result.Succeeded)
             throw new BadRequestException(JoinErrors(result));
 
-        // Whoever knew the old password is logged out everywhere: the refresh tokens are revoked and the access
-        // tokens (which carry the old security stamp) are refused from the next request on. This device gets a
-        // fresh pair so the person changing the password stays signed in.
         _accessTokens.Revoke(currentUserId, oldStamp);
         await _sessions.RevokeAllAsync(currentUserId);
         _logger.LogInformation("Password changed by {UserName} ({UserId:l}); every other session was ended", user.UserName, currentUserId.ToString());

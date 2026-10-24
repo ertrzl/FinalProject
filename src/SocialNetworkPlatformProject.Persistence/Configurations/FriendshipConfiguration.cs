@@ -10,7 +10,6 @@ public class FriendshipConfiguration : IEntityTypeConfiguration<Friendship>
     {
         builder.HasIndex(f => new { f.UserOneId, f.UserTwoId }).IsUnique();
 
-        // The unique index above only helps "friends of UserOne"; this one answers it from the UserTwo side.
         builder.HasIndex(f => f.UserTwoId);
     }
 }

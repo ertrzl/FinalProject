@@ -7,7 +7,6 @@ using SocialNetworkPlatformProject.Application.Interfaces.Services;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// "Müzik ekle" in the add-story window (js/stories.js)
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]

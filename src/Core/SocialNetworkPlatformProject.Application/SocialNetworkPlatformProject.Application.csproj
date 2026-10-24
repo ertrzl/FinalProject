@@ -5,13 +5,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The DTOs of the uploads use IFormFile (Microsoft.AspNetCore.Http). It used to arrive through FluentValidation.AspNetCore. -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Not lower than 16.x: every older version has the high-severity GHSA-rvv3-g6hj-g44x. From 15 on AutoMapper wants a
-         license key (the free Community one is enough); see AutoMapper:LicenseKey in ServiceRegistration. -->
     <PackageReference Include="AutoMapper" Version="16.2.0" />
     <PackageReference Include="FluentValidation" Version="12.2.0" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0" />
@@ -24,9 +21,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Loc.T("key"): the texts shown to a person come from the language files (see Common/Loc.cs). -->
     <Using Include="SocialNetworkPlatformProject.Application.Common" />
-    <!-- Every Locales/<code>.json is a language; adding a file adds the language. -->
     <EmbeddedResource Include="Locales\*.json" />
   </ItemGroup>
 

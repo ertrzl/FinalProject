@@ -1,8 +1,5 @@
 namespace SocialNetworkPlatformProject.Middlewares;
 
-// Pages are served without ".html": /friends shows wwwroot/friends.html, and the old /friends.html (a bookmark, a link in a
-// mail or a notification) is sent to /friends with its query string kept (event.html?id=5 -> /event?id=5). Only top-level
-// pages that exist as a file take part; 404.html is left alone (it is the error page, not an address).
 public class CleanUrlMiddleware
 {
     private const string Extension = ".html";

@@ -1,6 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.DTOs.Users;
 
-// settings.html "Bildirim Tercihleri" "Kaydet": the four switches as the user left them.
 public class PutNotificationSettingsDto
 {
     public bool Likes { get; set; }

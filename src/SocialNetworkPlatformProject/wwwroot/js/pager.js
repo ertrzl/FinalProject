@@ -1,21 +1,6 @@
-// "Daha fazla yükle": a list that shows one page of what the server has, with a button under it for the next page.
-// The server says whether there is more (result.hasMore), so the button shows up only while there is.
-//
-//   const pager = createPager({
-//     list: "feedList",                                    // id of the element the items are drawn into
-//     url: page => `/api/posts/feed?page=${page}&pageSize=10`,
-//     render: post => postCardHtml(post),                  // the html of one item
-//     shown: post => !!document.querySelector(...),        // optional: true when an item is already on the page
-//     emptyHtml: "<div>Henüz gönderi yok.</div>",          // shown when there is nothing at all
-//     onLoaded: (items, firstPage) => { ... }              // optional: called after every page
-//   });
-//   pager.reload();                                        // start again from the first page
-//
-// `shown` matters because pages are counted from the newest item: when something new arrives live while the list
-// is open, the item that was last on one page is first on the next, and must not be drawn twice.
 function createPager({ list, url, render, shown = () => false, emptyHtml = "", onLoaded = () => {} }) {
   const buttonId = `${list}-more`;
-  document.getElementById(buttonId)?.remove(); // a new pager for the same list (a new search) replaces the old button
+  document.getElementById(buttonId)?.remove();
 
   let page = 0;
   let busy = false;
@@ -47,7 +32,7 @@ function createPager({ list, url, render, shown = () => false, emptyHtml = "", o
       const firstPage = page === 0;
       page += 1;
 
-      if (firstPage) target.innerHTML = ""; // replaces "Yükleniyor..." or whatever was there before a reload
+      if (firstPage) target.innerHTML = "";
 
       if (firstPage && result.items.length === 0) {
         target.innerHTML = emptyHtml;

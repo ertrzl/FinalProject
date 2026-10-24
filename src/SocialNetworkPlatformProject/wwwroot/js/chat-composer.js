@@ -1,10 +1,3 @@
-// Messenger-style message bar shared by messages.html and the chat dock popups:
-// photo, sticker, an emoji picker inside the input, and a thumbs-up that turns into "send" once there is something to send.
-//
-// createChatComposer(form, { getTarget, onSent, onTyping, compact })
-//   getTarget() -> { conversationId } or { receiverId } (or null when nothing is selected)
-//   onSent(message) is called after a message went out; onTyping() on keystrokes.
-
 (function () {
   const STICKERS = ["😀", "😂", "🥰", "😍", "😎", "🤩", "😭", "😡", "🥳", "🤯", "😴", "🤔",
     "🙄", "😱", "🤗", "😇", "🤝", "👏", "🙌", "🙏", "💪", "👍", "👎", "✌️",
@@ -47,8 +40,6 @@
     const preview = form.querySelector(".chat-attach-preview");
     const replyBar = form.querySelector(".chat-reply-bar");
 
-    // "Yanıtla" on a bubble (chat-data.js) puts the message here: what the next message answers. It goes out with that
-    // message (text, photo or sticker) and the bar is empty again.
     let replyTarget = null;
 
     function setReplyTarget(message) {
@@ -56,7 +47,6 @@
       replyBar.classList.toggle("d-none", !message);
       if (!message) return;
 
-      // In a group chat the bubble names its sender; in a direct one it is the other person.
       const who = message.isMine ? i18n("chat.you") : (message.senderName || window.findChatConversation?.(message.conversationId)?.otherUserName || "");
       replyBar.querySelector(".chat-reply-text").innerHTML =
         `<div class="chat-reply-name" data-no-i18n>${i18n("chat.replyingTo", escapeHtml(who))}</div><div class="chat-reply-preview" data-no-i18n>${escapeHtml(window.chatMessagePreviewText(message))}</div>`;
@@ -80,7 +70,6 @@
       sticker: form.querySelector('[data-popover="sticker"]')
     };
 
-    // The thumbs-up becomes a send arrow as soon as there is text or a photo.
     function refreshSendButton() {
       const hasContent = input.value.trim() !== "" || attachedFile !== null;
       sendBtn.title = hasContent ? "Gönder" : "Beğen";
@@ -157,7 +146,6 @@
       });
     }
 
-    // Sends the typed text and/or the attached photo; does nothing when both are empty.
     function submitContent() {
       closePopovers();
       const text = input.value.trim();
@@ -176,13 +164,11 @@
       }
     }
 
-    // The button acts as "like" only when clicked on an empty bar; pressing Enter on an empty bar sends nothing.
     sendBtn.addEventListener("click", () => {
       if (input.value.trim() === "" && attachedFile === null) sendSticker("👍");
       else submitContent();
     });
 
-    // Pasting a picture into the bar attaches it, with the same small preview and send arrow as the photo button.
     input.addEventListener("paste", e => {
       const pictures = typeof getPastedImages === "function" ? getPastedImages(e) : [];
       if (pictures.length === 0) return;
@@ -216,7 +202,6 @@
     form.querySelectorAll("[data-sticker]").forEach(btn =>
       btn.addEventListener("click", () => sendSticker(btn.dataset.sticker)));
 
-    // Click outside / Escape closes whichever picker is open.
     document.addEventListener("click", e => {
       if (!form.contains(e.target)) closePopovers();
     });

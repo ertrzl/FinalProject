@@ -41,7 +41,6 @@ public class ConversationRepository : Repository<Conversation>, IConversationRep
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
-            // The other person's request created it a moment ago: drop ours and use theirs.
             _context.Entry(conversation).State = EntityState.Detached;
             foreach (var participant in conversation.Participants)
                 _context.Entry(participant).State = EntityState.Detached;
@@ -85,7 +84,6 @@ public class ConversationRepository : Repository<Conversation>, IConversationRep
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
-            // Another member opened it a moment ago: drop ours and use theirs.
             _context.Entry(conversation).State = EntityState.Detached;
             foreach (var participant in conversation.Participants)
                 _context.Entry(participant).State = EntityState.Detached;
@@ -110,7 +108,6 @@ public class ConversationRepository : Repository<Conversation>, IConversationRep
             .Select(c => new { c.Id, GroupId = c.GroupId!.Value })
             .ToListAsync();
 
-        // A group without a chat yet (made before group chats existed, or never opened): created with all its members.
         foreach (var groupId in myGroupIds.Except(chats.Select(c => c.GroupId)))
             await GetOrCreateGroupAsync(groupId);
 
@@ -133,13 +130,11 @@ public class ConversationRepository : Repository<Conversation>, IConversationRep
             }
             catch (DbUpdateException ex) when (ex.IsUniqueViolation())
             {
-                // GroupService added the same row at the same moment: it is there either way.
                 foreach (var entry in _context.ChangeTracker.Entries<ConversationParticipant>().Where(e => e.State == EntityState.Added).ToList())
                     entry.State = EntityState.Detached;
             }
         }
 
-        // Still a participant of the chat of a group they are no longer in: out.
         await participants
             .Where(p => p.UserId == userId
                 && _dbSet.Any(c => c.Id == p.ConversationId && c.GroupId != null && !myGroupIds.Contains(c.GroupId.Value)))

@@ -1,7 +1,3 @@
-// admin.html — the admin panel: numbers, the reports people sent, accounts, content and the log of what admins did.
-// Only the draw-and-ask part lives here: who may do what is decided by the server (/api/admin needs the Admin role;
-// an admin cannot act on another admin or on themselves). A person without the role is sent back to the home page.
-
 requireAuth();
 
 const REASON_LABELS = {
@@ -22,22 +18,18 @@ function dateTimeText(isoDate) {
   return parseServerDate(isoDate).toLocaleString(localeTag(), { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-// Somebody's own words (a post, a name) are never run through the page translation.
 function userText(text) {
   return `<span data-no-i18n>${escapeHtml(text)}</span>`;
 }
 
-// A date as a piece of html that is never translated (dates are written for the chosen language already).
 function dateHtml(isoDate) {
   return `<span data-no-i18n>${dateTimeText(isoDate)}</span>`;
 }
 
-// Small grey facts side by side; every fact is its own element so the page translation can handle each one.
 function factsHtml(facts, extraClass = "mt-2") {
   return `<div class="small text-muted d-flex flex-wrap gap-x-3 ${extraClass}" style="column-gap:14px">${facts.filter(Boolean).map(f => `<span>${f}</span>`).join("")}</div>`;
 }
 
-// A link to the thing a report or a content row is about (a comment has no page of its own).
 function targetHref(type, id) {
   switch (type) {
     case "Post": return `post.html?id=${id}`;
@@ -49,7 +41,6 @@ function targetHref(type, id) {
   }
 }
 
-// If the person is no longer an admin (the role was taken away since sign-in) the server says 403 and the page leaves.
 async function adminFetch(path, options) {
   try {
     return await apiFetch(path, options);
@@ -59,8 +50,6 @@ async function adminFetch(path, options) {
   }
 }
 
-// ---- A question with an optional note and some tick boxes (resolve, dismiss, suspend, remove) ----
-// Resolves to null when cancelled, else { note, checks: { key: true | false } }.
 function noteDialog({ title, intro, checks = [], placeholder = "Not (isteğe bağlı)", confirmText, danger = false }) {
   return new Promise(resolve => {
     openSiteDialog(`
@@ -93,7 +82,6 @@ function noteDialog({ title, intro, checks = [], placeholder = "Not (isteğe ba�
   });
 }
 
-// ---- Overview ----
 
 const STAT_CARDS = [
   ["users", "Toplam kullanıcı", "bi-people"], ["newUsersThisWeek", "Bu hafta katılan", "bi-person-plus"], ["suspendedUsers", "Askıdaki hesap", "bi-person-slash"],
@@ -122,10 +110,9 @@ async function loadStats() {
   }
 }
 
-// ---- Reports ----
 
 let reportPager = null;
-const drawnReports = new Map(); // the reports on the page, so the resolve box knows what each one is about
+const drawnReports = new Map();
 
 function reportRowHtml(r) {
   drawnReports.set(r.id, r);
@@ -204,7 +191,6 @@ async function resolveReport(id, dismiss) {
   }
 }
 
-// ---- Users ----
 
 function userRowHtml(u) {
   const badges = [
@@ -297,7 +283,6 @@ async function deleteUser(id, button) {
   }
 }
 
-// ---- Content ----
 
 const CONTENT_TYPE_NAMES = { post: "Post", comment: "Comment", listing: "Listing", event: "Event", group: "Group" };
 
@@ -349,7 +334,6 @@ async function removeContent(button) {
   }
 }
 
-// ---- Audit log ----
 
 function auditRowHtml(a) {
   return `
@@ -374,9 +358,7 @@ function loadAudit() {
   }).reload();
 }
 
-// ---- Wiring ----
 
-// A tab loads when it is first opened; typing in a search box waits a moment before asking the server.
 const tabLoaders = { "panel-users": loadUsers, "panel-content": loadContent, "panel-audit": loadAudit };
 const loadedTabs = new Set();
 

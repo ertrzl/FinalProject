@@ -18,7 +18,6 @@ public static class ServiceRegistration
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Fail at startup, not on the first login, when the signing key was never configured on this machine.
         var jwtSecret = JwtSecret.Read(configuration);
 
         services.AddScoped<ITokenService, TokenService>();
@@ -30,9 +29,6 @@ public static class ServiceRegistration
         services.AddScoped<AccessTokenValidator>();
         services.AddScoped<IAccessTokenRevoker>(provider => provider.GetRequiredService<AccessTokenValidator>());
 
-        // E-mail goes through the SMTP account in the settings when there is one. Without one, Development writes the
-        // message to the console (so the flow works with no account) and everywhere else it is dropped with a warning:
-        // a password reset link in a log file would let anyone who can read the log take over accounts.
         services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
         services.AddSingleton<IEmailSender>(provider =>
         {
@@ -44,10 +40,8 @@ public static class ServiceRegistration
                 : ActivatorUtilities.CreateInstance<DisabledEmailSender>(provider);
         });
 
-        // Timer-driven housekeeping: event reminders, waiting lists and expired stories.
         services.AddHostedService<MaintenanceBackgroundService>();
 
-        // Once at the start: the "@" tags of posts written before they were stored (profile "Etiketlendiklerim" tab).
         services.AddHostedService<PostMentionBackfillService>();
 
         services.AddSignalR(options => options.AddFilter<SecurityStampHubFilter>());
@@ -57,8 +51,6 @@ public static class ServiceRegistration
         services.AddSingleton<PresenceTracker>();
         services.AddSingleton<IPresenceTracker>(sp => sp.GetRequiredService<PresenceTracker>());
 
-        // The two kinds of token differ in audience only (see MediaCookie): the API's token is refused for uploads and the
-        // photo cookie's token is refused by the API.
         TokenValidationParameters Parameters(string? audience) => new()
         {
             ValidateIssuer = true,
@@ -66,8 +58,6 @@ public static class ServiceRegistration
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
 
-            // The default allows a token to be used five minutes after it expired; with a 15-minute life that
-            // would be a third more. The page renews its token 30 seconds early anyway.
             ClockSkew = TimeSpan.FromSeconds(30),
 
             ValidIssuer = configuration["Jwt:Issuer"],
@@ -78,8 +68,6 @@ public static class ServiceRegistration
             RoleClaimType = ClaimTypes.Role
         };
 
-        // A token outlives the account it was issued for, the password it was issued under and the sign-out that ended it:
-        // refuse it once the user is gone, the security stamp in it is no longer the user's current one, or it was signed out.
         static async Task RefuseRevokedAsync(TokenValidatedContext context)
         {
             var sub = context.Principal?.FindFirst("sub")?.Value;
@@ -98,11 +86,9 @@ public static class ServiceRegistration
             options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
         }).AddJwtBearer(options =>
         {
-            // Keep claim names exactly as TokenService wrote them ("sub" stays "sub").
             options.MapInboundClaims = false;
             options.TokenValidationParameters = Parameters(configuration["Jwt:Audience"]);
 
-            // Browsers can't set an Authorization header on a WebSocket, so SignalR sends the JWT as ?access_token=.
             options.Events = new JwtBearerEvents
             {
                 OnTokenValidated = RefuseRevokedAsync,
@@ -121,7 +107,6 @@ public static class ServiceRegistration
             options.MapInboundClaims = false;
             options.TokenValidationParameters = Parameters(TokenService.MediaAudience(configuration));
 
-            // An <img> tag cannot send a header: the token comes from the cookie.
             options.Events = new JwtBearerEvents
             {
                 OnTokenValidated = RefuseRevokedAsync,

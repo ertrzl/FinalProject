@@ -9,13 +9,11 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// F6/F7: profile page + search + settings
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
 public class UsersController : ControllerBase
 {
-    // The short address /u/<username>: letters, digits, dots and underscores, as the register rules allow.
     private static readonly Regex UserNamePattern = new("^[A-Za-z0-9._]{1,50}$", RegexOptions.Compiled);
 
     private readonly IUserService _users;
@@ -41,9 +39,6 @@ public class UsersController : ControllerBase
         _environment = environment;
     }
 
-    // The short, shareable address of a profile (the QR code of "Profili Paylaş" points here). It leads to the profile page, or to the
-    // site's 404 page when nobody has that user name. No sign-in needed to ask: a visitor who is not signed in is sent to the sign-in
-    // page by the profile page itself.
     [AllowAnonymous]
     [HttpGet("/u/{userName}")]
     public async Task<IActionResult> ShortAddress(string userName)
@@ -55,8 +50,6 @@ public class UsersController : ControllerBase
         return LocalRedirect("/profile?u=" + Uri.EscapeDataString(stored));
     }
 
-    // The site's own 404 page with the 404 status. (Program.cs fills an empty 404 with it too, but only for addresses without a dot,
-    // and a user name may have dots: /u/ali.veli.)
     private async Task<IActionResult> NotFoundPageAsync()
     {
         var page = _environment.WebRootFileProvider.GetFileInfo("404.html");
@@ -110,21 +103,18 @@ public class UsersController : ControllerBase
         return await _users.GetProfileByUserNameAsync(userName, User.GetUserId());
     }
 
-    // The round covers under the profile header.
     [HttpGet("{id:guid}/highlights")]
     public async Task<ActionResult<List<GetHighlightDto>>> GetHighlights(Guid id)
     {
         return await _highlights.GetForUserAsync(User.GetUserId(), id);
     }
 
-    // "12 ortak arkadaş" and the groups both belong to.
     [HttpGet("{id:guid}/mutual")]
     public async Task<ActionResult<GetMutualConnectionsDto>> GetMutual(Guid id)
     {
         return await _mutual.GetAsync(User.GetUserId(), id);
     }
 
-    // The profile's "Etiketlendiklerim" tab: posts this person is tagged in.
     [HttpGet("{id:guid}/tagged-posts")]
     public async Task<ActionResult<PagedResult<GetPostDto>>> GetTaggedPosts(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {

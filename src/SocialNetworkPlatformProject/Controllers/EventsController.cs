@@ -7,7 +7,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// events.html cards + "Katılıyorum" / "İlgileniyorum" buttons
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -24,21 +23,18 @@ public class EventsController : ControllerBase
         _posts = posts;
     }
 
-    // events.html "Yaklaşan": search box and filter chips, paged
     [HttpGet("upcoming")]
     public async Task<ActionResult<PagedResult<GetEventDto>>> GetUpcoming([FromQuery] EventQuery query)
     {
         return await _queries.GetUpcomingAsync(User.GetUserId(), query);
     }
 
-    // group.html's "Etkinlikler" tab: upcoming events of one group (members only)
     [HttpGet("group/{groupId:guid}")]
     public async Task<ActionResult<List<GetEventDto>>> GetGroupEvents(Guid groupId)
     {
         return await _queries.GetGroupEventsAsync(User.GetUserId(), groupId);
     }
 
-    // scope = "created", "past" or "attending" (see EventMineScope)
     [HttpGet("mine")]
     public async Task<ActionResult<List<GetEventDto>>> GetMine([FromQuery] string scope = EventMineScope.Created)
     {
@@ -51,7 +47,6 @@ public class EventsController : ControllerBase
         return await _queries.GetByIdAsync(User.GetUserId(), id);
     }
 
-    // ?status=Going or ?status=Interested narrows the list; without it everyone is returned.
     [HttpGet("{id:guid}/attendees")]
     public async Task<ActionResult<List<GetEventAttendeeDto>>> GetAttendees(Guid id, [FromQuery] string? status = null)
     {
@@ -79,7 +74,6 @@ public class EventsController : ControllerBase
         return await _events.SetStatusAsync(User.GetUserId(), id, dto);
     }
 
-    // event.html "Gönderide paylaş": a post on the caller's own feed that carries the event as a card
     [HttpPost("{id:guid}/share")]
     public async Task<ActionResult<GetPostDto>> Share(Guid id, PostShareDto dto)
     {

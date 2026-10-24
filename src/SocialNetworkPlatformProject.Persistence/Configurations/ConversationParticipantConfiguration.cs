@@ -10,7 +10,6 @@ public class ConversationParticipantConfiguration : IEntityTypeConfiguration<Con
     {
         builder.HasIndex(p => new { p.ConversationId, p.UserId }).IsUnique();
 
-        // "My conversations".
         builder.HasIndex(p => p.UserId);
     }
 }

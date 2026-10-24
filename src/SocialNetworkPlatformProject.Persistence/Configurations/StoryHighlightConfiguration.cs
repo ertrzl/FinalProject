@@ -10,7 +10,6 @@ public class StoryHighlightConfiguration : IEntityTypeConfiguration<StoryHighlig
     {
         builder.Property(h => h.Title).HasMaxLength(30).IsRequired();
 
-        // The row of covers on a profile: one person's highlights, oldest first.
         builder.HasIndex(h => new { h.UserId, h.CreatedAt });
 
         builder.HasMany(h => h.Items).WithOne(i => i.Highlight).HasForeignKey(i => i.HighlightId).OnDelete(DeleteBehavior.Cascade);

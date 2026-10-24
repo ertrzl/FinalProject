@@ -1,9 +1,6 @@
-// friends.html — real friend requests/friends/suggestions wired to the backend.
-
 requireAuth();
 
 function requestCardHtml(req, kind) {
-  // kind: "incoming" (they sent it to me) or "sent" (I sent it to them)
   const otherName = kind === "incoming" ? req.senderName : req.receiverName;
   const otherAvatar = kind === "incoming" ? req.senderAvatarUrl : req.receiverAvatarUrl;
   const otherId = kind === "incoming" ? req.senderId : req.receiverId;
@@ -142,7 +139,6 @@ function reloadAll() {
   loadSuggestions();
 }
 
-// Someone sent us a request / accepted ours: keep the lists in step without a reload.
 document.addEventListener("realtime:notification", e => {
   if (e.detail.type === "FriendRequestReceived" || e.detail.type === "FriendRequestAccepted") reloadAll();
 });

@@ -24,7 +24,6 @@ public class GroupMemberRepository : Repository<GroupMember>, IGroupMemberReposi
         else if (role.HasValue)
             query = query.Where(m => m.Role == role.Value);
 
-        // The name lives on the account, so the members are matched against the users table.
         if (!string.IsNullOrWhiteSpace(term))
         {
             var t = term.Trim();
@@ -32,13 +31,11 @@ public class GroupMemberRepository : Repository<GroupMember>, IGroupMemberReposi
                 && (u.FullName.Contains(t) || u.UserName!.Contains(t))));
         }
 
-        // A member whose account is gone is not listed (and not counted).
         query = query.Where(m => users.Any(u => u.Id == m.UserId));
 
         var total = await query.CountAsync();
 
         var items = await query
-            // The owner, then Admin, Moderator, Member (not by the enum's number: Moderator was added after Admin), then by name.
             .OrderBy(m => m.UserId == ownerId ? 0 : m.Role == GroupMemberRole.Admin ? 1 : m.Role == GroupMemberRole.Moderator ? 2 : 3)
             .ThenBy(m => users.Where(u => u.Id == m.UserId).Select(u => u.FullName).FirstOrDefault())
             .ThenBy(m => m.Id)

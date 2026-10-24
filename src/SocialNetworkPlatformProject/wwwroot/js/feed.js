@@ -1,6 +1,3 @@
-// home.html — feed, stories and friend suggestions, all wired to the backend. The post cards, their comments and
-// the like / edit / delete actions are in post-card.js; the "Daha fazla yükle" button is pager.js.
-
 const session = requireAuth();
 
 const composerFirstName = session.fullName.split(" ")[0];
@@ -21,8 +18,6 @@ function loadFeed() {
   return feedPager.reload();
 }
 
-// The tabs above the list (inbox design): show only the posts with a photo or a poll. The posts stay drawn, the
-// attribute on the list tells the stylesheet which ones to hide.
 function filterFeed(tab) {
   document.querySelectorAll("#feedFilter .nav-link").forEach(el => el.classList.toggle("active", el === tab));
   document.getElementById("feedList").dataset.filter = tab.dataset.filter;
@@ -61,7 +56,6 @@ async function publishPost(btn) {
   }
 }
 
-// A friend (or one of our other tabs) posted: fetch it as we would see it and put it on top.
 document.addEventListener("realtime:post-created", async e => {
   const { postId } = e.detail;
   if (livePostCard(postId)) return;
@@ -72,7 +66,6 @@ document.addEventListener("realtime:post-created", async e => {
     if (!list.querySelector("[data-post-id]")) list.innerHTML = "";
     list.insertAdjacentHTML("afterbegin", postCardHtml(post));
   } catch (err) {
-    // Not visible to us after all, or already gone: nothing to show.
   }
 });
 

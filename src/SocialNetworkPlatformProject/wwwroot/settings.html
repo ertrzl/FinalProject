@@ -24,7 +24,6 @@
 
   <div class="row g-4 page-row settings-row">
 
-    <!-- Section nav -->
     <div class="col-md-3 d-none d-md-block side-nav page-subnav">
       <div class="card border-0 shadow-sm rounded-4 p-2">
         <h1 class="h4 fw-bold inbox-only subnav-title">Ayarlar</h1>
@@ -42,7 +41,6 @@
 
     <div class="col-md-9 d-flex flex-column gap-4 page-main">
 
-      <!-- Account info -->
       <div class="card border-0 shadow-sm rounded-4 p-3" id="section-account">
         <div class="fw-bold mb-3">Hesap Bilgileri</div>
         <div class="d-flex align-items-center gap-3 mb-3">
@@ -80,21 +78,18 @@
         <button type="button" id="saveAccountBtn" class="btn btn-primary rounded-pill mt-3 align-self-start" onclick="saveAccount()">Kaydet</button>
       </div>
 
-      <!-- Language -->
       <div class="card border-0 shadow-sm rounded-4 p-3" id="section-language">
         <div class="fw-bold mb-1">Dil</div>
         <p class="text-muted small mb-3">Sayfaların ve mesajların hangi dilde gösterileceğini seç. Seçim bu tarayıcıda saklanır.</p>
         <select id="languageSelect" class="form-select rounded-pill" style="max-width: 260px;" onchange="setLang(this.value)" data-no-i18n></select>
       </div>
 
-      <!-- Design -->
       <div class="card border-0 shadow-sm rounded-4 p-3" id="section-design">
         <div class="fw-bold mb-1">Görünüm</div>
         <p class="text-muted small mb-3">Sitenin görünümünü seç. "Klasik" eski tasarımdır, istediğin zaman geri dönebilirsin. Seçim bu tarayıcıda saklanır.</p>
         <select id="designSelect" class="form-select rounded-pill" style="max-width: 260px;" onchange="setDesign(this.value)"></select>
       </div>
 
-      <!-- Privacy -->
       <div class="card border-0 shadow-sm rounded-4 p-3" id="section-privacy">
         <div class="fw-bold mb-3">Gizlilik</div>
         <div class="form-check form-switch mb-2">
@@ -113,14 +108,12 @@
         <button type="button" class="btn btn-primary rounded-pill align-self-start" onclick="savePrivacy()">Kaydet</button>
       </div>
 
-      <!-- Blocked people -->
       <div class="card border-0 shadow-sm rounded-4 p-3" id="section-blocked">
         <div class="fw-bold mb-1" data-i18n="settings.blocked.title">Engellenenler</div>
         <p class="text-muted small mb-3" data-i18n="settings.blocked.intro">Engellediğin kişiler seni ve gönderilerini göremez, sen de onları göremezsin. Birbirinize mesaj ve arkadaşlık isteği gönderemezsiniz.</p>
         <div id="blockedList"><div class="text-muted small" data-i18n="common.loading">Yükleniyor...</div></div>
       </div>
 
-      <!-- Password -->
       <div class="card border-0 shadow-sm rounded-4 p-3" id="section-password">
         <div class="fw-bold mb-3">Şifre Değiştir</div>
         <form id="passwordForm" onsubmit="return submitPasswordForm(event)">
@@ -143,7 +136,6 @@
         </form>
       </div>
 
-      <!-- Open sessions -->
       <div class="card border-0 shadow-sm rounded-4 p-3" id="section-sessions">
         <div class="fw-bold mb-1" data-i18n="settings.sessions.title">Açık Oturumlar</div>
         <p class="text-muted small mb-3" data-i18n="settings.sessions.intro">Hesabına şu an hangi cihazlardan girildiğini burada görürsün. Tanımadığın ya da artık kullanmadığın bir cihazı buradan kapatabilirsin.</p>
@@ -151,7 +143,6 @@
         <button type="button" class="btn btn-outline-danger rounded-pill btn-sm mt-3 align-self-start d-none" id="endOthersBtn" onclick="endOtherSessions(this)" data-i18n="settings.sessions.endOthers">Diğer tüm cihazlardan çıkış yap</button>
       </div>
 
-      <!-- Notifications -->
       <div class="card border-0 shadow-sm rounded-4 p-3" id="section-notifications">
         <div class="fw-bold mb-3">Bildirim Tercihleri</div>
         <div class="form-check form-switch mb-2">
@@ -177,7 +168,6 @@
         <button type="button" class="btn btn-primary rounded-pill align-self-start" onclick="saveNotificationSettings()">Kaydet</button>
       </div>
 
-      <!-- Danger zone -->
       <div class="card border-0 shadow-sm rounded-4 p-3 border-danger-subtle" id="section-danger">
         <div class="fw-bold mb-2 text-danger">Tehlikeli Bölge</div>
         <p class="text-muted small mb-3">Hesabını sildiğinde tüm gönderilerin, arkadaşlıkların ve mesajların kalıcı olarak kaybolur.</p>
@@ -188,7 +178,6 @@
   </div>
 </div>
 
-<!-- Delete account confirmation -->
 <div class="modal fade" id="deleteAccountModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content rounded-4">

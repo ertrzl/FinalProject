@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class HardenSessionsAndFriendRequests : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(
@@ -29,7 +27,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 nullable: false,
                 defaultValue: "");
 
-            // Keep everyone logged in: hash the tokens that exist today (SHA-256, upper-case hex, same as the app does).
             migrationBuilder.Sql(
                 "UPDATE RefreshTokens SET TokenHash = CONVERT(varchar(64), HASHBYTES('SHA2_256', CONVERT(varchar(200), Token)), 2), " +
                 "RevokedAt = CASE WHEN IsRevoked = 1 THEN SYSUTCDATETIME() ELSE NULL END");
@@ -56,7 +53,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 filter: "[Status] = 0");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(

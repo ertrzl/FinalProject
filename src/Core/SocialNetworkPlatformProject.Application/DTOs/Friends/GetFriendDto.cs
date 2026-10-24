@@ -1,6 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.DTOs.Friends;
 
-// friends.html "Arkadaşlarım" tab, profile.html friend grid
 public class GetFriendDto
 {
     public Guid UserId { get; set; }

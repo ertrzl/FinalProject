@@ -1,7 +1,3 @@
-// The "Yaklaşan" box of the inbox design's right-hand column: the next event the person goes to, with a link to it.
-// A page that wants it has  <div class="inbox-only" id="upcomingWidget"></div>  and loads this file. Nothing is drawn
-// when there is no event ahead.
-
 (async function loadUpcomingWidget() {
   const box = document.getElementById("upcomingWidget");
   if (!box || getDesign() !== "inbox") return;
@@ -21,6 +17,5 @@
         <div class="upcoming-place">${next.isOnline ? "Çevrimiçi" : `<span data-no-i18n>${escapeHtml(next.location || "")}</span>`} · ${next.goingCount} katılımcı</div>
       </a>`;
   } catch (err) {
-    // Silent: the column works without the box.
   }
 })();

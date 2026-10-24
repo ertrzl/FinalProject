@@ -6,7 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// marketplace.html listing cards + "Ürün Sat" modal
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]

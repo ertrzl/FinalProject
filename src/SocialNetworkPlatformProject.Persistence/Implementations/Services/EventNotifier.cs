@@ -39,11 +39,9 @@ public class EventNotifier : IEventNotifier
 
     public async Task CancelledAsync(Event ev, IReadOnlyCollection<Guid> attendeeIds, Guid organizerId)
     {
-        // Nobody needs to hear that something that is already over was removed.
         if (ev.EndsAt <= DateTime.UtcNow)
             return;
 
-        // The event row is gone, so the notification carries a snapshot of its title instead of an EventId.
         foreach (var userId in await _access.FilterViewersAsync(ev, attendeeIds.Where(id => id != organizerId)))
             await _notifications.CreateAsync(userId, organizerId, NotificationType.EventCancelled, subject: ev.Title);
     }
@@ -73,7 +71,6 @@ public class EventNotifier : IEventNotifier
             await _notifications.CreateAsync(userId, ev.CreatedByUserId, NotificationType.EventReminder, eventId: ev.Id);
     }
 
-    // Everyone with a response on the event (going, interested or waiting) who can still see it, minus the person acting.
     private Task<List<Guid>> AttendeesAsync(Event ev, Guid exceptUserId)
     {
         return _access.FilterViewersAsync(ev, ev.Attendees.Select(a => a.UserId).Where(id => id != exceptUserId));

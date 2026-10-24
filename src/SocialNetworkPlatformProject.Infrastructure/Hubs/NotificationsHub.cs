@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 
 namespace SocialNetworkPlatformProject.Infrastructure.Hubs;
 
-// Server -> client only: INotificationService pushes "ReceiveNotification" through SignalRNotifier.
 [Authorize]
 public class NotificationsHub : Hub
 {

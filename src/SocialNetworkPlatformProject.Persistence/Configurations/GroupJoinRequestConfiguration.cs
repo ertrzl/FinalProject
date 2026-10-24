@@ -8,7 +8,6 @@ public class GroupJoinRequestConfiguration : IEntityTypeConfiguration<GroupJoinR
 {
     public void Configure(EntityTypeBuilder<GroupJoinRequest> builder)
     {
-        // One pending request per user per group — JoinAsync also checks this before inserting.
         builder.HasIndex(r => new { r.GroupId, r.UserId }).IsUnique();
     }
 }

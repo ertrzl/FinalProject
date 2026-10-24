@@ -2,7 +2,6 @@ using SocialNetworkPlatformProject.Application.DTOs.Common;
 
 namespace SocialNetworkPlatformProject.Application.DTOs.Posts;
 
-// The original post shown inside a share (the framed box on the card)
 public class GetSharedPostDto
 {
     public Guid Id { get; set; }

@@ -66,8 +66,6 @@ public class LiveUpdateService : ILiveUpdateService
 
     public Task CommentAddedAsync(Post post, GetCommentDto comment, int commentCount)
     {
-        // The same comment goes to everybody, so it carries nothing that depends on who is looking (liked by me?
-        // may I delete it?): each page asks for those itself.
         var shared = new
         {
             comment.Id, comment.PostId, comment.AuthorId, comment.AuthorName, comment.AuthorAvatarUrl,
@@ -97,8 +95,6 @@ public class LiveUpdateService : ILiveUpdateService
 
             var isOnline = user.ShowOnlineStatus && _presence.IsOnline(userId);
 
-            // Only the people who can see this person's status on the pages hear about it: their friends and the people they
-            // chat with, except anyone blocked with them. (It used to go to every connected client, strangers included.)
             var audience = new HashSet<Guid>(await _friends.GetFriendIdsAsync(userId));
 
             var myConversationIds = _participants.GetAll(p => p.UserId == userId, asNoTracking: true).Select(p => p.ConversationId);
@@ -116,7 +112,6 @@ public class LiveUpdateService : ILiveUpdateService
         }
         catch (Exception ex)
         {
-            // Live pushes are best effort: the page still shows the right state after its next load. It is logged, though.
             _logger.LogWarning(ex, "The online status of user {UserId:l} could not be pushed", userId.ToString());
         }
     }
@@ -125,7 +120,6 @@ public class LiveUpdateService : ILiveUpdateService
     {
         try
         {
-            // A group post is only ever shown to the group's members, so that is who hears about it.
             var audience = post.GroupId is { } groupId
                 ? (await _groupMembers.GetAll(m => m.GroupId == groupId, asNoTracking: true).Select(m => m.UserId).ToListAsync()).ToHashSet()
                 : new HashSet<Guid>(await _friends.GetFriendIdsAsync(post.AuthorId));
@@ -134,7 +128,6 @@ public class LiveUpdateService : ILiveUpdateService
             foreach (var id in alsoInclude)
                 audience.Add(id);
 
-            // Whoever is blocked with the post's author, or with the one who acted (a comment's writer...), hears nothing.
             foreach (var id in alsoInclude.Append(post.AuthorId))
                 audience.ExceptWith(await _blocks.GetBlockedIdsAsync(id));
 
@@ -142,7 +135,6 @@ public class LiveUpdateService : ILiveUpdateService
         }
         catch (Exception ex)
         {
-            // Live pushes are best effort: the request that caused this must not fail because of them. It is logged, though.
             _logger.LogWarning(ex, "The live update {EventName} of post {PostId:l} could not be pushed", eventName, post.Id.ToString());
         }
     }

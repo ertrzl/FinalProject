@@ -9,7 +9,6 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class EventPhotoService : IEventPhotoService
 {
-    // The folder under /uploads that holds the album pictures (UploadsController / UploadAccessService know it by this name).
     private const string Folder = "eventphotos";
 
     private readonly IEventPhotoRepository _photos;
@@ -51,8 +50,6 @@ public class EventPhotoService : IEventPhotoService
         if (await _photos.CountByEventAsync(eventId) + adding > EventLimits.MaxPhotosPerEvent)
             throw new BadRequestException(Loc.T("eventPhoto.eventLimit", EventLimits.MaxPhotosPerEvent));
 
-        // A file that is refused (not an image, too big...) fails the whole upload, and the ones stored before it are
-        // removed again instead of being left behind.
         var added = new List<EventPhoto>();
         try
         {
@@ -73,8 +70,6 @@ public class EventPhotoService : IEventPhotoService
             throw;
         }
 
-        // Two uploads of the same person (or two people filling the last places) can pass the check above at the same
-        // moment. Counting again after the save settles it: whoever finds the limit exceeded takes their pictures back.
         var overPerson = await _photos.CountByUploaderAsync(eventId, currentUserId) > EventLimits.MaxPhotosPerPerson;
         var overEvent = await _photos.CountByEventAsync(eventId) > EventLimits.MaxPhotosPerEvent;
         if (overPerson || overEvent)
@@ -110,7 +105,6 @@ public class EventPhotoService : IEventPhotoService
         _files.Delete(photo.Url);
     }
 
-    // The organizer, and anyone who is going (not just interested or waiting).
     private async Task<bool> CanUploadAsync(Event ev, Guid userId)
     {
         return ev.CreatedByUserId == userId

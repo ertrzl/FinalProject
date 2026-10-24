@@ -46,7 +46,6 @@ public class EventCheckInService : IEventCheckInService
 
         if (dto.CheckedIn)
         {
-            // Ticking someone who is already ticked keeps the first time (and who gave it).
             if (attendee.CheckedInAt == null)
             {
                 attendee.CheckedInAt = now;
@@ -64,7 +63,6 @@ public class EventCheckInService : IEventCheckInService
         return await BuildAsync(ev);
     }
 
-    // The organizer runs the list. (There are no co-hosts: if they are added, this is the one place that decides.)
     private static void EnsureOrganizer(Event ev, Guid userId)
     {
         if (ev.CreatedByUserId != userId)

@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class AddListingImages : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
@@ -37,7 +35,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 table: "ListingImages",
                 columns: new[] { "ListingId", "SortOrder" });
 
-            // Existing single photos become each listing's first (cover) photo before the old column goes away.
             migrationBuilder.Sql(
                 "INSERT INTO ListingImages (Id, ListingId, Url, SortOrder, CreatedAt) " +
                 "SELECT NEWID(), Id, ImageUrl, 0, SYSUTCDATETIME() FROM MarketplaceListings WHERE ImageUrl IS NOT NULL");
@@ -47,7 +44,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 table: "MarketplaceListings");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
@@ -56,7 +52,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 type: "nvarchar(max)",
                 nullable: true);
 
-            // Only the cover photo survives a rollback to the single-photo schema.
             migrationBuilder.Sql(
                 "UPDATE l SET l.ImageUrl = i.Url FROM MarketplaceListings l " +
                 "JOIN ListingImages i ON i.ListingId = l.Id AND i.SortOrder = 0");

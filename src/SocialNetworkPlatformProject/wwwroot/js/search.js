@@ -1,5 +1,3 @@
-// search.html — real user search (F7) plus a bonus post/hashtag search.
-
 const session = requireAuth();
 
 const FRIENDSHIP_LABEL = {
@@ -49,8 +47,6 @@ async function runSearch(term) {
     return;
   }
 
-  // A term starting with "#" is hashtag-only, so skip the user search — it can't match a username.
-  // Both lists show 20 results at a time with a "Daha fazla yükle" button (pager.js).
   if (!term.startsWith("#")) {
     createPager({
       list: "searchResultsUsers",

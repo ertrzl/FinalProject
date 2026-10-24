@@ -38,11 +38,9 @@ public class EventAccessService : IEventAccessService
         var found = await _events.GetByIdAsync(eventId, includes)
             ?? throw new NotFoundException(Loc.T("event.notFound"));
 
-        // The event of someone who is blocked with the viewer is hidden from them, like that person's posts are.
         if (found.CreatedByUserId != viewerId && await _blocks.AreBlockedAsync(viewerId, found.CreatedByUserId))
             throw new NotFoundException(Loc.T("event.notFound"));
 
-        // Same answer as "doesn't exist": a group event shouldn't reveal itself to people outside the group.
         if (found.GroupId.HasValue && !await IsGroupMemberAsync(found.GroupId.Value, viewerId))
             throw new NotFoundException(Loc.T("event.notFound"));
 
@@ -84,7 +82,6 @@ public class EventAccessService : IEventAccessService
             .ToListAsync();
     }
 
-    // Having been invited is enough to see (and accept) a private event, so an invitation never leads to a 404.
     private async Task<bool> CanSeePrivateEventAsync(Event ev, Guid viewerId)
     {
         return ev.CreatedByUserId == viewerId

@@ -5,8 +5,6 @@ namespace SocialNetworkPlatformProject.Application.Interfaces.Services;
 
 public interface INotificationService
 {
-    // Called by other services when a like/comment/friend event happens; saves, then pushes over SignalR.
-    // Does nothing when actor and recipient are the same person.
     Task CreateAsync(Guid recipientId, Guid actorId, NotificationType type,
         Guid? postId = null, Guid? commentId = null, Guid? friendRequestId = null, Guid? groupId = null,
         Guid? offerId = null, decimal? amount = null, Guid? eventId = null, string? subject = null, Guid? storyId = null,
@@ -20,18 +18,13 @@ public interface INotificationService
 
     Task MarkAllAsReadAsync(Guid currentUserId);
 
-    // Cleans up notifications that point at a post that no longer exists.
     Task DeleteByPostAsync(Guid postId);
 
-    // The same for many posts at once (a group's whole wall, or everything a deleted account wrote).
     Task DeleteByPostsAsync(IReadOnlyCollection<Guid> postIds);
 
-    // Same for notifications pointing at an event that was deleted.
     Task DeleteByEventAsync(Guid eventId);
 
-    // Same for notifications about a group that was deleted (invites, join requests, role changes...).
     Task DeleteByGroupAsync(Guid groupId);
 
-    // Same for notifications about a listing that was deleted (price-drop alerts).
     Task DeleteByListingAsync(Guid listingId);
 }

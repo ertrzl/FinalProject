@@ -1,7 +1,3 @@
-// Stoop — small helpers every page shares: toasts, the composer's attachment preview, search form, dark mode.
-// Tabs, collapses, dropdowns, and modals are handled by Bootstrap's own JS bundle; posts and comments are in post-card.js.
-
-// ---- Tiny toast helper ----
 function toast(message, { html = false } = {}) {
   let container = document.getElementById("toastContainer");
   if (!container) {
@@ -19,8 +15,6 @@ function toast(message, { html = false } = {}) {
       <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
     </div>`;
 
-  // The message is shown as plain text, so whatever the server echoes back in an error ("'<img…>' değeri geçersiz") can never
-  // become markup. Only a caller that builds its own markup (and escapes the parts it takes from users) passes { html: true }.
   const body = el.querySelector(".toast-body");
   if (html) body.innerHTML = message;
   else body.textContent = message;
@@ -30,12 +24,6 @@ function toast(message, { html = false } = {}) {
   el.addEventListener("hidden.bs.toast", () => el.remove());
 }
 
-// ---- Asking before something that cannot be undone ----
-// The site's own box, not the browser's confirm(): it looks like the rest of the page, follows the language and the dark
-// mode, and opens on top of modals and the story viewer. It is not a Bootstrap modal for that last reason (Bootstrap
-// cannot stack them). Resolves true when confirmed, false on "Vazgeç", Esc or a click outside.
-//   if (!(await confirmDialog("Bu gönderi silinsin mi?"))) return;
-//   if (!(await confirmDialog("...", { confirmText: "Kabul Et", danger: false }))) return;
 function openSiteDialog(innerHtml, onOpen) {
   const previousFocus = document.activeElement;
   const overlay = document.createElement("div");
@@ -49,7 +37,6 @@ function openSiteDialog(innerHtml, onOpen) {
     if (previousFocus && previousFocus.focus) previousFocus.focus();
   };
 
-  // Esc closes; Tab stays inside the box.
   const onKey = event => {
     if (event.key === "Escape") { event.stopPropagation(); overlay.dispatchEvent(new CustomEvent("dismiss")); return; }
     if (event.key !== "Tab") return;
@@ -84,16 +71,10 @@ function confirmDialog(message, { confirmText = "Sil", danger = true } = {}) {
         box.addEventListener("dismiss", () => answer(false));
       });
 
-    // A destructive question starts on "Vazgeç" so a stray Enter cannot delete anything.
     overlay.querySelector(danger ? '[data-answer="no"]' : '[data-answer="yes"]').focus();
   });
 }
 
-// ---- Reporting ----
-// The "Şikâyet et" item of a post, comment, listing or profile opens this box: a reason and an optional note, sent to the
-// admins (POST /api/reports; the server refuses own content and a second report of the same thing). `what` names the
-// thing in the title ("gönderi", "yorum", "ilan", "profil"). Resolves true when the report was sent.
-//   reportDialog("Post", post.id, "gönderi")
 const REPORT_REASONS = [
   { value: "Spam", label: "Spam ya da reklam" },
   { value: "Harassment", label: "Taciz ya da zorbalık" },
@@ -149,7 +130,6 @@ function reportDialog(targetType, targetId) {
   });
 }
 
-// Shows a link to be copied by hand (when the browser does not let the page use the clipboard).
 function linkDialog(link) {
   const overlay = openSiteDialog(`
     <div class="mb-3">Bağlantıyı kopyala:</div>
@@ -166,7 +146,6 @@ function linkDialog(link) {
   field.select();
 }
 
-// ---- Auth: avatar preview on register page ----
 function previewAvatar(input) {
   const preview = document.getElementById("avatarPreview");
   if (input.files && input.files[0] && preview) {
@@ -174,14 +153,8 @@ function previewAvatar(input) {
   }
 }
 
-// ---- Composer: the photos / video chosen for the post being written ----
-// The page's file input only picks files; they are kept here so each can be taken out again, and more can be added
-// later. How many are allowed, and whether photos and a video may mix, is the server's rule: the page just sends them.
 let composerFiles = [];
 
-// ---- Pasting a picture (Ctrl+V / right-click Paste): a screenshot, or a picture copied from another page ----
-// The pictures on the clipboard of a paste event, ready to be sent: a name with an extension the server accepts is given
-// to those that come without one. [] when the clipboard holds no picture (an ordinary text paste goes on as usual).
 const PASTE_IMAGE_EXTENSIONS = { "image/png": "png", "image/jpeg": "jpg", "image/gif": "gif", "image/webp": "webp" };
 
 function getPastedImages(event) {
@@ -194,8 +167,6 @@ function getPastedImages(event) {
   });
 }
 
-// A paste of a picture into the box of a post adds it to the post, like the "Fotoğraf/Video Ekle" button does. When the
-// clipboard also has text (a copy from a web page), the text is pasted as usual as well.
 document.addEventListener("paste", event => {
   if (event.target.id !== "composerText") return;
   const pictures = getPastedImages(event);
@@ -207,7 +178,7 @@ document.addEventListener("paste", event => {
 
 function addComposerFiles(input) {
   composerFiles.push(...Array.from(input.files || []));
-  input.value = ""; // the same file can be picked again after removing it
+  input.value = "";
   renderComposerPreview();
 }
 
@@ -222,8 +193,6 @@ function clearComposerImage() {
   resetComposerPoll();
 }
 
-// Everything chosen for the post besides its text: the photos / video, or the poll. The submit code of the home,
-// profile and group pages calls this; what is allowed together (a poll takes no photos...) is the server's rule.
 function appendComposerAttachments(formData) {
   composerFiles.forEach(file => formData.append("media", file));
 
@@ -234,8 +203,6 @@ function appendComposerAttachments(formData) {
   }
 }
 
-// ---- Composer: "Anket" (the answers and how long it stays open) ----
-// Added to the page's own composer by this file, so the three pages that have one carry no markup for it.
 
 function setUpComposerPoll() {
   const preview = document.getElementById("composerPreview");
@@ -287,7 +254,6 @@ function resetComposerPoll() {
   if (list) list.innerHTML = "";
 }
 
-// The poll being written, or null when the panel is closed. Empty boxes are left out.
 function getComposerPoll() {
   const panel = document.getElementById("composerPoll");
   if (!panel || panel.classList.contains("d-none")) return null;
@@ -300,12 +266,10 @@ function getComposerPoll() {
 
 setUpComposerPoll();
 
-// What the post will be sent with (the submit code of home, profile and group pages reads it).
 function getComposerFiles() {
   return composerFiles;
 }
 
-// The address a chosen file is shown from (one per file; given back when the file is taken out).
 const composerPreviewUrls = new Map();
 
 function renderComposerPreview() {
@@ -322,7 +286,6 @@ function renderComposerPreview() {
     if (!composerPreviewUrls.has(file)) composerPreviewUrls.set(file, URL.createObjectURL(file));
   });
 
-  // Tapping a chosen photo or video opens it big (a video plays with its controls) before anything is posted.
   registerPhotoSet("composer-preview", composerFiles.map(file => ({
     url: composerPreviewUrls.get(file),
     type: file.type.startsWith("video/") ? "Video" : "Image"
@@ -343,7 +306,6 @@ function renderComposerPreview() {
   }).join("");
 }
 
-// ---- Search form: keep the query in the results heading ----
 function submitSearch(form) {
   const input = form.querySelector('input[name="q"]');
   if (input && input.value.trim()) {
@@ -353,10 +315,8 @@ function submitSearch(form) {
   return true;
 }
 
-// ---- Dark mode ----
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-bs-theme", theme);
-  // Swap only the two icon classes: the panel's icon is found by its own "theme-icon" class and must keep it.
   document.querySelectorAll(".theme-toggle-btn i, .theme-icon").forEach(icon => {
     icon.classList.toggle("bi-sun-fill", theme === "dark");
     icon.classList.toggle("bi-moon-stars-fill", theme !== "dark");
@@ -376,8 +336,6 @@ function toggleTheme() {
   applyTheme(saved);
 })();
 
-// ---- Phones: the on-screen keyboard must not cover the box being typed in ----
-// When the keyboard opens the visible area shrinks; once it has settled, the focused box is scrolled into the middle.
 document.addEventListener("focusin", event => {
   const field = event.target;
   if (!window.matchMedia("(pointer: coarse)").matches || !field.matches("input:not([type=checkbox]):not([type=radio]):not([type=file]), textarea, select")) return;
@@ -385,11 +343,7 @@ document.addEventListener("focusin", event => {
   setTimeout(() => field.scrollIntoView({ block: "center", behavior: "smooth" }), 350);
 });
 
-// Live search suggestions moved to js/navbar-search.js (real backend data, not a hardcoded list).
 
-// ---- Rows that scroll sideways (tabs, the story strip, highlights): a soft fade on the edge that has more behind it ----
-// Only the look is done here; whether a row overflows is simply what the browser reports. The fade comes from the
-// .scroll-fade-start / .scroll-fade-end classes (style.css), so a row that fits, or wraps, shows nothing.
 (function () {
   const ROWS = ".nav-pills, .nav-tabs, .story-strip, .profile-highlights, #categoryList";
 
@@ -405,7 +359,7 @@ document.addEventListener("focusin", event => {
     const update = () => updateScrollFade(row);
     row.addEventListener("scroll", update, { passive: true });
     new ResizeObserver(update).observe(row);
-    new MutationObserver(update).observe(row, { childList: true, subtree: true }); // tabs and strips that fill in after loading
+    new MutationObserver(update).observe(row, { childList: true, subtree: true });
     update();
   }
 

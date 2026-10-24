@@ -3,8 +3,6 @@ using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Domain.Entities;
 
-// One photo or video of a post. A post has up to PostLimits.MaxImages photos, or a single video; SortOrder is the
-// order the author picked them in (0 = the first one shown).
 public class PostMedia : BaseEntity
 {
     public Guid PostId { get; set; }

@@ -23,12 +23,10 @@ public static class ServiceRegistration
 
         services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
             {
-                // Relaxed for local dev/demo purposes — tighten before a real deployment.
                 options.Password.RequireNonAlphanumeric = false;
                 options.Password.RequireUppercase = false;
                 options.User.RequireUniqueEmail = true;
 
-                // Password guessing: after 5 wrong passwords the account is locked for 15 minutes.
                 options.Lockout.AllowedForNewUsers = true;
                 options.Lockout.MaxFailedAccessAttempts = 5;
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
@@ -37,11 +35,9 @@ public static class ServiceRegistration
             .AddErrorDescriber<LocalizedIdentityErrorDescriber>()
             .AddDefaultTokenProviders();
 
-        // The code in a password reset link works for an hour (Identity's own default is a day).
         services.Configure<DataProtectionTokenProviderOptions>(options =>
             options.TokenLifespan = TimeSpan.FromMinutes(configuration.GetValue("PasswordReset:LinkLifetimeMinutes", 60.0)));
 
-        // F3–F5
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<IPostRepository, PostRepository>();
@@ -52,27 +48,22 @@ public static class ServiceRegistration
         services.AddScoped<ISavedPostRepository, SavedPostRepository>();
         services.AddScoped<IHashtagRepository, HashtagRepository>();
 
-        // F2
         services.AddScoped<IFriendRequestRepository, FriendRequestRepository>();
         services.AddScoped<IFriendshipRepository, FriendshipRepository>();
         services.AddScoped<IUserBlockRepository, UserBlockRepository>();
 
-        // F8
         services.AddScoped<INotificationRepository, NotificationRepository>();
 
-        // Stories
         services.AddScoped<IStoryRepository, StoryRepository>();
         services.AddScoped<IStoryViewRepository, StoryViewRepository>();
         services.AddScoped<IStoryLikeRepository, StoryLikeRepository>();
         services.AddScoped<IStoryTagRepository, StoryTagRepository>();
 
-        // Messages
         services.AddScoped<IConversationRepository, ConversationRepository>();
         services.AddScoped<IConversationParticipantRepository, ConversationParticipantRepository>();
         services.AddScoped<IMessageRepository, MessageRepository>();
         services.AddScoped<IMessageReactionRepository, MessageReactionRepository>();
 
-        // Groups
         services.AddScoped<IGroupRepository, GroupRepository>();
         services.AddScoped<IGroupMemberRepository, GroupMemberRepository>();
         services.AddScoped<IGroupJoinRequestRepository, GroupJoinRequestRepository>();
@@ -80,7 +71,6 @@ public static class ServiceRegistration
         services.AddScoped<IGroupRuleRepository, GroupRuleRepository>();
         services.AddScoped<IGroupPinnedPostRepository, GroupPinnedPostRepository>();
 
-        // Marketplace
         services.AddScoped<IMarketplaceListingRepository, MarketplaceListingRepository>();
         services.AddScoped<IListingImageRepository, ListingImageRepository>();
         services.AddScoped<ISavedListingRepository, SavedListingRepository>();
@@ -89,27 +79,22 @@ public static class ServiceRegistration
         services.AddScoped<IListingOfferRoundRepository, ListingOfferRoundRepository>();
         services.AddScoped<IListingBoostRepository, ListingBoostRepository>();
 
-        // Events
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IEventAttendeeRepository, EventAttendeeRepository>();
         services.AddScoped<IEventInviteRepository, EventInviteRepository>();
         services.AddScoped<IEventCommentRepository, EventCommentRepository>();
         services.AddScoped<IEventPhotoRepository, EventPhotoRepository>();
 
-        // Games
         services.AddScoped<IGameRepository, GameRepository>();
 
-        // Login sessions and password checks (Identity-backed)
         services.AddScoped<PasswordVerifier>();
         services.AddSingleton<LoginThrottle>();
         services.AddScoped<SessionIssuer>();
         services.AddScoped<ISessionService, SessionService>();
 
-        // Users (Identity-backed, so not a generic IRepository<T>)
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
-        // Services (business logic)
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
         services.AddScoped<IUserService, UserService>();
@@ -146,12 +131,10 @@ public static class ServiceRegistration
         services.AddScoped<ILiveUpdateService, LiveUpdateService>();
         services.AddScoped<IGameService, GameService>();
 
-        // Admin panel
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddScoped<IReportService, ReportService>();
 
-        // Profile extras: story highlights, mutual friends and groups, "@" tags of posts
         services.AddScoped<IStoryHighlightRepository, StoryHighlightRepository>();
         services.AddScoped<IStoryHighlightItemRepository, StoryHighlightItemRepository>();
         services.AddScoped<IPostMentionRepository, PostMentionRepository>();
@@ -159,7 +142,6 @@ public static class ServiceRegistration
         services.AddScoped<IMutualConnectionService, MutualConnectionService>();
         services.AddScoped<IPostMentionService, PostMentionService>();
 
-        // Who may open an uploaded file
         services.AddScoped<IUploadAccessService, UploadAccessService>();
 
         return services;

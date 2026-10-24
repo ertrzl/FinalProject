@@ -7,8 +7,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// The admin panel's API. Only a signed-in person with the Admin role gets past the [Authorize] below (a normal user
-// gets 403, an anonymous one 401); what an admin may do to whom is decided in AdminService / ReportService.
 [ApiController]
 [Route("api/admin")]
 [Authorize(Roles = AppRoles.Admin)]
@@ -31,7 +29,6 @@ public class AdminController : ControllerBase
         return await _admin.GetStatsAsync();
     }
 
-    // ---- Reports ----
 
     [HttpGet("reports")]
     public async Task<ActionResult<PagedResult<GetReportDto>>> GetReports([FromQuery] ReportStatus? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
@@ -45,7 +42,6 @@ public class AdminController : ControllerBase
         return await _reports.ResolveAsync(User.GetUserId(), id, dto);
     }
 
-    // ---- Users ----
 
     [HttpGet("users")]
     public async Task<ActionResult<PagedResult<GetAdminUserDto>>> GetUsers([FromQuery] string? term, [FromQuery] bool? suspended, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
@@ -74,7 +70,6 @@ public class AdminController : ControllerBase
         return NoContent();
     }
 
-    // ---- Content ----
 
     [HttpGet("content/{type}")]
     public async Task<ActionResult<PagedResult<GetAdminContentDto>>> SearchContent(string type, [FromQuery] string? term, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
@@ -89,7 +84,6 @@ public class AdminController : ControllerBase
         return NoContent();
     }
 
-    // ---- Log ----
 
     [HttpGet("audit")]
     public async Task<ActionResult<PagedResult<GetAuditLogDto>>> GetAudit([FromQuery] string? action, [FromQuery] string? term, [FromQuery] int page = 1, [FromQuery] int pageSize = 30)

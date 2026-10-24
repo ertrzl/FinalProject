@@ -7,7 +7,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// F2: friends.html tabs (Arkadaşlarım / Gelen İstekler / Gönderilen İstekler)
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -26,7 +25,6 @@ public class FriendsController : ControllerBase
         return await _friends.GetFriendsAsync(User.GetUserId());
     }
 
-    // Another person's friend list, when they have opened it in their settings (profile.html).
     [HttpGet("of/{userId:guid}")]
     public async Task<ActionResult<List<GetFriendDto>>> GetFriendsOf(Guid userId)
     {

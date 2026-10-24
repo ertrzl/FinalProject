@@ -51,8 +51,6 @@ public class ReportService : IReportService
         if (ownerId == reporterId)
             throw new BadRequestException(Loc.T("report.own"));
 
-        // One report per person and thing, for good: after the admins looked at it, reporting it again would only pile up
-        // reports (the count next to a person is a sign the admins read) without telling them anything new.
         var earlier = await _reports.GetStatusOfEarlierAsync(reporterId, dto.TargetType, dto.TargetId);
         if (earlier == ReportStatus.Pending)
             throw new ConflictException(Loc.T("report.alreadyReported"));
@@ -76,15 +74,12 @@ public class ReportService : IReportService
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
-            // Two requests of the same person at the same moment: the unique index let only the first one in.
             throw new ConflictException(Loc.T("report.alreadyReported"));
         }
 
         _logger.LogInformation("Report: {TargetType:l} {TargetId:l} reported for {Reason:l}", dto.TargetType.ToString(), dto.TargetId.ToString(), dto.Reason.ToString());
     }
 
-    // The person behind the reported thing and the start of it, as it is now. A thing the reporter could not see is
-    // answered like one that does not exist, so reporting cannot be used to find out whether something is there.
     private async Task<(Guid OwnerId, string Summary)> FindTargetAsync(Guid reporterId, ReportTargetType type, Guid id)
     {
         switch (type)
@@ -139,14 +134,11 @@ public class ReportService : IReportService
 
         var note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim();
 
-        // Closing the reports, removing the content and suspending the account are one step: every service here shares one
-        // database context, so if any part fails (the account is an admin's, the database drops out...) nothing of it stays.
         await using (var transaction = await _reports.BeginTransactionAsync())
         {
             var now = DateTime.UtcNow;
             var newStatus = dto.Dismiss ? ReportStatus.Dismissed : ReportStatus.Resolved;
 
-            // Everyone who reported the same thing gets the same answer.
             var sameTarget = await _reports.GetPendingAboutAsync(report.TargetType, report.TargetId);
 
             foreach (var item in sameTarget)
@@ -158,7 +150,6 @@ public class ReportService : IReportService
             }
             await _reports.SaveChangesAsync();
 
-            // What the log says is written in the language of the admin who did it (the texts are in the language files).
             var summary = new List<string> { string.IsNullOrEmpty(report.TargetSummary) ? Loc.T("report.noText") : report.TargetSummary };
             if (!dto.Dismiss && dto.RemoveContent) summary.Add(Loc.T("admin.audit.contentRemoved"));
             if (!dto.Dismiss && dto.SuspendOwner) summary.Add(Loc.T("admin.audit.ownerSuspended"));
@@ -175,11 +166,9 @@ public class ReportService : IReportService
                     }
                     catch (NotFoundException)
                     {
-                        // Already gone (the person deleted it, or another report was resolved first): nothing to remove.
                     }
                 }
 
-                // The account last: it cuts the person's sessions off right away, and that cannot be taken back with the rest.
                 if (dto.SuspendOwner)
                     await _admin.SuspendUserAsync(adminId, report.TargetOwnerId, note ?? report.TargetSummary);
             }
@@ -190,7 +179,6 @@ public class ReportService : IReportService
         return (await ToDtosAsync(new[] { report }))[0];
     }
 
-    // ---- Mapping ----
 
     private async Task<List<GetReportDto>> ToDtosAsync(IReadOnlyList<Report> reports)
     {
@@ -231,7 +219,6 @@ public class ReportService : IReportService
         }).ToList();
     }
 
-    // The start of a text as it is now; empty when there is none (a post with only a photo or a poll: the pages say so).
     private static string Shorten(string? text)
     {
         text = text?.Trim();

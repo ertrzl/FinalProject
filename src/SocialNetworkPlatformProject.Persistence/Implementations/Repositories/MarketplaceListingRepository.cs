@@ -18,7 +18,6 @@ public class MarketplaceListingRepository : Repository<MarketplaceListing>, IMar
     {
         var price = listing.Price;
 
-        // Id is the last tie-breaker so two listings with the same price gap always come in the same order.
         return await _dbSet.AsNoTracking()
             .Include(l => l.Images)
             .Where(l => l.Status == ListingStatus.Active && l.ExpiresAt > now

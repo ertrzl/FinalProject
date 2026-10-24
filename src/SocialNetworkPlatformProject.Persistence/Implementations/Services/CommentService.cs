@@ -59,13 +59,10 @@ public class CommentService : ICommentService
 
         await _access.EnsureCanViewAsync(post, currentUserId);
 
-        // Only the shape of the thread (three columns) is read for all of the post's comments; the texts and the likes are
-        // read for the comments of the page asked for.
         var shape = await _comments.GetAll(c => c.PostId == postId, orderBy: c => c.CreatedAt, asNoTracking: true)
             .Select(c => new { c.Id, c.ParentCommentId, c.AuthorId })
             .ToListAsync();
 
-        // What blocked people wrote is hidden both ways (their replies' threads go with their comments).
         var blockedIds = await _blocks.GetBlockedIdsAsync(currentUserId);
         var topLevel = shape.Where(c => c.ParentCommentId == null && !blockedIds.Contains(c.AuthorId)).ToList();
 
@@ -94,8 +91,6 @@ public class CommentService : ICommentService
         };
     }
 
-    // Every top-level comment followed by its replies (oldest first), so the page can simply draw the list as it comes.
-    // The comments arrive oldest first, which the lookup keeps within each thread.
     private static List<Comment> InThreadOrder(List<Comment> comments)
     {
         var replies = comments.Where(c => c.ParentCommentId != null).ToLookup(c => c.ParentCommentId!.Value);
@@ -122,7 +117,6 @@ public class CommentService : ICommentService
             if (parent.PostId != dto.PostId)
                 throw new BadRequestException(Loc.T("comment.parentOtherPost"));
 
-            // A comment written by a blocked person is hidden from this user, so it can't be answered either.
             if (parent.AuthorId != currentUserId && await _blocks.AreBlockedAsync(currentUserId, parent.AuthorId))
                 throw new NotFoundException(Loc.T("comment.replyGone"));
         }
@@ -132,7 +126,6 @@ public class CommentService : ICommentService
             PostId = dto.PostId,
             AuthorId = currentUserId,
             Text = dto.Text.Trim(),
-            // Threads are one level deep: replying to a reply attaches to the original comment.
             ParentCommentId = parent?.ParentCommentId ?? parent?.Id
         };
 
@@ -142,15 +135,12 @@ public class CommentService : ICommentService
         await _notifications.CreateAsync(post.AuthorId, currentUserId, NotificationType.CommentAdded,
             postId: post.Id, commentId: comment.Id);
 
-        // The author of the comment that was answered hears about it too ("yorumuna yanıt verdi"), unless they are
-        // the post's author, who just got the notification above.
         if (parent != null && parent.AuthorId != post.AuthorId)
         {
             await _notifications.CreateAsync(parent.AuthorId, currentUserId, NotificationType.CommentReplied,
                 postId: post.Id, commentId: comment.Id);
         }
 
-        // Somebody tagged in the comment is told too, unless the notifications above already reached them.
         var alreadyNotified = new List<Guid> { post.AuthorId };
         if (parent != null)
             alreadyNotified.Add(parent.AuthorId);
@@ -169,11 +159,9 @@ public class CommentService : ICommentService
         var post = await _posts.GetByIdAsync(comment.PostId)
             ?? throw new NotFoundException(Loc.T("post.notFound"));
 
-        // The comment's author, the post's author, or (on a group post) the group's admins and moderators.
         if (!asAdmin && comment.AuthorId != currentUserId && !await _access.CanModerateAsync(post, currentUserId))
             throw new ForbiddenException(Loc.T("comment.deleteOwn"));
 
-        // The reply self-reference is Restrict (SQL Server forbids a second cascade path), so replies go first.
         var replies = await _comments.GetAll(c => c.ParentCommentId == commentId).ToListAsync();
         foreach (var reply in replies)
             _comments.Delete(reply);
@@ -221,7 +209,6 @@ public class CommentService : ICommentService
         return await _comments.GetAll(c => c.PostId == postId).CountAsync();
     }
 
-    // All the comments belong to `post`, so who may moderate it is looked up once for the whole list.
     private async Task<List<GetCommentDto>> BuildDtosAsync(IEnumerable<Comment> comments, Post post, Guid currentUserId)
     {
         var list = comments.ToList();

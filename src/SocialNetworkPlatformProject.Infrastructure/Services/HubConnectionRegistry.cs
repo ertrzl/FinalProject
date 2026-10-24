@@ -2,10 +2,6 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace SocialNetworkPlatformProject.Infrastructure.Services;
 
-// Every open hub connection with the security stamp of the token it was made with, so the connections of an account that
-// was suspended (or deleted, or whose password changed) can be closed at once. Without this a connection kept receiving
-// pushes for as long as it stayed open: the per-call check in SecurityStampHubFilter only runs when the client calls something,
-// and the notifications hub is listen-only. In-memory: fine for a single server instance.
 public class HubConnectionRegistry
 {
     private readonly object _gate = new();
@@ -22,8 +18,6 @@ public class HubConnectionRegistry
         }
     }
 
-    // Closes the connections made in that session (any user: the id is unique); the page then has to renew its token, which
-    // fails for an ended session, and sends the person to the sign-in page.
     public int CloseSession(Guid sessionId)
     {
         List<HubCallerContext> doomed;
@@ -55,8 +49,6 @@ public class HubConnectionRegistry
         }
     }
 
-    // Closes the connections the user made with that stamp; the client sees them drop and has to sign in again with a token
-    // that is still valid (after a password change that is the new one, for a suspended account there is none).
     public int CloseWithStamp(Guid userId, string securityStamp)
     {
         List<HubCallerContext> doomed;

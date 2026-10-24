@@ -13,9 +13,6 @@ public class LocalFileStorageService : IFileStorageService
     private const long MaxVideoSizeBytes = 25 * 1024 * 1024;
     private const string UploadsFolder = "uploads";
 
-    // How a picture is stored (see SaveResizedImageAsync): the longest side in pixels, the compression quality (0-100), and
-    // the most pixels an uploaded picture may be made of (a small file can still hold a huge picture that needs a lot of
-    // memory to open; 64 million is above the 48-megapixel photo of a phone).
     private const int MaxImageSide = 1600;
     private const int MaxAvatarSide = 512;
     private const int JpegQuality = 82;
@@ -73,7 +70,6 @@ public class LocalFileStorageService : IFileStorageService
             throw new BadRequestException(typeErrorMessage);
         }
 
-        // The first bytes have to be those of the kind of file the name claims to be.
         if (!await FileSignatures.MatchesAsync(file, extension))
         {
             _logger.LogWarning("Upload refused: {Folder} file {Extension} does not start like one", folder, extension);
@@ -86,7 +82,6 @@ public class LocalFileStorageService : IFileStorageService
         var fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
         var fullPath = Path.Combine(directory, fileName);
 
-        // A picture is made smaller first (see SaveResizedImageAsync); an animated GIF, or a video, is kept as it came.
         if (ReferenceEquals(allowedExtensions, AllowedImageExtensions) && !extension.Equals(".gif", StringComparison.OrdinalIgnoreCase))
         {
             try
@@ -95,7 +90,6 @@ public class LocalFileStorageService : IFileStorageService
             }
             catch
             {
-                // Nothing half written stays behind.
                 if (File.Exists(fullPath)) File.Delete(fullPath);
                 throw;
             }
@@ -110,17 +104,10 @@ public class LocalFileStorageService : IFileStorageService
         return $"/{UploadsFolder}/{folder}/{fileName}";
     }
 
-    // The longest side a stored picture may have. A profile picture is shown small, everything else at most about this wide.
     private static int MaxSideFor(string folder) => folder == "avatars" ? MaxAvatarSide : MaxImageSide;
 
-    // Saves the picture turned the right way up, no wider or taller than MaxSideFor(folder), and compressed. Opening and
-    // saving the picture again also leaves out the extra data a camera adds (where it was taken, the phone's name). A phone
-    // photo of 4 MB ends up at a few hundred KB: the page shows it just as sharp, but it downloads, and fills the disk, many
-    // times less. A picture that cannot be read as a picture, or is made of an unreasonable number of pixels, is refused.
-    // An animated picture is stored as it is.
     private async Task SaveResizedImageAsync(IFormFile file, string fullPath, string extension, string folder)
     {
-        // The picture is read into memory (the upload is at most 5 MB), so it can be read twice: once for its size, once for its pixels.
         using var buffer = new MemoryStream((int)file.Length);
         await using (var upload = file.OpenReadStream())
             await upload.CopyToAsync(buffer);
@@ -189,8 +176,6 @@ public class LocalFileStorageService : IFileStorageService
         }
     }
 
-    // A camera stores a photo as the sensor saw it and notes how it has to be turned. The pictures are saved without that
-    // note, so the turn is done here: a photo taken upright but stored sideways stays upright.
     private static SKBitmap TurnUpright(SKBitmap source, SKEncodedOrigin origin)
     {
         if (origin == SKEncodedOrigin.TopLeft || origin == SKEncodedOrigin.Default)
@@ -223,7 +208,6 @@ public class LocalFileStorageService : IFileStorageService
         var uploadsRoot = Path.GetFullPath(Path.Combine(_webRootPath, UploadsFolder)) + Path.DirectorySeparatorChar;
         var source = Path.GetFullPath(Path.Combine(_webRootPath, url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)));
 
-        // Only a file of this store can be copied (a crafted URL must not reach other files).
         if (!source.StartsWith(uploadsRoot, StringComparison.OrdinalIgnoreCase) || !File.Exists(source))
             throw new BadRequestException(Loc.T("file.empty"));
 
@@ -246,7 +230,6 @@ public class LocalFileStorageService : IFileStorageService
         var relativePath = url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
         var fullPath = Path.GetFullPath(Path.Combine(_webRootPath, relativePath));
 
-        // Guard against a crafted URL escaping the uploads folder.
         var uploadsRoot = Path.GetFullPath(Path.Combine(_webRootPath, UploadsFolder)) + Path.DirectorySeparatorChar;
         if (!fullPath.StartsWith(uploadsRoot, StringComparison.OrdinalIgnoreCase))
         {

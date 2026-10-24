@@ -6,7 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// event.html's discussion section (comments + organizer announcements)
 [ApiController]
 [Route("api/events/{eventId:guid}/comments")]
 [Authorize]

@@ -7,7 +7,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// home.html story bar + fullscreen viewer
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]

@@ -12,7 +12,6 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class GameService : IGameService
 {
-    // An invitation nobody answers within a day is dropped; a running game nobody plays for a week is dropped.
     private static readonly TimeSpan InviteLifetime = TimeSpan.FromHours(24);
     private static readonly TimeSpan IdleLimit = TimeSpan.FromDays(7);
 
@@ -87,7 +86,6 @@ public class GameService : IGameService
         if (!await _friends.AreFriendsAsync(currentUserId, dto.OpponentId))
             throw new ForbiddenException(Loc.T("game.friendsOnly"));
 
-        // An invitation nobody answered or a game nobody plays any more must not keep the pair from starting a new one.
         var pairKey = Game.MakePairKey(currentUserId, dto.OpponentId);
         var now = DateTime.UtcNow;
         await _games.ExpireStaleForPairAsync(pairKey, now - InviteLifetime, now - IdleLimit, now);
@@ -112,7 +110,6 @@ public class GameService : IGameService
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
-            // Two invitations for the same pair arrived at the same moment; the unique index let only one in.
             throw new BadRequestException(Loc.T("game.alreadyPlaying"));
         }
 
@@ -130,8 +127,6 @@ public class GameService : IGameService
         EnsureInvitationOpen(game);
         await EnsureNotBlockedAsync(game, currentUserId);
 
-        // X-O and battleship: who gets X (X-O: the first mark; battleship: the first shot) is left to chance, so being the one who
-        // asked is no advantage. (Rock-paper-scissors has no marks.)
         if (game.Kind == GameKind.TicTacToe || game.Kind == GameKind.Battleship)
         {
             var inviterIsX = Random.Shared.Next(2) == 0;
@@ -223,8 +218,6 @@ public class GameService : IGameService
 
         var game = await FindAsPlayerAsync(currentUserId, gameId);
 
-        // Both players usually pick within the same second, so two saves of the same game collide all the time here: the
-        // one that lost is not an error, it is simply made again on the newest state (which now holds the other pick).
         for (var attempt = 0; ; attempt++)
         {
             if (game.Kind != GameKind.RockPaperScissors)
@@ -265,7 +258,6 @@ public class GameService : IGameService
         return await PublishAsync(game, currentUserId);
     }
 
-    // Both picks are in: write the round down, clear the picks, and end the match when it is decided.
     private static void ScoreRound(Game game)
     {
         game.Rounds = RockPaperScissors.AppendRound(game.Rounds, game.InviterChoice!.Value, game.InviteeChoice!.Value);
@@ -302,8 +294,6 @@ public class GameService : IGameService
 
         var game = await FindAsPlayerAsync(currentUserId, gameId);
 
-        // Both players often press "Hazırım" at about the same time: the one whose save collides is made again on the newest
-        // state, which then shows the other fleet and starts the battle.
         for (var attempt = 0; ; attempt++)
         {
             if (game.Kind != GameKind.Battleship)
@@ -321,7 +311,6 @@ public class GameService : IGameService
             if (isInviter) game.InviterBoard = board;
             else game.InviteeBoard = board;
 
-            // Both fleets are on the water: the battle starts, and whoever was dealt X shoots first.
             if (game.InviterBoard.Length > 0 && game.InviteeBoard.Length > 0)
             {
                 game.InviterShots = BattleshipGame.EmptyShots();
@@ -393,7 +382,7 @@ public class GameService : IGameService
         if (BattleshipGame.AllSunk(targetBoard, shotsAfter))
             Finish(game, GameOutcome.Win, currentUserId);
         else if (!hit)
-            game.Turn = mark == 'X' ? 'O' : 'X'; // a hit lets the same player shoot again; only a miss passes the turn
+            game.Turn = mark == 'X' ? 'O' : 'X';
 
         game.UpdatedAt = DateTime.UtcNow;
         await SaveAsync();
@@ -415,8 +404,6 @@ public class GameService : IGameService
         return await PublishAsync(game, currentUserId);
     }
 
-    // The game, for one of its two players. Anybody else is told it does not exist, so game ids tell nothing.
-    // An invitation or a game that has run out of time is closed here, the first time anybody looks at it.
     private async Task<Game> FindAsPlayerAsync(Guid currentUserId, Guid gameId)
     {
         var game = await _games.GetByIdAsync(gameId);
@@ -436,7 +423,6 @@ public class GameService : IGameService
         return game;
     }
 
-    // Accept, decline and cancel only make sense while the invitation is waiting.
     private static void EnsureInvitationOpen(Game game)
     {
         if (game.Status == GameStatus.Expired)
@@ -446,7 +432,6 @@ public class GameService : IGameService
             throw new BadRequestException(Loc.T("game.notInvited"));
     }
 
-    // Blocking ends playing together (looking at a finished game, giving up or answering "no" stay possible).
     private async Task EnsureNotBlockedAsync(Game game, Guid currentUserId)
     {
         var opponentId = game.InviterId == currentUserId ? game.InviteeId : game.InviterId;
@@ -462,7 +447,6 @@ public class GameService : IGameService
         game.FinishedAt = DateTime.UtcNow;
     }
 
-    // Two moves at the same moment: the row version lets only the first one through.
     private async Task SaveAsync()
     {
         try
@@ -475,7 +459,6 @@ public class GameService : IGameService
         }
     }
 
-    // Tells both players about the change, each one the game as they see it, and returns the caller's view.
     private async Task<GetGameDto> PublishAsync(Game game, Guid currentUserId)
     {
         var people = await LoadPeopleAsync(new[] { game });
@@ -517,7 +500,6 @@ public class GameService : IGameService
             Opponent = ToPlayer(opponentId, people),
             WinnerId = game.WinnerId,
             Outcome = game.Outcome?.ToString(),
-            // Not stored: it follows from the board, so it can never disagree with it.
             WinningLine = game.Outcome == GameOutcome.Win ? TicTacToe.FindWinningLine(game.Board) : null,
             CreatedAt = game.CreatedAt,
             UpdatedAt = game.UpdatedAt,
@@ -532,8 +514,6 @@ public class GameService : IGameService
         return dto;
     }
 
-    // The battleship part of the answer. The opponent's board never goes out: only the ships I sank on it (all of them once the game
-    // is over), which the player has seen anyway or may see now.
     private static void FillBattleship(GetGameDto dto, Game game, Guid viewerId)
     {
         var viewerIsInviter = game.InviterId == viewerId;
@@ -577,8 +557,6 @@ public class GameService : IGameService
         Sunk = sunk
     };
 
-    // The rock-paper-scissors part of the answer. Only the viewer's own pick of the running round is in it; what the
-    // opponent picked stays in the database until the round is scored and then shows up in Rounds for both.
     private static void FillRockPaperScissors(GetGameDto dto, Game game, Guid viewerId)
     {
         var viewerIsInviter = game.InviterId == viewerId;

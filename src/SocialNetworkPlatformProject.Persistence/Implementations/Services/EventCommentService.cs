@@ -38,14 +38,11 @@ public class EventCommentService : IEventCommentService
 
         var found = await _access.GetViewableAsync(currentUserId, eventId);
 
-        // What people blocked with the reader wrote is hidden from them (the organizer's own words never are: an event of
-        // someone blocked with the reader is not reachable in the first place).
         var hiddenAuthors = await _blocks.GetBlockedIdsAsync(currentUserId);
 
         var query = _comments.GetAll(c => c.EventId == eventId && !hiddenAuthors.Contains(c.AuthorId), asNoTracking: true);
         var total = await query.CountAsync();
 
-        // Announcements stay pinned on top; everything else is newest first.
         var items = await query
             .OrderByDescending(c => c.IsAnnouncement)
             .ThenByDescending(c => c.CreatedAt)
@@ -88,7 +85,6 @@ public class EventCommentService : IEventCommentService
         await _comments.AddAsync(comment);
         await _comments.SaveChangesAsync();
 
-        // A plain comment is news to the organizer; their own comments and announcements aren't.
         if (dto.IsAnnouncement)
             await _notifier.AnnouncementAsync(found, currentUserId);
         else if (found.CreatedByUserId != currentUserId)

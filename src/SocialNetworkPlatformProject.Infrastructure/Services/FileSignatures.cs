@@ -2,9 +2,6 @@ using Microsoft.AspNetCore.Http;
 
 namespace SocialNetworkPlatformProject.Infrastructure.Services;
 
-// A file name and a Content-Type header are whatever the client says. The first bytes of a real image or video say what it is:
-// an upload is only accepted when they match its extension, so a page, a script or any other file cannot be stored
-// under a picture's name.
 internal static class FileSignatures
 {
     public static async Task<bool> MatchesAsync(IFormFile file, string extension)
@@ -23,7 +20,6 @@ internal static class FileSignatures
             ".png" => header.Length >= 8 && header[..8].SequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }),
             ".gif" => header.Length >= 6 && (header[..6].SequenceEqual("GIF87a"u8) || header[..6].SequenceEqual("GIF89a"u8)),
             ".webp" => header.Length >= 12 && header[..4].SequenceEqual("RIFF"u8) && header[8..12].SequenceEqual("WEBP"u8),
-            // MP4 and QuickTime: a box named ftyp (or, in older QuickTime files, moov / mdat / wide / free) starts the file.
             ".mp4" or ".mov" => header.Length >= 12 && IsMovieBox(header[4..8]),
             ".webm" => header.Length >= 4 && header[0] == 0x1A && header[1] == 0x45 && header[2] == 0xDF && header[3] == 0xA3,
             _ => false

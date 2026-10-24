@@ -4,10 +4,8 @@
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class AddNotificationPreferences : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<bool>(
@@ -15,7 +13,7 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 table: "AspNetUsers",
                 type: "bit",
                 nullable: false,
-                defaultValue: true);   // everybody who is already here keeps getting notified
+                defaultValue: true);
 
             migrationBuilder.AddColumn<bool>(
                 name: "NotifyOnFriendRequests",
@@ -32,7 +30,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 defaultValue: true);
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(

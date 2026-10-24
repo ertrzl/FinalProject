@@ -11,10 +11,6 @@ using SocialNetworkPlatformProject.Persistence.Extensions;
 
 namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
-// Direct conversations (Conversation.DirectKey, two people) and group chats (Conversation.GroupId, the group's members)
-// go through the same code. Where they differ: a group chat tracks "read" per person (ConversationParticipant.LastReadAt,
-// not Message.IsRead), names the sender of each message, and hides the messages of someone the viewer blocked instead of
-// the whole conversation.
 public class MessageService : IMessageService
 {
     private readonly IConversationRepository _conversations;
@@ -66,7 +62,6 @@ public class MessageService : IMessageService
 
     public async Task<List<GetConversationDto>> GetConversationsAsync(Guid currentUserId)
     {
-        // Every group the user is in has its chat in the list (also the groups from before group chats existed).
         await _conversations.SyncGroupChatsAsync(currentUserId);
 
         var myConversationIds = await GetMyConversationIdsAsync(currentUserId);
@@ -74,8 +69,6 @@ public class MessageService : IMessageService
         return result.OrderByDescending(c => c.LastMessageAt).ToList();
     }
 
-    // The list rows of these conversations (the viewer is a participant of each), in the given order. A direct
-    // conversation whose other person's account is gone is left out.
     private async Task<List<GetConversationDto>> BuildConversationsAsync(Guid currentUserId, List<Guid> conversationIds)
     {
         if (conversationIds.Count == 0)
@@ -88,7 +81,6 @@ public class MessageService : IMessageService
         var customIds = groupChatIds.Where(id => !groupOf.ContainsKey(id)).ToList();
         var hidden = await _blocks.GetBlockedIdsAsync(currentUserId);
 
-        // The chats made on the Messages page: their name, picture and people (the viewer's own row says if they run it or muted it).
         var customChats = customIds.Count == 0
             ? new Dictionary<Guid, Conversation>()
             : await _conversations.GetAll(c => customIds.Contains(c.Id), asNoTracking: true).ToDictionaryAsync(c => c.Id);
@@ -112,7 +104,6 @@ public class MessageService : IMessageService
 
         var groupUnread = await _messages.CountGroupUnreadAsync(currentUserId, groupChatIds, hidden);
 
-        // In a group chat the messages of somebody blocked are not shown, so they are not "the last message" either.
         var lastMessages = await _messages.GetAll(
                 m => conversationIds.Contains(m.ConversationId) && !(groupChatIds.Contains(m.ConversationId) && hidden.Contains(m.SenderId)),
                 asNoTracking: true)
@@ -218,7 +209,6 @@ public class MessageService : IMessageService
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
-        // A group chat leaves out the messages of somebody blocked (either way); a direct one with them is not listed at all.
         var hidden = await IsGroupChatAsync(conversationId)
             ? await _blocks.GetBlockedIdsAsync(currentUserId)
             : new HashSet<Guid>();
@@ -264,7 +254,6 @@ public class MessageService : IMessageService
         }
         catch
         {
-            // The message was never created (e.g. unknown conversation), so don't leave the upload orphaned.
             _files.Delete(mediaUrl);
             throw;
         }
@@ -288,7 +277,6 @@ public class MessageService : IMessageService
             isGroup = await IsGroupChatAsync(conversationId);
             recipientIds = participants.Where(p => p.UserId != currentUserId).Select(p => p.UserId).ToList();
 
-            // A direct conversation always has the other person (whose account may be gone: then there is nobody to write to).
             if (!isGroup && recipientIds.Count == 0)
                 throw new NotFoundException(Loc.T("conversation.notFound"));
         }
@@ -321,14 +309,10 @@ public class MessageService : IMessageService
             throw new BadRequestException(Loc.T("message.target"));
         }
 
-        // Blocked people can't write to each other, in an old conversation or a new one. In a group chat they both stay
-        // members: the message just does not reach the one blocked with the sender (and is hidden from them, see GetMessagesAsync).
         var hidden = await _blocks.GetBlockedIdsAsync(currentUserId);
         if (!isGroup && hidden.Contains(recipientIds[0]))
             throw new ForbiddenException(Loc.T("message.cannot"));
 
-        // An answer to a story: the story must be up, belong to the person written to, and be one the sender may see.
-        // Stories are answered in private, never in a group chat.
         if (storyId.HasValue)
         {
             if (isGroup)
@@ -342,8 +326,6 @@ public class MessageService : IMessageService
                 throw new BadRequestException(Loc.T("message.storyOwnerOnly"));
         }
 
-        // An answer to a message: it has to be one of this conversation and still there (and, in a group, not one of
-        // somebody the sender blocked: the sender does not see those).
         if (replyToMessageId.HasValue)
         {
             var quoted = await _messages.GetByIdAsync(replyToMessageId.Value);
@@ -365,7 +347,6 @@ public class MessageService : IMessageService
         await _messages.AddAsync(message);
         await _messages.SaveChangesAsync();
 
-        // Each recipient gets the message as they see it; the sender's other open tabs/devices too (the client de-duplicates by id).
         var viewers = recipientIds.Where(id => !hidden.Contains(id)).Append(currentUserId).ToList();
         var forViewers = await MapForViewersAsync(message, viewers);
         foreach (var recipientId in viewers.Where(id => id != currentUserId))
@@ -381,7 +362,6 @@ public class MessageService : IMessageService
         var message = await _messages.GetByIdAsync(messageId)
             ?? throw new NotFoundException(Loc.T("message.notFound"));
 
-        // Somebody outside the conversation must not learn that the message exists.
         var participants = await _participants.GetAll(p => p.ConversationId == message.ConversationId, asNoTracking: true).ToListAsync();
         if (participants.All(p => p.UserId != currentUserId))
             throw new NotFoundException(Loc.T("message.notFound"));
@@ -395,13 +375,12 @@ public class MessageService : IMessageService
             var mediaUrl = message.MediaUrl;
             message.MarkDeleted();
             await _messages.SaveChangesAsync();
-            await _reactions.DeleteForMessageAsync(messageId); // a message that is gone keeps no emojis
+            await _reactions.DeleteForMessageAsync(messageId);
 
             _files.Delete(mediaUrl);
             others = await VisibleToOthersAsync(message, participants, currentUserId);
         }
 
-        // Every open tab of everyone who sees it replaces the bubble; each gets the message as they see it.
         var forViewers = await MapForViewersAsync(message, others.Append(currentUserId).ToList());
         foreach (var other in others)
             await _notifier.PublishToMessagesAsync(other, "MessageDeleted", forViewers[other]);
@@ -416,7 +395,6 @@ public class MessageService : IMessageService
         var message = await _messages.GetByIdAsync(messageId)
             ?? throw new NotFoundException(Loc.T("message.notFound"));
 
-        // Somebody outside the conversation must not learn that the message exists.
         var participants = await _participants.GetAll(p => p.ConversationId == message.ConversationId, asNoTracking: true).ToListAsync();
         if (participants.All(p => p.UserId != currentUserId))
             throw new NotFoundException(Loc.T("message.notFound"));
@@ -426,7 +404,6 @@ public class MessageService : IMessageService
 
         if (await IsGroupChatAsync(message.ConversationId))
         {
-            // A group chat: only the one who wrote the message matters (the blocked person's messages are hidden from the viewer anyway).
             if (message.SenderId != currentUserId && await _blocks.AreBlockedAsync(currentUserId, message.SenderId))
                 throw new NotFoundException(Loc.T("message.notFound"));
         }
@@ -445,9 +422,9 @@ public class MessageService : IMessageService
 
         var existing = await _reactions.GetAll(r => r.MessageId == messageId && r.UserId == currentUserId).FirstOrDefaultAsync();
         if (existing != null && (emoji == null || existing.Emoji == emoji))
-            _reactions.Delete(existing); // the same emoji again (or none): taken back
+            _reactions.Delete(existing);
         else if (existing != null)
-            existing.Emoji = emoji!; // another emoji replaces it
+            existing.Emoji = emoji!;
         else if (emoji != null)
             await _reactions.AddAsync(new MessageReaction { MessageId = messageId, UserId = currentUserId, Emoji = emoji });
 
@@ -457,10 +434,8 @@ public class MessageService : IMessageService
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
-            // Two taps at the same moment: the other one was stored first, and the answer below shows what is stored.
         }
 
-        // Every open tab of everyone who sees the message shows the new emojis at once; each gets the message as they see it.
         var viewers = (await VisibleToOthersAsync(message, participants, currentUserId)).Append(currentUserId).ToList();
         var forViewers = await MapForViewersAsync(message, viewers);
         foreach (var viewer in viewers)
@@ -488,13 +463,10 @@ public class MessageService : IMessageService
 
         await _messages.SaveChangesAsync();
 
-        // Read receipt: whoever sent those messages sees them turn "seen".
         foreach (var senderId in unread.Select(m => m.SenderId).Distinct())
             await _notifier.PublishToMessagesAsync(senderId, "MessagesRead", new { conversationId, readerId = currentUserId });
     }
 
-    // A group chat is read up to now. The senders of what was just read are told up to when *everybody else* has read
-    // their messages (readUpTo): their ticks turn "seen" only for the messages all the others have read.
     private async Task MarkGroupChatAsReadAsync(Guid currentUserId, Guid conversationId)
     {
         var me = await _participants.GetAll(p => p.ConversationId == conversationId && p.UserId == currentUserId).FirstAsync();
@@ -512,7 +484,6 @@ public class MessageService : IMessageService
         me.LastReadAt = DateTime.UtcNow;
         await _participants.SaveChangesAsync();
 
-        // Somebody blocked with the reader is not told that their messages were read (the reader does not even see them).
         var hidden = await _blocks.GetBlockedIdsAsync(currentUserId);
         var everyone = await _participants.GetAll(p => p.ConversationId == conversationId, asNoTracking: true).ToListAsync();
         foreach (var senderId in senderIds.Where(id => !hidden.Contains(id) && everyone.Any(p => p.UserId == id)))
@@ -533,7 +504,6 @@ public class MessageService : IMessageService
             return;
         }
 
-        // A group chat says who is typing ("Ayşe yazıyor..."); somebody blocked with them is not told.
         var hidden = await _blocks.GetBlockedIdsAsync(currentUserId);
         var userName = (await _users.GetSummaryAsync(currentUserId))?.FullName ?? string.Empty;
         foreach (var other in participants.Where(p => p.UserId != currentUserId && !hidden.Contains(p.UserId)))
@@ -557,8 +527,6 @@ public class MessageService : IMessageService
         if (groupChatSet.Count == 0)
             return count;
 
-        // A muted group's chat keeps its own counter in the list but does not add to the total on the menu (a chat of a group:
-        // the group's mute switch; a chat made on the Messages page: the person's own switch).
         var mutedGroups = await MutedGroupIdsAsync(currentUserId, groupOf.Values.Distinct().ToList());
         var mutedCustom = (await _participants.GetAll(p => p.UserId == currentUserId && p.IsMuted && groupChatSet.Contains(p.ConversationId), asNoTracking: true)
             .Select(p => p.ConversationId)
@@ -580,11 +548,9 @@ public class MessageService : IMessageService
             || await CanStartConversationAsync(currentUserId, otherUserId);
     }
 
-    // ---- Group chats ----
 
     public async Task<GetConversationDto> OpenGroupChatAsync(Guid currentUserId, Guid groupId)
     {
-        // Somebody outside the group must not learn anything about its chat (a private group "does not exist" for them).
         if (!await _groupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == currentUserId))
             throw new NotFoundException(Loc.T("group.notFound"));
 
@@ -601,7 +567,6 @@ public class MessageService : IMessageService
         if (conversationId == null || await _participants.AnyAsync(p => p.ConversationId == conversationId && p.UserId == userId))
             return;
 
-        // Joining starts "read up to now" (CreatedAt): the chat's history is there to read, but does not count as unread.
         await _participants.AddAsync(new ConversationParticipant { ConversationId = conversationId.Value, UserId = userId });
         try
         {
@@ -609,7 +574,6 @@ public class MessageService : IMessageService
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
-            // Added at the same moment by another request (or by the chat being created with every member): it is there.
         }
     }
 
@@ -626,7 +590,6 @@ public class MessageService : IMessageService
         _participants.Delete(participant);
         await _participants.SaveChangesAsync();
 
-        // Their open chat windows close (and the list drops it); nothing is sent to them from now on.
         await _notifier.PublishToMessagesAsync(userId, "ConversationRemoved", new { conversationId = conversationId.Value });
     }
 
@@ -640,9 +603,7 @@ public class MessageService : IMessageService
         return rows.FirstOrDefault() ?? throw new NotFoundException(Loc.T("conversation.notFound"));
     }
 
-    // ---- Helpers ----
 
-    // New conversations: friends, or someone whose account is open. Existing ones are never affected (see CanMessageAsync).
     private async Task<bool> CanStartConversationAsync(Guid currentUserId, Guid recipientId)
     {
         var recipient = await _users.GetSummaryAsync(recipientId);
@@ -652,8 +613,6 @@ public class MessageService : IMessageService
         return await _friends.AreFriendsAsync(currentUserId, recipientId);
     }
 
-    // The conversations the list and the unread counter show: the direct ones with a blocked person are hidden (not
-    // deleted: they come back when the block is lifted). A group chat is never hidden for one of its members.
     private async Task<List<Guid>> GetMyConversationIdsAsync(Guid userId)
     {
         var ids = await _participants.GetAll(p => p.UserId == userId, asNoTracking: true)
@@ -693,8 +652,6 @@ public class MessageService : IMessageService
             .ToHashSet();
     }
 
-    // The other participants who see this message: in a direct conversation the other person; in a group chat every
-    // other member except the ones blocked with its sender (they don't see it).
     private async Task<List<Guid>> VisibleToOthersAsync(Message message, List<ConversationParticipant> participants, Guid currentUserId)
     {
         var others = participants.Where(p => p.UserId != currentUserId).Select(p => p.UserId).ToList();
@@ -705,14 +662,12 @@ public class MessageService : IMessageService
         return others.Where(id => !hidden.Contains(id)).ToList();
     }
 
-    // Up to when every participant except this one has read a group chat (the sender's messages up to then are "seen").
     private static DateTime ReadByAllOthers(List<ConversationParticipant> participants, Guid userId)
     {
         var others = participants.Where(p => p.UserId != userId).ToList();
         return others.Count == 0 ? DateTime.MinValue : others.Min(p => p.ReadUpTo);
     }
 
-    // What the conversation list shows as the last message.
     private static string PreviewText(Message message)
     {
         if (message.IsDeleted)
@@ -721,10 +676,7 @@ public class MessageService : IMessageService
         return message.Type == MessageType.Image ? Loc.T("message.preview.photo") : message.Text;
     }
 
-    // ---- Turning messages into what a viewer sees ----
 
-    // What is looked up once for a set of messages, whoever then sees them: the stories and messages they answer, the
-    // emojis on them, and for group chats the senders and how far everyone has read.
     private sealed class MessageContext
     {
         public Dictionary<Guid, GetStoryReplyDto> Stories { get; init; } = new();
@@ -734,7 +686,6 @@ public class MessageService : IMessageService
         public Dictionary<Guid, List<ConversationParticipant>> GroupParticipants { get; init; } = new();
         public Dictionary<Guid, UserSummary> Users { get; init; } = new();
 
-        // In a group chat, a quote of somebody the viewer is blocked with is shown as gone: author -> the people hidden from them.
         public Dictionary<Guid, HashSet<Guid>> HiddenFromQuotedAuthor { get; init; } = new();
     }
 
@@ -780,8 +731,6 @@ public class MessageService : IMessageService
         };
     }
 
-    // One message as one viewer sees it: whose it is, the story or message it answers, the emojis on it; in a group chat
-    // also who wrote it and whether everyone else has read it (the viewer's own messages).
     private GetMessageDto Build(Message message, Guid viewerId, MessageContext context)
     {
         var dto = _mapper.Map<GetMessageDto>(message);
@@ -805,7 +754,6 @@ public class MessageService : IMessageService
                 dto.SenderAvatarUrl = sender.AvatarUrl;
             }
 
-            // Message.IsRead is for two people; in a group the viewer's message is "seen" once all the others read past it.
             var participants = context.GroupParticipants.GetValueOrDefault(message.ConversationId) ?? new List<ConversationParticipant>();
             dto.IsRead = dto.IsMine && participants.Any(p => p.UserId != viewerId) && message.CreatedAt <= ReadByAllOthers(participants, viewerId);
         }
@@ -813,8 +761,6 @@ public class MessageService : IMessageService
         return dto;
     }
 
-    // The quote above a reply: who wrote the quoted message and the beginning of it. A quoted message that was taken back
-    // (or is gone, or in a group chat is from somebody blocked with the viewer) comes back as deleted, without text or picture.
     private static GetMessageReplyDto QuoteFor(Guid quotedId, Guid viewerId, bool isGroup, MessageContext context)
     {
         if (!context.Quoted.TryGetValue(quotedId, out var message)
@@ -838,21 +784,18 @@ public class MessageService : IMessageService
         };
     }
 
-    // The messages as `currentUserId` sees them.
     private async Task<List<GetMessageDto>> MapMessagesAsync(List<Message> messages, Guid currentUserId)
     {
         var context = await LoadContextAsync(messages);
         return messages.Select(m => Build(m, currentUserId, context)).ToList();
     }
 
-    // One message as each of these people sees it, with one round of lookups however many they are (a group chat).
     private async Task<Dictionary<Guid, GetMessageDto>> MapForViewersAsync(Message message, List<Guid> viewerIds)
     {
         var context = await LoadContextAsync(new List<Message> { message });
         return viewerIds.Distinct().ToDictionary(id => id, id => Build(message, id, context));
     }
 
-    // The emojis under a message: each with its count, the most used first.
     private static List<GetMessageReactionDto> SummarizeReactions(List<MessageReaction> reactions, Guid currentUserId)
     {
         return reactions
@@ -863,8 +806,6 @@ public class MessageService : IMessageService
             .ToList();
     }
 
-    // The stories some messages answer, in one query. A story that is gone or expired comes back as not available
-    // (and without its media: an expired story is no longer shown to anybody).
     private async Task<Dictionary<Guid, GetStoryReplyDto>> LoadStoryRepliesAsync(IEnumerable<Guid> storyIds)
     {
         var ids = storyIds.Distinct().ToList();

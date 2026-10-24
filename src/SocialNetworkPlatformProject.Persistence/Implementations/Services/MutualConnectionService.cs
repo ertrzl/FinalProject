@@ -8,7 +8,6 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class MutualConnectionService : IMutualConnectionService
 {
-    // How many of each are listed (the counts are always the real totals).
     private const int MaxListed = 100;
 
     private readonly IFriendService _friends;
@@ -40,7 +39,6 @@ public class MutualConnectionService : IMutualConnectionService
         if (!await _users.ExistsAsync(userId))
             throw new NotFoundException(Loc.T("user.notFound"));
 
-        // Somebody who blocked the viewer looks as if they do not exist; somebody the viewer blocked has nothing shown.
         if (await _blocks.HasBlockedAsync(userId, viewerId))
             throw new NotFoundException(Loc.T("user.notFound"));
         if (await _blocks.HasBlockedAsync(viewerId, userId))
@@ -51,7 +49,6 @@ public class MutualConnectionService : IMutualConnectionService
         return result;
     }
 
-    // People who are a friend of both, without anybody blocked either way with the viewer; listed by name.
     private async Task AddFriendsAsync(GetMutualConnectionsDto result, Guid viewerId, Guid userId)
     {
         var hidden = await _blocks.GetBlockedIdsAsync(viewerId);
@@ -70,8 +67,6 @@ public class MutualConnectionService : IMutualConnectionService
             .ToList();
     }
 
-    // Groups both people belong to. The viewer is a member of every one of them, so a private group is only ever shown to a member
-    // (and the other person's membership is no secret from the people in the same group).
     private async Task AddGroupsAsync(GetMutualConnectionsDto result, Guid viewerId, Guid userId)
     {
         var mine = await _members.GetAll(m => m.UserId == viewerId, asNoTracking: true).Select(m => m.GroupId).ToListAsync();

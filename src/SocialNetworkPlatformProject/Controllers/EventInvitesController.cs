@@ -6,7 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// events.html "Davetler" tab + event.html "Davet Et" modal
 [ApiController]
 [Route("api/events")]
 [Authorize]

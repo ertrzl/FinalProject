@@ -1,6 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.DTOs.Stories;
 
-// The list under the eye icon of your own story (js/stories.js)
 public class GetStoryViewerDto
 {
     public Guid UserId { get; set; }
@@ -8,6 +7,5 @@ public class GetStoryViewerDto
     public string? AvatarUrl { get; set; }
     public DateTime ViewedAt { get; set; }
 
-    // This viewer also liked the story (a heart next to the name).
     public bool HasLiked { get; set; }
 }

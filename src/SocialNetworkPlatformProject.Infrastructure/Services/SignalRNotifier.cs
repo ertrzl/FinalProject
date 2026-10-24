@@ -17,7 +17,6 @@ public class SignalRNotifier : IRealTimeNotifier
         _messagesHub = messagesHub;
     }
 
-    // Clients.User(...) reaches every open tab/device of that user (see SubClaimUserIdProvider).
     public Task SendNotificationAsync(Guid recipientId, GetNotificationDto notification)
     {
         return _notificationsHub.Clients.User(recipientId.ToString()).SendAsync("ReceiveNotification", notification);

@@ -8,7 +8,6 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class UploadAccessService : IUploadAccessService
 {
-    // An answer is remembered for a short while: a page asks for many pictures at once, and the same one again and again.
     private static readonly TimeSpan YesFor = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan NoFor = TimeSpan.FromSeconds(10);
 
@@ -65,7 +64,6 @@ public class UploadAccessService : IUploadAccessService
     {
         switch (folder)
         {
-            // Pictures the pages show to every signed-in person anyway (a profile, a group's or a listing's card).
             case "avatars":
             case "covers":
             case "groups":
@@ -73,14 +71,12 @@ public class UploadAccessService : IUploadAccessService
             case "marketplace":
                 return true;
 
-            // A post's photo or video: whoever may see the post.
             case "posts":
             {
                 var post = await _postRows.FindByMediaUrlAsync(url);
                 return post != null && await _posts.CanViewAsync(post, viewerId);
             }
 
-            // A story: its author and the author's friends, while it lasts.
             case "stories":
             {
                 var story = await _stories.GetAll(s => s.MediaUrl == url, asNoTracking: true).FirstOrDefaultAsync();
@@ -90,10 +86,8 @@ public class UploadAccessService : IUploadAccessService
                 return story.UserId == viewerId || await _friends.AreFriendsAsync(viewerId, story.UserId);
             }
 
-            // A story kept in a highlight: whoever may see that person's highlights (they outlive the story, so the story rule does not apply).
             case "highlights":
                 return await _highlights.CanViewFileAsync(viewerId, url);
-            // A photo of a chat: the two people of the chat, or the current members of a group's chat.
             case "messages":
             {
                 var conversationId = await _messages.GetAll(m => m.MediaUrl == url, asNoTracking: true)
@@ -105,11 +99,9 @@ public class UploadAccessService : IUploadAccessService
                 return await _participants.AnyAsync(p => p.ConversationId == conversationId && p.UserId == viewerId);
             }
 
-            // The picture of a group chat made on the Messages page: the people in that chat.
             case "chat-avatars":
                 return await _participants.AnyAsync(p => p.UserId == viewerId && p.Conversation!.AvatarUrl == url);
 
-            // An event's cover: whoever may see the event (a private or group event is not for everybody).
             case "events":
             {
                 var eventId = await _eventRows.GetAll(e => e.CoverImageUrl == url, asNoTracking: true)
@@ -118,7 +110,6 @@ public class UploadAccessService : IUploadAccessService
                 return eventId != null && await CanViewEventAsync(viewerId, eventId.Value);
             }
 
-            // A picture of an event's photo album: the same people who may see the event itself.
             case "eventphotos":
             {
                 var eventId = await _eventPhotos.FindEventIdByUrlAsync(url);
@@ -130,7 +121,6 @@ public class UploadAccessService : IUploadAccessService
         }
     }
 
-    // A group or private event is not for everybody (and neither is anything that belongs to it).
     private async Task<bool> CanViewEventAsync(Guid viewerId, Guid eventId)
     {
         try

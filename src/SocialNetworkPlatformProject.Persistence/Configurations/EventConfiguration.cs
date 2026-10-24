@@ -12,7 +12,6 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.Property(e => e.StartsAt).HasConversion<UtcDateTimeConverter>();
         builder.Property(e => e.EndsAt).HasConversion<UtcDateTimeConverter>();
 
-        // The "Yaklaşan" list and every "has it finished?" check filter on EndsAt.
         builder.HasIndex(e => e.EndsAt);
 
         builder.Property(e => e.RowVersion).IsRowVersion();
@@ -21,8 +20,6 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.Property(e => e.Description).HasMaxLength(TextLimits.EventDescription);
         builder.Property(e => e.OnlineLink).HasMaxLength(500);
 
-        // The map pin: both or neither, within the range of a globe. The validator says it first; this keeps the rows right
-        // whatever way they got there.
         builder.ToTable(t =>
         {
             t.HasCheckConstraint("CK_Events_Latitude", "[Latitude] IS NULL OR ([Latitude] >= -90 AND [Latitude] <= 90)");
@@ -30,11 +27,9 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
             t.HasCheckConstraint("CK_Events_Pin_BothOrNone", "([Latitude] IS NULL AND [Longitude] IS NULL) OR ([Latitude] IS NOT NULL AND [Longitude] IS NOT NULL)");
         });
 
-        // Who may open an event's cover is decided from the event that holds its address (UploadsController).
         builder.Property(e => e.CoverImageUrl).HasMaxLength(500);
         builder.HasIndex(e => e.CoverImageUrl).HasFilter("[CoverImageUrl] IS NOT NULL");
 
-        // Deleting a group takes its events (and their attendees, invites and comments) with it.
         builder.HasOne(e => e.Group)
             .WithMany()
             .HasForeignKey(e => e.GroupId)

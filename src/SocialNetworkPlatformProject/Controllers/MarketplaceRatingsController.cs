@@ -6,7 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// marketplace.html "Satıcıyı Puanla" modal, the seller reviews modal, and the rating badge on profile.html
 [ApiController]
 [Route("api/marketplace")]
 [Authorize]

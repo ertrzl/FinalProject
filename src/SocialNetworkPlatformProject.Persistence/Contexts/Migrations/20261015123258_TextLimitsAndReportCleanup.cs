@@ -4,19 +4,13 @@
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class TextLimitsAndReportCleanup : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // One-off clean-up of what the older code left behind: the reports made by or about accounts that no longer exist
-            // (blank names in the admin list, nothing left to look at), and the name of an admin who closed one.
             migrationBuilder.Sql("DELETE FROM Reports WHERE ReporterId NOT IN (SELECT Id FROM AspNetUsers) OR TargetOwnerId NOT IN (SELECT Id FROM AspNetUsers);");
             migrationBuilder.Sql("UPDATE Reports SET ResolvedById = NULL WHERE ResolvedById IS NOT NULL AND ResolvedById NOT IN (SELECT Id FROM AspNetUsers);");
 
-            // The validators never let a longer text in, so these cut nothing; they only make sure the new limits below can
-            // be applied to a database that somebody filled by hand.
             migrationBuilder.Sql("UPDATE Posts SET Text = LEFT(Text, 5000) WHERE LEN(Text) > 5000;");
             migrationBuilder.Sql("UPDATE Messages SET Text = LEFT(Text, 2000) WHERE LEN(Text) > 2000;");
             migrationBuilder.Sql("UPDATE Comments SET Text = LEFT(Text, 1000) WHERE LEN(Text) > 1000;");
@@ -134,7 +128,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 sql: "LEN([Text]) <= 5000");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropCheckConstraint(

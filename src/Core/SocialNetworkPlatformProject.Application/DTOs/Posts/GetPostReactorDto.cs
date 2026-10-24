@@ -1,6 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.DTOs.Posts;
 
-// One row of the "who reacted" list
 public class GetPostReactorDto
 {
     public Guid UserId { get; set; }

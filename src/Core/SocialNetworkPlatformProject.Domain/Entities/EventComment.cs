@@ -2,8 +2,6 @@ using SocialNetworkPlatformProject.Domain.Common;
 
 namespace SocialNetworkPlatformProject.Domain.Entities;
 
-// event.html's discussion section. An announcement is a comment the organizer pinned to the top; it also
-// notifies everyone going or interested.
 public class EventComment : BaseEntity
 {
     public Guid EventId { get; set; }

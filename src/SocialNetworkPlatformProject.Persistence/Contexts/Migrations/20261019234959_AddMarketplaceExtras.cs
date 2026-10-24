@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class AddMarketplaceExtras : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<Guid>(
@@ -49,8 +47,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 type: "datetime2",
                 nullable: true);
 
-            // Listings that existed before: 30 days from when they were made, but at least a week from now, so nothing
-            // disappears the moment this runs. (Their condition is "Good", the column default above.)
             migrationBuilder.Sql("UPDATE MarketplaceListings SET ExpiresAt = CASE WHEN DATEADD(day, 30, CreatedAt) > DATEADD(day, 7, GETUTCDATE()) THEN DATEADD(day, 30, CreatedAt) ELSE DATEADD(day, 7, GETUTCDATE()) END");
 
             migrationBuilder.CreateTable(
@@ -77,7 +73,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 columns: new[] { "SellerId", "CreatedAt" });
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(

@@ -11,12 +11,10 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class GroupService : IGroupService
 {
-    // GetGroupDto.MemberCount is computed from the Members collection.
     private static readonly string[] MemberIncludes = { "Members" };
 
     private static readonly string[] GroupAndInviteIncludes = { "Group" };
 
-    // The group's small round picture has a folder of its own (UploadAccessService: open to every signed-in person, like the covers).
     private const string AvatarFolder = "group-avatars";
 
     private readonly IGroupRepository _groups;
@@ -71,7 +69,6 @@ public class GroupService : IGroupService
         if (!Enum.TryParse<GroupPrivacy>(dto.Privacy, out var privacy))
             throw new BadRequestException(Loc.T("group.privacy"));
 
-        // A picture that was stored but whose group could not be saved (or whose second picture was refused) is deleted again.
         string? coverUrl = null;
         string? avatarUrl = null;
         Group group;
@@ -116,9 +113,6 @@ public class GroupService : IGroupService
         if (!Enum.TryParse<GroupPrivacy>(dto.Privacy, out var privacy))
             throw new BadRequestException(Loc.T("group.privacy"));
 
-        // The old cover file is deleted only once the new state is saved: if the save fails, the group must not be left pointing
-        // at a deleted file. A new cover that could not be saved is deleted again.
-        // The avatar follows the same rule.
         var oldCoverUrl = group.CoverImageUrl;
         var oldAvatarUrl = group.AvatarUrl;
         string? newCoverUrl = null;
@@ -173,7 +167,6 @@ public class GroupService : IGroupService
         if (group.AvatarUrl != oldAvatarUrl)
             _files.Delete(oldAvatarUrl);
 
-        // Going public makes any pending requests moot — those users can just join directly now.
         if (wasPrivate && privacy == GroupPrivacy.Public)
         {
             var pending = await _joinRequests.GetAll(r => r.GroupId == groupId).ToListAsync();
@@ -193,7 +186,6 @@ public class GroupService : IGroupService
         var group = await _groups.GetByIdAsync(groupId, MemberIncludes)
             ?? throw new NotFoundException(Loc.T("group.notFound"));
 
-        // Private groups behave as if they don't exist for non-members.
         if (group.Privacy == GroupPrivacy.Private && group.Members.All(m => m.UserId != currentUserId))
             throw new NotFoundException(Loc.T("group.notFound"));
 
@@ -216,8 +208,6 @@ public class GroupService : IGroupService
     {
         var term = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
 
-        // Private groups are listed too — just name/member-count/privacy, same as public ones.
-        // Their card offers a join *request* instead of an immediate join (see JoinAsync).
         var groups = await _groups.GetAll(
                 filter: g => g.Members.All(m => m.UserId != currentUserId)
                              && (term == null || g.Name.Contains(term)),
@@ -231,7 +221,6 @@ public class GroupService : IGroupService
 
         var dtos = await ToListDtosAsync(groups, currentUserId);
 
-        // One batched query for "did I already request to join any of these" instead of one per group.
         var groupIds = groups.Select(g => g.Id).ToList();
         var pendingGroupIds = (await _joinRequests
                 .GetAll(r => r.UserId == currentUserId && groupIds.Contains(r.GroupId), asNoTracking: true)
@@ -253,7 +242,6 @@ public class GroupService : IGroupService
         if (group.Members.Any(m => m.UserId == currentUserId))
             throw new ConflictException(Loc.T("group.alreadyMember"));
 
-        // Asking to join a private group counts as joining: the rules are accepted then, not again on approval.
         await EnsureRulesAcceptedAsync(groupId, acceptRules);
 
         if (group.Privacy == GroupPrivacy.Private)
@@ -277,7 +265,6 @@ public class GroupService : IGroupService
         await _members.SaveChangesAsync();
         await _chat.AddToGroupChatAsync(groupId, currentUserId);
 
-        // The tracked Members collection was fixed up by EF when the new row was added.
         return await ToDtoAsync(group, currentUserId, includeMembers: false);
     }
 
@@ -299,7 +286,6 @@ public class GroupService : IGroupService
 
         var summaries = await _users.GetSummariesAsync(requests.Select(r => r.UserId));
 
-        // A request whose account is gone (deleted before requests were cleaned up with it) is not listed.
         return requests.Where(r => summaries.ContainsKey(r.UserId)).Select(r =>
         {
             summaries.TryGetValue(r.UserId, out var summary);
@@ -324,7 +310,6 @@ public class GroupService : IGroupService
         var request = await _joinRequests.GetAll(r => r.GroupId == groupId && r.UserId == requesterUserId).FirstOrDefaultAsync()
             ?? throw new NotFoundException(Loc.T("joinRequest.notFound"));
 
-        // The person's account may be gone: nobody to let in, the request is simply removed.
         if (!await _users.ExistsAsync(requesterUserId))
         {
             _joinRequests.Delete(request);
@@ -369,14 +354,12 @@ public class GroupService : IGroupService
         if (!await _users.ExistsAsync(targetUserId))
             throw new NotFoundException(Loc.T("user.notFound"));
 
-        // Blocked people can't send each other invitations, whichever of them blocked the other.
         if (await _blocks.AreBlockedAsync(currentUserId, targetUserId))
             throw new ForbiddenException(Loc.T("block.cannotInvite"));
 
         if (group.Members.Any(m => m.UserId == targetUserId))
             throw new ConflictException(Loc.T("group.memberAlready"));
 
-        // Mutual intent already exists (they already asked to join) — just let them straight in.
         var existingRequest = await _joinRequests.GetAll(r => r.GroupId == groupId && r.UserId == targetUserId).FirstOrDefaultAsync();
         if (existingRequest != null)
         {
@@ -398,7 +381,6 @@ public class GroupService : IGroupService
 
     public async Task<List<GetGroupInviteDto>> GetMyInvitesAsync(Guid currentUserId)
     {
-        // Invitations from someone blocked with me, also the ones sent before the block, are not shown.
         var hidden = await _blocks.GetBlockedIdsAsync(currentUserId);
 
         var invites = await _invites.GetAll(
@@ -441,7 +423,6 @@ public class GroupService : IGroupService
 
         if (group.Members.Any(m => m.UserId == currentUserId))
         {
-            // Already a member somehow (e.g. joined another way meanwhile) — just clear the stale invite.
             _invites.Delete(invite);
             await _invites.SaveChangesAsync();
             return;
@@ -476,16 +457,13 @@ public class GroupService : IGroupService
 
         if (others.Count == 0)
         {
-            // Last member out: nothing left to keep.
             await DeleteGroupWithEventsAsync(group);
             return;
         }
 
-        // The owner can't slip out unnoticed: they must hand the group to someone else first.
         if (group.CreatedByUserId == currentUserId)
             throw new BadRequestException(Loc.T("group.ownerMustTransfer"));
 
-        // Never leave a group without an admin: the last admin must promote someone else first.
         if (membership.Role == GroupMemberRole.Admin && others.All(m => m.Role != GroupMemberRole.Admin))
             throw new BadRequestException(Loc.T("group.lastAdmin"));
 
@@ -508,8 +486,6 @@ public class GroupService : IGroupService
         await DeleteGroupWithEventsAsync(group);
     }
 
-    // Deletes the group. Its events and its wall's posts go with it (the database cascades), but their files and
-    // notifications are not the database's to clean up, so collect them first and remove them afterwards.
     private async Task DeleteGroupWithEventsAsync(Group group)
     {
         var groupEvents = await _events.GetAll(e => e.GroupId == group.Id, asNoTracking: true)
@@ -525,7 +501,6 @@ public class GroupService : IGroupService
         var wallPostIds = await wallPosts.Select(p => p.Id).ToListAsync();
         var wallFiles = await wallPosts.SelectMany(p => p.Media).Select(m => m.Url).ToListAsync();
 
-        // The group's chat (and its messages) go with it too.
         var chatFiles = await _chat.GetGroupChatFilesAsync(group.Id);
 
         _groups.Delete(group);
@@ -564,11 +539,9 @@ public class GroupService : IGroupService
         var target = group.Members.FirstOrDefault(m => m.UserId == targetUserId)
             ?? throw new NotFoundException(Loc.T("group.targetNotMember"));
 
-        // Admins can only be removed by leaving on their own (after handing off admin/ownership).
         if (target.Role == GroupMemberRole.Admin)
             throw new ForbiddenException(Loc.T("group.removeAdminDenied"));
 
-        // Moderators can clear out regular members but can't touch each other.
         if (acting.Role == GroupMemberRole.Moderator && target.Role == GroupMemberRole.Moderator)
             throw new ForbiddenException(Loc.T("group.modRemoveMod"));
 
@@ -651,11 +624,9 @@ public class GroupService : IGroupService
 
         EnsureAdmin(group, currentUserId);
 
-        // The validator says the same; this is the rule itself, for any caller.
         if (dto.Rules.Count > GroupLimits.MaxRules)
             throw new BadRequestException(Loc.T("val.group.rulesMax", GroupLimits.MaxRules));
 
-        // The new list replaces the old one as a whole (the modal edits, adds, removes and reorders in one go).
         foreach (var old in await _rules.GetAll(r => r.GroupId == groupId).ToListAsync())
             _rules.Delete(old);
 
@@ -681,7 +652,6 @@ public class GroupService : IGroupService
         var group = await _groups.GetByIdAsync(groupId)
             ?? throw new NotFoundException(Loc.T("group.notFound"));
 
-        // Like the group itself: a private group's members are for its members only.
         if (group.Privacy == GroupPrivacy.Private && !await _members.AnyAsync(m => m.GroupId == groupId && m.UserId == currentUserId))
             throw new NotFoundException(Loc.T("group.notFound"));
 
@@ -734,7 +704,6 @@ public class GroupService : IGroupService
         return await ToDtoAsync(group, currentUserId, includeMembers: true);
     }
 
-    // A group with rules lets nobody in who did not accept them (the page shows them with a box to tick).
     private async Task EnsureRulesAcceptedAsync(Guid groupId, bool acceptRules)
     {
         if (!acceptRules && await _rules.AnyAsync(r => r.GroupId == groupId))
@@ -748,8 +717,6 @@ public class GroupService : IGroupService
             throw new ForbiddenException(Loc.T("group.adminOnly"));
     }
 
-    // The cards of a list of groups: the member rows are not loaded, the database counts them and says what role the viewer has
-    // (one query for all the groups; loading every member of every group just to count them grew with the site).
     private async Task<List<GetGroupDto>> ToListDtosAsync(IReadOnlyList<Group> groups, Guid currentUserId)
     {
         var groupIds = groups.Select(g => g.Id).ToList();
@@ -784,7 +751,6 @@ public class GroupService : IGroupService
         {
             var summaries = await _users.GetSummariesAsync(group.Members.Select(m => m.UserId));
             dto.Members = group.Members
-                // Admin, then Moderator, then Member. (Not by the enum's number: Moderator was added after Admin, so it is the larger one.)
                 .OrderBy(m => m.Role == GroupMemberRole.Admin ? 0 : m.Role == GroupMemberRole.Moderator ? 1 : 2)
                 .ThenBy(m => summaries.TryGetValue(m.UserId, out var s) ? s.FullName : "")
                 .Select(m =>

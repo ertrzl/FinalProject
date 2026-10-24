@@ -1,10 +1,6 @@
-// profile.html — F6: own profile + someone else's, wired to the backend.
-
 const session = requireAuth();
 const params = new URLSearchParams(window.location.search);
 
-// The page is opened by id (profile.html?id=...), by the short address /u/<username> (the server sends it here as ?u=<username>), or
-// with neither for your own profile. With only a user name the id is known once the profile has been loaded.
 const profileUserName = params.get("u");
 let profileUserId = params.get("id") || (profileUserName ? null : session.userId);
 
@@ -17,7 +13,6 @@ function monthYear(isoDate) {
   return new Date(isoDate).toLocaleDateString(localeTag(), { month: "long", year: "numeric" });
 }
 
-// Marketplace seller rating next to the handle (hidden until the user has been rated); links to the reviews.
 async function loadSellerRatingBadge(userId) {
   const slot = document.getElementById("profileSellerRating");
   try {
@@ -31,7 +26,7 @@ async function loadSellerRatingBadge(userId) {
         <span class="text-muted">(${summary.count} satıcı değerlendirmesi)</span></a>`;
     slot.classList.remove("d-none");
   } catch (err) {
-    slot.classList.add("d-none"); // a missing badge is not worth an error on the profile page
+    slot.classList.add("d-none");
   }
 }
 
@@ -102,7 +97,6 @@ async function loadProfile() {
 async function renderOtherProfileActions(p) {
   const area = document.getElementById("profileActionArea");
 
-  // Somebody the viewer blocked: only the way back is offered, no friend or message buttons.
   if (p.isBlockedByMe) {
     area.innerHTML = `
       <div class="small text-muted mb-2"><i class="bi bi-slash-circle me-1"></i>${i18n("block.notice")}</div>
@@ -110,7 +104,6 @@ async function renderOtherProfileActions(p) {
     return;
   }
 
-  // "Profili Paylaş" and the "..." menu next to the buttons: the block item.
   const moreMenu = `
     <button class="btn btn-light btn-sm rounded-pill shadow-sm border mb-2 ms-1" onclick="openShareProfile()"><i class="bi bi-qr-code me-1"></i>Profili Paylaş</button>
     <div class="dropdown d-inline-block mb-2 ms-1">
@@ -137,7 +130,7 @@ async function renderOtherProfileActions(p) {
           <button class="btn btn-primary btn-sm rounded-pill mb-2 me-2" onclick="respondRequest('${match.id}', true)">Kabul Et</button>
           <button class="btn btn-outline-danger btn-sm rounded-pill mb-2" onclick="respondRequest('${match.id}', false)">Reddet</button>${moreMenu}`;
       }
-    } catch (err) { /* leave the disabled hint */ }
+    } catch (err) { }
   } else {
     area.innerHTML = `
       <button class="btn btn-primary btn-sm rounded-pill mb-2 me-2" onclick="sendRequest('${p.id}', this)"><i class="bi bi-person-plus me-1"></i>Arkadaş Ekle</button>
@@ -207,11 +200,9 @@ async function loadFriendsSummary() {
   const tabList = document.getElementById("friendsTabList");
   const summary = document.getElementById("friendsSummary");
 
-  // The links lead to the viewer's own friends page, so only the profile owner gets them.
   document.getElementById("friendsSeeAllLink").classList.toggle("d-none", !isOwn);
   document.getElementById("friendsManageLink").classList.toggle("d-none", !isOwn);
 
-  // Somebody else's list is only there when they opened it in their settings (the server checks it again).
   if (!isOwn && !currentProfile.showFriendsList) {
     heading.textContent = `${currentProfile.friendCount} Arkadaş`;
     tabList.innerHTML = `<div class="text-muted small">Bu kişi arkadaş listesini gizlemiş.</div>`;
@@ -232,7 +223,6 @@ async function loadFriendsSummary() {
   }
 }
 
-// The wall, 20 posts at a time (pager.js); the photos tab is drawn from the posts loaded so far.
 const wallPager = createPager({
   list: "profilePostsList",
   url: page => `/api/posts/by-user/${profileUserId}?page=${page}&pageSize=20`,
@@ -251,7 +241,6 @@ function loadPosts() {
 
 function loadPhotosFromPosts() {
   const grid = document.getElementById("photosGrid");
-  // Every photo of every post (a post with several photos gives several tiles); videos show up on the wall itself.
   const photos = loadedPosts.flatMap(p => p.media).filter(m => m.type === "Image");
   const photoKey = registerPhotoSet("profile-photos", photos.map(m => m.url));
   grid.innerHTML = photos.length
@@ -351,7 +340,6 @@ async function saveProfile() {
   }
 }
 
-// Clicking the camera item in the avatar dropdown uploads immediately, no modal needed.
 async function uploadAvatarQuick(input) {
   const file = input.files[0];
   if (!file) return;

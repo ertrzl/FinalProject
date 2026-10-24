@@ -18,7 +18,6 @@ public class MessageRepository : Repository<Message>, IMessageRepository
         if (conversationIds.Count == 0)
             return new Dictionary<Guid, int>();
 
-        // Each chat has its own "read up to" moment (the user's participant row), so the messages are joined to it.
         var query =
             from m in _dbSet.AsNoTracking()
             join p in _context.Set<ConversationParticipant>().AsNoTracking() on m.ConversationId equals p.ConversationId

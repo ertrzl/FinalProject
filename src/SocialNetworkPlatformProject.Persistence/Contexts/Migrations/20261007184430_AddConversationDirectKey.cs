@@ -4,10 +4,8 @@
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class AddConversationDirectKey : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
@@ -17,8 +15,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 maxLength: 80,
                 nullable: true);
 
-            // Name the existing conversations: "smaller-id:larger-id" in lower-case, compared character by character —
-            // exactly what Conversation.DirectKeyFor builds. Only conversations of exactly two different people get one.
             migrationBuilder.Sql(
                 @"UPDATE c
                   SET DirectKey = pairs.LowId + ':' + pairs.HighId
@@ -33,8 +29,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                   ) pairs ON pairs.ConversationId = c.Id
                   WHERE pairs.Participants = 2 AND pairs.LowId <> pairs.HighId");
 
-            // If two people ended up with several conversations (the race this migration closes), keep the oldest one,
-            // move the messages of the others into it and drop the others, so the unique index below can be created.
             migrationBuilder.Sql(
                 @"WITH ranked AS (
                       SELECT Id, DirectKey, ROW_NUMBER() OVER (PARTITION BY DirectKey ORDER BY CreatedAt, Id) AS Position
@@ -63,7 +57,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 filter: "[DirectKey] IS NOT NULL");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(

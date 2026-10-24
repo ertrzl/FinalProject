@@ -35,7 +35,6 @@ public class ItunesMusicSearchService : IMusicSearchService
                     Title = t.TrackName!,
                     Artist = t.ArtistName ?? string.Empty,
                     PreviewUrl = t.PreviewUrl!,
-                    // The store sends a 100 px cover; a slightly bigger one is as cheap and looks sharp in the viewer.
                     ArtworkUrl = MusicLinks.IsAllowedCover(t.ArtworkUrl100) ? t.ArtworkUrl100!.Replace("100x100", "200x200") : null
                 })
                 .ToList();

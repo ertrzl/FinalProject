@@ -6,19 +6,8 @@ using SocialNetworkPlatformProject.Infrastructure.Services;
 
 namespace SocialNetworkPlatformProject.Infrastructure.Hubs;
 
-// The token of a connection is checked once, when the connection is made. A connection stays open for hours, so
-// without this a person whose account was suspended (or whose password was changed) could keep calling the hub with
-// the old token. Every call a client makes is checked again against the account's current security stamp (the same
-// check as every API request, remembered for a few seconds); when it fails the connection is closed.
-//
-// Two more things happen here because every hub call and every connection passes through:
-//  - the connections are written down (HubConnectionRegistry), so the ones of an account that was suspended or deleted can be
-//    closed at once, even a listen-only one that never calls anything;
-//  - the calls are counted, because the HTTP rate limiter never sees them (one WebSocket could send messages and typing
-//    events without end, each one costing database work).
 public class SecurityStampHubFilter : IHubFilter
 {
-    // Per person, over all their tabs. Far above what typing and chatting need, far below what a script would do.
     private const int MaxCallsPerWindow = 50;
     private static readonly TimeSpan Window = TimeSpan.FromSeconds(10);
 

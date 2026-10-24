@@ -12,11 +12,8 @@ public class ReportConfiguration : IEntityTypeConfiguration<Report>
         builder.Property(r => r.Details).HasMaxLength(1000);
         builder.Property(r => r.AdminNote).HasMaxLength(500);
 
-        // The admin's queue: pending first, newest first.
         builder.HasIndex(r => new { r.Status, r.CreatedAt });
 
-        // One report per person and thing, for good (ReportService.CreateAsync checks first; this index is what makes it
-        // hold when two requests arrive at the same moment).
         builder.HasIndex(r => new { r.ReporterId, r.TargetType, r.TargetId }).IsUnique();
         builder.HasIndex(r => new { r.TargetType, r.TargetId });
     }

@@ -43,7 +43,6 @@ public class FriendService : IFriendService
         if (!await _users.ExistsAsync(dto.ReceiverId))
             throw new NotFoundException(Loc.T("user.notFound"));
 
-        // Somebody who blocked you looks as if they do not exist; somebody you blocked has to be unblocked first.
         if (await _blocks.HasBlockedAsync(dto.ReceiverId, currentUserId))
             throw new NotFoundException(Loc.T("user.notFound"));
 
@@ -82,7 +81,6 @@ public class FriendService : IFriendService
         request.Status = FriendRequestStatus.Accepted;
         request.RespondedAt = DateTime.UtcNow;
 
-        // Store each pair in one canonical order so the unique index also blocks the reversed duplicate.
         var (first, second) = request.SenderId.CompareTo(request.ReceiverId) < 0
             ? (request.SenderId, request.ReceiverId)
             : (request.ReceiverId, request.SenderId);
@@ -220,7 +218,6 @@ public class FriendService : IFriendService
         var blockedIds = await _blocks.GetBlockedIdsAsync(currentUserId);
         var excluded = new HashSet<Guid>(myFriendIds.Concat(pendingCounterparts).Concat(blockedIds)) { currentUserId };
 
-        // Friends of friends, ranked by how many friends they share with the current user.
         var friendsOfFriends = await _friendships.GetAll(
                 f => myFriendIds.Contains(f.UserOneId) || myFriendIds.Contains(f.UserTwoId),
                 asNoTracking: true)
@@ -239,7 +236,6 @@ public class FriendService : IFriendService
         var rankedIds = mutualCounts.OrderByDescending(kv => kv.Value).Take(take).Select(kv => kv.Key).ToList();
         var summaries = (await _users.GetSummariesAsync(rankedIds)).Values.ToList();
 
-        // Pad with the newest users so a brand-new account still sees people to add.
         if (summaries.Count < take)
         {
             var alreadyPicked = excluded.Concat(summaries.Select(s => s.Id));

@@ -23,7 +23,6 @@ public class SessionService : ISessionService
     {
         var active = await _refreshTokens.GetActiveAsync(currentUserId, DateTime.UtcNow);
 
-        // Newest first, so the first row of a session is its latest renewal.
         return active
             .GroupBy(t => t.SessionId)
             .Select(g => g.First())

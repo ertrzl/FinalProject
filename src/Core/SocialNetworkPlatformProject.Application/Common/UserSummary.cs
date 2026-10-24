@@ -1,6 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.Common;
 
-// Read-only view of a user, so Application code never touches the Identity-based ApplicationUser (Persistence).
 public class UserSummary
 {
     public Guid Id { get; init; }

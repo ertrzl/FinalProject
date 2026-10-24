@@ -1,13 +1,10 @@
-// messages.html — real conversations wired to the backend; new messages arrive live through realtime.js (SignalR).
-
 requireAuth();
 
-let activeId = null;      // real conversation id once one exists
-let draftUser = null;     // { id, fullName, avatarUrl } when starting a brand-new conversation
+let activeId = null;
+let draftUser = null;
 
 function conversationListItemHtml(conv) {
   const activeClass = conv.id === activeId ? "bg-primary-subtle" : "";
-  // A group chat shows the group (no online dot: there is no single other person); a muted one carries a small bell.
   const presenceDot = conv.isGroup ? ""
     : `<span class="position-absolute bottom-0 end-0 bg-success border border-2 border-white rounded-circle ${conv.isOtherUserOnline ? "" : "d-none"}" style="width:11px;height:11px;" data-presence-user="${conv.otherUserId}"></span>`;
   return `
@@ -33,7 +30,6 @@ async function renderList() {
   filterConversations();
 }
 
-// The search box above the list (inbox design): hides the conversations whose name does not contain what was typed.
 function filterConversations() {
   const box = document.getElementById("conversationSearch");
   const term = (box ? box.value : "").trim().toLocaleLowerCase(localeTag());
@@ -42,7 +38,6 @@ function filterConversations() {
   });
 }
 
-// One tick = delivered, two ticks = the other person has seen it.
 function readStatusHtml(isRead) {
   return ` <i class="bi ${isRead ? "bi-check2-all text-info" : "bi-check2"} read-status ms-1"></i>`;
 }
@@ -59,7 +54,6 @@ function messageBubbleHtml(m) {
       </div>`;
 }
 
-// Live messages can arrive twice (our own echo + the send() result), so skip anything already on screen.
 function appendMessage(m) {
   const thread = document.getElementById("conversationThread");
   if (thread.querySelector(`[data-message-id="${m.id}"]`)) return;
@@ -68,7 +62,6 @@ function appendMessage(m) {
   thread.scrollTop = thread.scrollHeight;
 }
 
-// On a phone the page shows either the list or one conversation; these two switch between them.
 function showThread() {
   document.getElementById("messagesLayout").classList.add("thread-open");
 }
@@ -87,7 +80,6 @@ function renderHeader(userId, name, avatar, online) {
     </div>`;
 }
 
-// A group chat's header: the group (its page is a tap away) and how many members it has, where "yazıyor..." also shows.
 function renderGroupHeader(conv) {
   document.getElementById("conversationHeader").innerHTML = `
     <button type="button" class="btn btn-link text-body p-0 d-md-none" onclick="showConversationList()" aria-label="Sohbetlere dön"><i class="bi bi-arrow-left fs-4"></i></button>
@@ -101,7 +93,6 @@ function renderGroupHeader(conv) {
     ${conv.isCustomGroup ? `<button type="button" class="btn btn-light btn-sm rounded-circle ms-auto flex-shrink-0" style="width:44px;height:44px;" onclick="openChatGroupInfo('${conv.id}')" aria-label="Grup bilgisi" title="Grup bilgisi"><i class="bi bi-info-circle"></i></button>` : ""}`;
 }
 
-// keepView: refresh the conversation without changing which column a phone shows (after a lost connection).
 async function selectConversation(id, { keepView = false } = {}) {
   activeId = id;
   draftUser = null;
@@ -142,7 +133,6 @@ async function startDraftConversation(userId) {
 
 let lastTypingSentAt = 0;
 
-// Text, photo, sticker, emoji and thumbs-up all go through this bar (see chat-composer.js).
 window.createChatComposer(document.getElementById("messageForm"), {
   getTarget: () => (activeId ? { conversationId: activeId } : draftUser ? { receiverId: draftUser.id } : null),
 
@@ -167,7 +157,6 @@ window.createChatComposer(document.getElementById("messageForm"), {
 document.addEventListener("realtime:message", async e => {
   const m = e.detail;
 
-  // First reply from someone we were just about to message: the conversation exists now, so open it.
   if (!activeId && draftUser && m.senderId === draftUser.id) {
     e.preventDefault();
     activeId = m.conversationId;
@@ -180,7 +169,6 @@ document.addEventListener("realtime:message", async e => {
     e.preventDefault();
     appendMessage(m);
     hideTyping();
-    // A message only counts as seen while the tab is actually in front (see the visibilitychange handler below).
     if (!m.isMine && !document.hidden) await markActiveConversationRead();
   }
   renderList();
@@ -193,7 +181,6 @@ async function markActiveConversationRead() {
     window.refreshMessageBadge?.();
     renderList();
   } catch (err) {
-    // Silent: it will be marked read next time the conversation is opened.
   }
 }
 
@@ -201,14 +188,11 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) markActiveConversationRead();
 });
 
-// The other person has opened our messages: turn our single ticks into double ticks (in a group chat, the ones everybody
-// else has read).
 document.addEventListener("realtime:messages-read", e => {
   if (e.detail.conversationId !== activeId) return;
   window.chatApplyReadReceipt(document.getElementById("conversationThread"), e.detail, "bi bi-check2-all text-info read-status ms-1");
 });
 
-// Taken out of a group (left, removed, or the group is gone): its chat closes here at once.
 document.addEventListener("realtime:conversation-removed", async e => {
   if (e.detail.conversationId === activeId) {
     activeId = null;
@@ -220,8 +204,6 @@ document.addEventListener("realtime:conversation-removed", async e => {
   await renderList();
 });
 
-// A group chat made on the Messages page was made with this person in it, or its name, picture or people changed: the list
-// (and the header, when it is the open chat) show the new state.
 document.addEventListener("realtime:conversation-changed", async e => {
   await renderList();
   if (e.detail && e.detail.id === activeId) {
@@ -230,8 +212,6 @@ document.addEventListener("realtime:conversation-changed", async e => {
   }
 });
 
-// The sender took a message back, or somebody left or took back an emoji on it: redraw its bubble (the last-message
-// preview in the list changes too).
 for (const eventName of ["realtime:message-deleted", "realtime:message-updated"]) {
   document.addEventListener(eventName, e => {
     const row = document.querySelector(`#conversationThread [data-message-id="${e.detail.id}"]`);
@@ -240,7 +220,6 @@ for (const eventName of ["realtime:message-deleted", "realtime:message-updated"]
   });
 }
 
-// "yazıyor..." replaces the online label for a few seconds after each typing signal.
 let typingTimer = null;
 
 function hideTyping() {
@@ -275,7 +254,6 @@ async function init() {
 
   const params = new URLSearchParams(window.location.search);
   const userId = params.get("userId");
-  // messages.html?conversation=<id>: a given conversation, e.g. a group chat opened from group.html.
   const conversationId = params.get("conversation");
 
   if (conversationId && window.findChatConversation(conversationId)) {
@@ -288,7 +266,6 @@ async function init() {
       await startDraftConversation(userId);
     }
   } else if (window.chatConversationsCache.length && window.matchMedia("(min-width: 768px)").matches) {
-    // A wide screen opens the latest conversation; a phone starts on the list.
     await selectConversation(window.chatConversationsCache[0].id);
   }
 }

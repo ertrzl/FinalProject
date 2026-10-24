@@ -1,10 +1,5 @@
 namespace SocialNetworkPlatformProject.Middlewares;
 
-// Browser-side hardening that costs nothing: no content-type guessing, no framing by other sites, a referrer that
-// does not leak page addresses, and a content security policy that only lets the page load what it actually uses
-// (our own files plus the CDN, map-search and map-tile hosts the pages reference).
-// 'unsafe-inline' stays for scripts and styles because the pages use inline handlers (onclick="...") — dropping it
-// would first need those moved into the .js files.
 public class SecurityHeadersMiddleware
 {
     private const string ContentSecurityPolicy =
@@ -26,7 +21,6 @@ public class SecurityHeadersMiddleware
 
     public Task InvokeAsync(HttpContext context)
     {
-        // OnStarting, not set-now: the error middleware clears the response (headers included) before writing its body.
         context.Response.OnStarting(() =>
         {
             var headers = context.Response.Headers;
@@ -36,8 +30,6 @@ public class SecurityHeadersMiddleware
             headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
             headers["Content-Security-Policy"] = ContentSecurityPolicy;
 
-            // What the API answers is about one person (their messages, their account): no browser or proxy keeps a copy.
-            // (The pages and scripts have their own rule in Program.cs.)
             if (context.Request.Path.StartsWithSegments("/api"))
                 headers.CacheControl = "no-store";
 

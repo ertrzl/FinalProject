@@ -6,7 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// event.html's "Fotoğraflar" tab: the photo album of an event
 [ApiController]
 [Route("api/events/{eventId:guid}/photos")]
 [Authorize]

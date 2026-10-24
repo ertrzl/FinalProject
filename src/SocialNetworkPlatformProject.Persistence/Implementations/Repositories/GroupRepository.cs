@@ -28,7 +28,6 @@ public class GroupRepository : Repository<Group>, IGroupRepository
 
         var found = rows.ToDictionary(r => r.GroupId, r => new GroupMembership(r.Count, r.ViewerRole));
 
-        // A group nobody belongs to has no rows at all.
         return groupIds.Distinct().ToDictionary(id => id, id => found.GetValueOrDefault(id, new GroupMembership(0, null)));
     }
 

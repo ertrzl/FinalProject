@@ -1,16 +1,3 @@
-// The menu of every signed-in page, in one place: a new link is added here once, and the phone layout is fixed once.
-//
-// A page only has   <nav id="siteNav" data-active="home"></nav>   where the menu goes, and loads this file before app.js.
-// data-active names the section the page belongs to: home, explore, friends, notifications, messages, groups, marketplace, events, games
-// (the main links) or profile, saved, settings (the account links); leave it empty on any other page.
-//
-// The menu is drawn for the chosen design (js/design.js):
-//   inbox    a column of text links on the left (wide screens), with the search, "Gruplarım" and the account at its ends;
-//            below 992 px a top bar (logo, search, burger) and the bottom bar of the phone
-//   classic  the old top menu (logo, search, links, theme button, account menu); the phone bar below 768 px
-// Phones: the top has the logo, the search and a burger button (☰) that opens a panel with every link; the four most
-// used links are also on a bar at the bottom, whose "Daha fazla" button opens the same panel.
-
 const MAIN_LINKS = [
   { key: "home", href: "home.html", icon: "bi-house-door-fill", label: "Ana Sayfa" },
   { key: "explore", href: "explore.html", icon: "bi-compass-fill", label: "Keşfet" },
@@ -29,7 +16,6 @@ const ACCOUNT_LINKS = [
   { key: "settings", href: "settings.html", icon: "bi-gear", label: "Ayarlar" }
 ];
 
-// Only for an admin (the sign-in answer carries isAdmin; the server checks the role on every admin request anyway).
 const ADMIN_LINK = { key: "admin", href: "admin.html", icon: "bi-shield-check", label: "Yönetim" };
 
 function isAdmin() {
@@ -40,24 +26,20 @@ function accountLinks() {
   return isAdmin() ? [...ACCOUNT_LINKS, ADMIN_LINK] : ACCOUNT_LINKS;
 }
 
-// Which main links also get a place on the phone's bottom bar (the panel has all of them).
 const PHONE_BAR_KEYS = ["home", "friends", "notifications", "messages"];
 
-// The inbox design: the order of the column on the left, and the keys that press with "g" (js/shortcuts.js reads data-shortcut).
 const SIDE_LINKS = [
   { key: "home", shortcut: "a" }, { key: "explore", shortcut: "k" }, { key: "friends", shortcut: "r" },
   { key: "messages", shortcut: "m" }, { key: "notifications", shortcut: "b" }, { key: "groups", shortcut: "g" },
   { key: "events", shortcut: "e" }, { key: "games", shortcut: "o" }, { key: "marketplace", shortcut: "p" }, { key: "saved", shortcut: "s" }, { key: "settings", shortcut: "t" }
 ];
 
-// The width where the menu turns into the phone layout: inbox has a column on the left from "lg", classic a top menu from "md".
 const MENU_BREAKPOINT = getDesign() === "inbox" ? "lg" : "md";
 
 function findLink(key) {
   return MAIN_LINKS.find(link => link.key === key) || accountLinks().find(link => link.key === key);
 }
 
-// The red counter on a link; navbar-badge.js fills every element with the badge's class.
 function navBadgeHtml(badgeClass) {
   return badgeClass ? `<span class="position-absolute top-0 end-0 badge rounded-pill bg-danger ${badgeClass} d-none">0</span>` : "";
 }
@@ -104,10 +86,7 @@ function topMenuHtml(active) {
     </div>`;
 }
 
-// ---- Inbox design ----
 
-// The column on the left is a rail of icons; it opens over the page with the names when the mouse is on it (css/inbox.css).
-// Each link has an outline icon, and the filled one on the page you are on.
 const SIDE_ICONS = {
   home: ["bi-house-door", "bi-house-door-fill"],
   explore: ["bi-compass", "bi-compass-fill"],
@@ -116,20 +95,19 @@ const SIDE_ICONS = {
   notifications: ["bi-bell", "bi-bell-fill"],
   groups: ["bi-diagram-3", "bi-diagram-3-fill"],
   events: ["bi-calendar-event", "bi-calendar-event-fill"],
-  games: ["bi-controller", "bi-controller"], // Bootstrap Icons has no filled controller
+  games: ["bi-controller", "bi-controller"],
   marketplace: ["bi-bag", "bi-bag-fill"],
   saved: ["bi-bookmark", "bi-bookmark-fill"],
   settings: ["bi-gear", "bi-gear-fill"],
   admin: ["bi-shield-check", "bi-shield-fill-check"]
 };
 
-// A row of the column on the left: the icon, the name, a counter if the link has one, and (on the page you are on) the key that jumps to it.
 function sideLinkHtml(item, active) {
   const link = findLink(item.key);
   const isActive = active === item.key;
   const counter = link.badge ? `<span class="badge bg-danger ${link.badge} d-none">0</span>` : "";
   const hint = isActive ? `<span class="kbd" title="g, sonra ${item.shortcut}">g ${item.shortcut}</span>` : "";
-  const label = link.key === "marketplace" ? "Pazar" : link.label; // the design calls it "Pazar" (the classic menu says Marketplace)
+  const label = link.key === "marketplace" ? "Pazar" : link.label;
   const [iconOff, iconOn] = SIDE_ICONS[item.key] || [link.icon, link.icon];
   return `<a href="${link.href}" title="${label}" data-section="${link.key}" data-shortcut="${item.shortcut}" class="side-link ${isActive ? "active" : ""}"><i class="bi ${isActive ? iconOn : iconOff} side-icon"></i><span class="side-text">${label}</span><span class="side-link-end">${counter}${hint}</span></a>`;
 }
@@ -162,7 +140,6 @@ function sideMenuHtml(active) {
     </div>`;
 }
 
-// "Gruplarım": the groups the person is in, under the links. A person with no group sees nothing there.
 async function loadSideGroups() {
   const box = document.getElementById("sideGroups");
   if (!box) return;
@@ -175,11 +152,9 @@ async function loadSideGroups() {
       .map(g => `<a href="group.html?id=${g.id}" class="side-link" data-no-i18n><span>${escapeHtml(g.name)}</span></a>`).join("");
     box.classList.remove("d-none");
   } catch (err) {
-    // Silent: the column works without the list.
   }
 }
 
-// The bottom bar of a phone. "Daha fazla" lights up when the current page is not one of the four links on the bar.
 function phoneBarHtml(active) {
   const tabs = PHONE_BAR_KEYS
     .map(key => MAIN_LINKS.find(link => link.key === key))
@@ -196,7 +171,6 @@ function phoneBarHtml(active) {
     </div>`;
 }
 
-// The burger panel: every link, in a drawer that slides in from the right. The unread counters sit on their rows.
 function menuPanelHtml(active) {
   const counter = badgeClass => badgeClass ? `<span class="badge rounded-pill bg-danger ms-auto ${badgeClass} d-none">0</span>` : "";
   const row = link => `<a href="${link.href}" class="list-group-item list-group-item-action d-flex align-items-center gap-3 ${active === link.key ? "active" : ""}"><i class="bi ${link.icon}"></i>${link.label}${counter(link.badge)}</a>`;

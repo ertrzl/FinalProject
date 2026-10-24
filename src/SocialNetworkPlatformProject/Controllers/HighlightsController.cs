@@ -6,8 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// Story highlights: the owner's manage window and "Öne çıkanlara ekle" (profile.html, home.html story viewer) and the viewer that plays one.
-// Somebody's covers on their profile are GET /api/users/{id}/highlights.
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -20,7 +18,6 @@ public class HighlightsController : ControllerBase
         _highlights = highlights;
     }
 
-    // Your own highlights; with a story id each one says whether that story is already in it.
     [HttpGet("mine")]
     public async Task<ActionResult<List<GetHighlightDto>>> GetMine([FromQuery] Guid? storyId = null)
     {

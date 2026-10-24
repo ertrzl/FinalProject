@@ -5,8 +5,6 @@ using SocialNetworkPlatformProject.Persistence.Extensions;
 
 namespace SocialNetworkPlatformProject.Middlewares;
 
-// Turns any BaseException thrown by a service into its HTTP status + a small JSON body;
-// anything unexpected becomes a generic 500 so internals never leak to the client.
 public class GlobalExceptionMiddleware
 {
     private readonly RequestDelegate _next;
@@ -26,29 +24,24 @@ public class GlobalExceptionMiddleware
         }
         catch (BaseException ex)
         {
-            // The reason a request was refused (the request line only has the status code).
             using var who = Who(context);
             _logger.LogInformation("{Method} {Path} refused ({Status}): {Message}", context.Request.Method, context.Request.Path, ex.StatusCode, ex.Message);
             await WriteErrorAsync(context, ex.StatusCode, ex.Message);
         }
         catch (BadHttpRequestException ex) when (ex.StatusCode == StatusCodes.Status413PayloadTooLarge)
         {
-            // More files in one request than UploadLimits allows (each file is also checked on its own, later).
             using var who = Who(context);
             _logger.LogInformation("{Method} {Path} refused (413): the upload is larger than {Limit} MB", context.Request.Method, context.Request.Path, UploadLimits.MaxRequestMegabytes);
             await WriteErrorAsync(context, StatusCodes.Status413PayloadTooLarge, Loc.T("upload.tooLarge", UploadLimits.MaxRequestMegabytes));
         }
         catch (DbUpdateConcurrencyException)
         {
-            // Someone else changed (or deleted) the same row between our read and our save.
             using var who = Who(context);
             _logger.LogWarning("{Method} {Path}: the data was changed by someone else at the same time", context.Request.Method, context.Request.Path);
             await WriteErrorAsync(context, StatusCodes.Status409Conflict, Loc.T("server.changedMeanwhile"));
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
-            // Two requests slipped past the "does it exist yet?" check at the same moment; the unique index
-            // caught the second one. To the client that is the same as being told "already exists".
             using var who = Who(context);
             _logger.LogWarning("{Method} {Path}: two requests created the same thing at once (unique index)", context.Request.Method, context.Request.Path);
             await WriteErrorAsync(context, StatusCodes.Status409Conflict, Loc.T("server.exists"));
@@ -61,8 +54,6 @@ public class GlobalExceptionMiddleware
         }
     }
 
-    // This middleware runs before the one that adds the user to the log lines (LogContextMiddleware needs authentication
-    // first), so the lines written here get the user and the address themselves.
     private static IDisposable Who(HttpContext context)
     {
         var user = LogContext.PushProperty("UserId", RequestLogProperties.UserId(context));

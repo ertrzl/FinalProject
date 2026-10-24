@@ -13,13 +13,10 @@ namespace SocialNetworkPlatformProject.Persistence.Implementations.Services;
 
 public class PostService : IPostService
 {
-    // The mapping profile builds the hashtag and media lists from these; like/comment counts come from COUNT queries instead.
     private static readonly string[] PostIncludes = { "Hashtags.Hashtag", "Media", "Poll.Options" };
 
-    // Keşfet looks at the last week: what is popular is what is being talked about now.
     private const int ExploreWindowDays = 7;
 
-    // The "who reacted" list shows this many people (the newest).
     private const int MaxReactorsListed = 100;
 
     private static readonly Regex HashtagPattern = new(@"#([\p{L}0-9_]+)", RegexOptions.Compiled);
@@ -124,7 +121,6 @@ public class PostService : IPostService
         if (text == null && post.Poll != null)
             throw new BadRequestException(Loc.T("post.pollQuestion"));
 
-        // A share may have no text of its own: it shows the original (or the event).
         if (text == null && post.Media.Count == 0 && !post.IsShare && post.SharedEventId == null)
             throw new BadRequestException(Loc.T("post.needContent"));
 
@@ -148,7 +144,6 @@ public class PostService : IPostService
         if (!asAdmin && !await _access.CanModerateAsync(post, currentUserId))
             throw new ForbiddenException(Loc.T("post.deleteOwn"));
 
-        // Its shares stay (they say the original is gone), so they stop pointing at it first.
         await _posts.DetachSharesAsync(new[] { postId });
 
         var files = post.Media.Select(m => m.Url).ToList();
@@ -176,7 +171,6 @@ public class PostService : IPostService
         var authorIds = await _friends.GetFriendIdsAsync(currentUserId);
         authorIds.Add(currentUserId);
 
-        // Group posts only appear on their group's own wall, not in the personal feed.
         return await GetPagedAsync(p => authorIds.Contains(p.AuthorId) && p.GroupId == null, currentUserId, page, pageSize);
     }
 
@@ -206,7 +200,6 @@ public class PostService : IPostService
 
     public async Task<PagedResult<GetPostDto>> GetGroupPostsAsync(Guid groupId, Guid currentUserId, int page, int pageSize)
     {
-        // Throws NotFoundException if the group doesn't exist or is private and the viewer isn't a member.
         await _groupService.GetByIdAsync(currentUserId, groupId);
 
         return await GetPagedAsync(p => p.GroupId == groupId, currentUserId, page, pageSize);
@@ -217,7 +210,6 @@ public class PostService : IPostService
         var post = await GetViewablePostAsync(currentUserId, postId);
         var existing = await _likes.GetAll(l => l.PostId == postId && l.UserId == currentUserId).FirstOrDefaultAsync();
 
-        // The heart button: whatever the reaction was, pressing it takes it back; with none it is a plain Like.
         return await ApplyReactionAsync(post, currentUserId, existing, existing == null ? ReactionType.Like : null);
     }
 
@@ -245,7 +237,6 @@ public class PostService : IPostService
         var reactions = await _likes.GetNewestAsync(postId, filter, MaxReactorsListed);
         var users = await _users.GetSummariesAsync(reactions.Select(r => r.UserId));
 
-        // A person whose account is gone has no summary and is left out.
         return reactions
             .Where(r => users.ContainsKey(r.UserId))
             .Select(r => new GetPostReactorDto
@@ -258,8 +249,6 @@ public class PostService : IPostService
             .ToList();
     }
 
-    // Makes the viewer's reaction on the post `wanted` (null = none): adds, changes or removes the single row they
-    // may have. Only a brand-new reaction notifies the author; changing one does not notify again.
     private async Task<GetPostReactionResultDto> ApplyReactionAsync(Post post, Guid currentUserId, PostLike? existing, ReactionType? wanted)
     {
         var isNew = existing == null && wanted != null;
@@ -297,11 +286,9 @@ public class PostService : IPostService
     {
         var shown = await GetViewablePostAsync(currentUserId, postId);
 
-        // A post that carries an event card is the event's own sharing; the card is not part of a normal share.
         if (shown.SharedEventId != null)
             throw new BadRequestException(Loc.T("event.sharedByOther"));
 
-        // Sharing a share shares what it shows.
         Post? original = shown;
         if (shown.IsShare)
         {
@@ -310,8 +297,6 @@ public class PostService : IPostService
                 throw new BadRequestException(Loc.T("post.shareGone"));
         }
 
-        // Only what everybody may see can be passed on: a friends-only or group post, or a private account's, would
-        // otherwise be shown to people its author never chose.
         var author = await _users.GetSummaryAsync(original.AuthorId);
         if (original.GroupId != null || original.Privacy != PostPrivacy.Public || author is not { IsPrivateAccount: false })
             throw new BadRequestException(Loc.T("post.shareNot"));
@@ -339,11 +324,8 @@ public class PostService : IPostService
 
     public async Task<GetPostDto> ShareEventAsync(Guid currentUserId, Guid eventId, PostShareDto dto)
     {
-        // An event the user cannot see is "not found", like everywhere else.
         var ev = await _eventAccess.GetViewableAsync(currentUserId, eventId);
 
-        // The post lands on the user's own feed, where their friends (or everybody) read it; a private event or a
-        // group's would be shown to people the organizer never meant to tell about it.
         if (ev.IsPrivate)
             throw new BadRequestException(Loc.T("event.shareNotPrivate"));
         if (ev.GroupId.HasValue)
@@ -362,14 +344,12 @@ public class PostService : IPostService
         await _posts.SaveChangesAsync();
 
         await _mentions.NotifyAsync(share, currentUserId, share.Text, previousText: null);
-        // PostId is the new post, so the notification can open it; EventId lets the text name the event.
         await _notifications.CreateAsync(ev.CreatedByUserId, currentUserId, NotificationType.EventShared, postId: share.Id, eventId: ev.Id);
         await _live.PostCreatedAsync(share);
 
         return (await _dtos.BuildAsync(new[] { share }, currentUserId))[0];
     }
 
-    // The post, if it exists and the viewer may see it (hidden posts are "not found", never "forbidden").
     private async Task<Post> GetViewablePostAsync(Guid currentUserId, Guid postId)
     {
         var post = await _posts.GetByIdAsync(postId)
@@ -402,13 +382,10 @@ public class PostService : IPostService
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 50);
 
-        // The saved posts the viewer may still see (a post may have turned private since it was saved and must silently
-        // drop out), counted and paged by the database: only the page asked for is loaded, however many posts were saved.
         var visible = _access.VisibleTo(
             _posts.GetAll(p => p.SavedBy.Any(s => s.UserId == currentUserId), asNoTracking: true),
             currentUserId);
 
-        // Most recently saved first.
         return await PageOfVisibleAsync(
             visible,
             posts => posts.OrderByDescending(p => p.SavedBy.Where(s => s.UserId == currentUserId).Max(s => s.CreatedAt)).ThenBy(p => p.Id),
@@ -420,8 +397,6 @@ public class PostService : IPostService
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 50);
 
-        // The filters of the callers (friends' feed, a profile, a group wall) choose which posts are wanted; what the
-        // viewer may see (blocks included) is decided here, for all of them the same way.
         var visible = _access.VisibleTo(_posts.GetAll(filter, asNoTracking: true), currentUserId);
 
         return await PageOfVisibleAsync(visible, posts => posts.OrderByDescending(p => p.CreatedAt), currentUserId, page, pageSize);
@@ -438,8 +413,6 @@ public class PostService : IPostService
         return poll;
     }
 
-    // Stores the files of a new post in the order given. A file that is refused (not an image, too big...) fails the
-    // whole post, and the files stored before it are removed again instead of being left behind.
     private async Task<List<PostMedia>> SaveMediaAsync(IReadOnlyList<IFormFile> files)
     {
         var saved = new List<PostMedia>();
@@ -492,7 +465,6 @@ public class PostService : IPostService
             filter = p => (p.Text != null && p.Text.Contains(term)) || p.Hashtags.Any(h => h.Hashtag!.Name == tag);
         }
 
-        // Visibility is part of the query, so the database counts and pages only what the viewer may see.
         var visible = _access.VisibleTo(_posts.GetAll(filter, asNoTracking: true), currentUserId);
 
         return await PageOfVisibleAsync(visible, posts => posts.OrderByDescending(p => p.CreatedAt), currentUserId, page, pageSize);
@@ -503,13 +475,11 @@ public class PostService : IPostService
         page = Math.Max(page, 1);
         pageSize = Math.Clamp(pageSize, 1, 50);
 
-        // Other people's recent posts the viewer may see (never group walls); what the viewer wrote is not "discovery".
         var since = DateTime.UtcNow.AddDays(-ExploreWindowDays);
         var visible = _access.VisibleTo(
             _posts.GetAll(p => p.GroupId == null && p.AuthorId != currentUserId && p.CreatedAt >= since, asNoTracking: true),
             currentUserId);
 
-        // Most talked about first: a comment counts double a like. Newest first among equals.
         return await PageOfVisibleAsync(
             visible,
             posts => posts.OrderByDescending(p => p.Likes.Count + 2 * p.Comments.Count).ThenByDescending(p => p.CreatedAt).ThenBy(p => p.Id),
@@ -520,7 +490,6 @@ public class PostService : IPostService
     {
         take = Math.Clamp(take, 1, 20);
 
-        // Counted over the posts the viewer may see, so a tag's number matches what clicking it will show.
         var since = DateTime.UtcNow.AddDays(-ExploreWindowDays);
         var visible = _access.VisibleTo(_posts.GetAll(p => p.GroupId == null && p.CreatedAt >= since, asNoTracking: true), currentUserId);
 
@@ -534,7 +503,6 @@ public class PostService : IPostService
             .ToListAsync();
     }
 
-    // One page of an already visibility-filtered query: the database counts and pages, only the page is loaded.
     private async Task<PagedResult<GetPostDto>> PageOfVisibleAsync(
         IQueryable<Post> visible, Func<IQueryable<Post>, IOrderedQueryable<Post>> order, Guid currentUserId, int page, int pageSize)
     {
@@ -553,9 +521,6 @@ public class PostService : IPostService
         };
     }
 
-    // Post text -> distinct, lowercased hashtag names ("Merhaba #Kod #kod!" -> ["kod"]). A tag longer than the Hashtags
-    // table can hold is left out, and so is everything after the first MaxHashtagsPerPost tags, so no text can make
-    // the save fail or fill the table with tags.
     private static List<string> ExtractHashtagNames(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -569,9 +534,6 @@ public class PostService : IPostService
             .ToList();
     }
 
-    // Makes the post's hashtag links match its current text: links whose tag is no longer in the text are removed,
-    // missing ones are added (reusing existing Hashtag rows), the rest are left alone. For an existing post its
-    // Hashtags (with their Hashtag) must be loaded. Must run before SaveChangesAsync so everything goes in one write.
     private async Task SyncHashtagsAsync(Post post, string? text)
     {
         var names = ExtractHashtagNames(text);

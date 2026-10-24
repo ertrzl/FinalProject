@@ -68,7 +68,6 @@ public class GameRepository : Repository<Game>, IGameRepository
         var finished = _dbSet.AsNoTracking()
             .Where(g => g.Status == GameStatus.Finished && (g.InviterId == userId || g.InviteeId == userId));
 
-        // A loss is a game somebody else won, by three in a row or because I gave up.
         return new GetGameStatsDto
         {
             Wins = await finished.CountAsync(g => g.WinnerId == userId),

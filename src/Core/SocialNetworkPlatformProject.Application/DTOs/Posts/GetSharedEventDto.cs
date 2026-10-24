@@ -1,6 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.DTOs.Posts;
 
-// The event shown as a card inside a post that shares it ("Gönderide paylaş" on event.html).
 public class GetSharedEventDto
 {
     public Guid Id { get; set; }

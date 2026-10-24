@@ -8,7 +8,6 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
 {
     public void Configure(EntityTypeBuilder<Post> builder)
     {
-        // SQL Server's nvarchar(n) stops at 4000, so a limit of 5000 is a check on the column rather than its type.
         builder.Property(p => p.Text).HasMaxLength(TextLimits.Post);
         builder.ToTable(t => t.HasCheckConstraint("CK_Posts_Text_Length", $"LEN([Text]) <= {TextLimits.Post}"));
 
@@ -37,21 +36,16 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
             .HasForeignKey<Poll>(poll => poll.PostId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // A share points at its original. A self-reference cannot cascade or null itself in SQL Server, so before an
-        // original is deleted its shares are detached by hand (IPostRepository.DetachSharesAsync).
         builder.HasOne(p => p.SharedPost)
             .WithMany()
             .HasForeignKey(p => p.SharedPostId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // "How many times was this shared?"
         builder.HasIndex(p => p.SharedPostId);
 
-        // Feed and profile pages (an author's posts, newest first) and a group's wall.
         builder.HasIndex(p => new { p.AuthorId, p.CreatedAt });
         builder.HasIndex(p => new { p.GroupId, p.CreatedAt });
 
-        // Deleting a group takes its wall posts (and, transitively, their comments/likes) with it.
         builder.HasOne(p => p.Group)
             .WithMany()
             .HasForeignKey(p => p.GroupId)

@@ -1,8 +1,6 @@
-// events.html — real events wired to the backend.
-
 requireAuth();
 
-const eventsById = new Map(); // every event any tab has loaded, so edit/delete also work from the "Etkinliklerim" lists
+const eventsById = new Map();
 
 function eventCardHtml(ev) {
   const primary = eventPrimaryAction(ev);
@@ -41,12 +39,11 @@ function rememberEvents(events) {
   events.forEach(e => eventsById.set(e.id, e));
 }
 
-// ---- "Yaklaşan": search, quick filters and paging ----
 
 const UPCOMING_PAGE_SIZE = 12;
 let upcomingPage = 1;
 let upcomingTotalPages = 1;
-let upcomingRequest = 0; // answers can arrive out of order while typing: only the newest one may render
+let upcomingRequest = 0;
 let upcomingSearchDebounce = null;
 
 function upcomingQueryString(page) {
@@ -55,7 +52,6 @@ function upcomingQueryString(page) {
   const search = document.getElementById("eventSearch").value.trim();
   if (search) params.set("search", search);
 
-  // "Bugün / Bu hafta / Bu ay": the server works out the range, it only needs to know the viewer's time zone.
   const when = document.getElementById("eventWhen").value;
   if (when) {
     params.set("when", when);
@@ -74,7 +70,6 @@ function hasUpcomingFilters() {
     || document.getElementById("eventFormat").value);
 }
 
-// Typing waits a moment so every keystroke isn't a request; the selects apply at once.
 function onEventFilterChange(debounced) {
   clearTimeout(upcomingSearchDebounce);
   upcomingSearchDebounce = setTimeout(() => loadUpcoming(true), debounced ? 350 : 0);
@@ -113,7 +108,6 @@ function loadMoreUpcoming() {
   return loadUpcoming(false);
 }
 
-// "Katıldıklarım": upcoming and ongoing events I'm going to or interested in (its own list, not a filter of "Yaklaşan").
 async function loadGoing() {
   const grid = document.getElementById("goingGrid");
   const empty = document.getElementById("goingEmptyState");
@@ -127,7 +121,6 @@ async function loadGoing() {
   }
 }
 
-// "Etkinliklerim" sub-tabs: scope "created" (events I organized) or "past" (finished events I attended).
 async function loadMine(scope) {
   const grid = document.getElementById(scope === "created" ? "createdGrid" : "pastGrid");
   const empty = document.getElementById(scope === "created" ? "createdEmptyState" : "pastEmptyState");
@@ -141,7 +134,6 @@ async function loadMine(scope) {
   }
 }
 
-// "Davetler" tab: events other people invited me to.
 function inviteCardHtml(invite) {
   return `
     <div class="col-md-6" data-invite-event-id="${invite.eventId}">
@@ -187,7 +179,6 @@ async function respondToEventInvite(eventId, accept, btn) {
   }
 }
 
-// After anything that can change several lists at once (create / edit / delete / answering an invite).
 function refreshAll() {
   return Promise.all([loadUpcoming(true), loadGoing(), loadMine("created"), loadMine("past"), loadInvites()]);
 }
@@ -200,17 +191,14 @@ async function setEventStatus(eventId, status) {
     const updated = await apiFetch(`/api/events/${eventId}/status`, { method: "PUT", body: { status: newStatus } });
     eventsById.set(eventId, updated);
 
-    // The card may sit in several lists at once; "Katıldıklarım" gains or loses a card, so it reloads.
     document.querySelectorAll(`[data-event-id="${eventId}"]`).forEach(el => el.outerHTML = eventCardHtml(updated));
     await loadGoing();
   } catch (err) {
     toast(err.message || "İşlem gerçekleştirilemedi.");
-    // "Full" or "someone else just took the spot": show the real, current state instead of the stale card.
     refreshAll();
   }
 }
 
-// The create/edit modal lives in event-form.js (shared with event.html).
 function openEventModal(eventId) {
   openEventForm(eventId ? eventsById.get(eventId) : null, refreshAll);
 }

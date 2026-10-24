@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
 {
-    /// <inheritdoc />
     public partial class AddEventEndsAt : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<DateTime>(
@@ -18,8 +16,6 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 nullable: false,
                 defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
 
-            // Existing events were saved as the local wall-clock time the organizer typed (Türkiye, UTC+3 all year).
-            // From now on StartsAt/EndsAt are UTC, so convert old rows, then give them the default 3-hour duration.
             migrationBuilder.Sql("UPDATE [Events] SET [StartsAt] = DATEADD(hour, -3, [StartsAt])");
             migrationBuilder.Sql("UPDATE [Events] SET [EndsAt] = DATEADD(hour, 3, [StartsAt])");
 
@@ -29,14 +25,12 @@ namespace SocialNetworkPlatformProject.Persistence.Contexts.Migrations
                 column: "EndsAt");
         }
 
-        /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropIndex(
                 name: "IX_Events_EndsAt",
                 table: "Events");
 
-            // Back to local wall-clock time.
             migrationBuilder.Sql("UPDATE [Events] SET [StartsAt] = DATEADD(hour, 3, [StartsAt])");
 
             migrationBuilder.DropColumn(

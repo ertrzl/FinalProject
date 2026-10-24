@@ -10,8 +10,6 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
     {
         builder.Property(c => c.Text).HasMaxLength(TextLimits.Comment);
 
-        // Self-referencing "reply" relationship — Restrict avoids SQL Server's
-        // "multiple cascade paths" error (Post -> Comment -> Comment would both cascade otherwise).
         builder.HasOne(c => c.ParentComment)
             .WithMany(c => c.Replies)
             .HasForeignKey(c => c.ParentCommentId)

@@ -1,7 +1,3 @@
-// profile.html — extras around the profile: mutual friends and groups, "Profili Paylaş" (link + QR code), the "Etiketlendiklerim" tab.
-// What is mutual, who may see tagged posts and which address belongs to whom is all decided by the server; this file only shows it.
-
-// ---- Mutual friends and groups (somebody else's profile) ----
 let mutualData = null;
 
 async function loadMutual(profile) {
@@ -13,13 +9,12 @@ async function loadMutual(profile) {
   try {
     mutualData = await apiFetch(`/api/users/${profile.id}/mutual`);
   } catch (err) {
-    return; // a missing line is not worth an error on the profile page
+    return;
   }
 
   const m = mutualData;
   if (!m.friendCount && !m.groupCount) return;
 
-  // Up to three small faces of the people you both know, then the counts.
   const faces = m.friends.slice(0, 3).map(f => `<img src="${escapeHtml(f.avatarUrl || DEFAULT_AVATAR)}" alt="">`).join("");
   const parts = [];
   if (m.friendCount) parts.push(i18n(m.friendCount === 1 ? "profile.mutualFriendsOne" : "profile.mutualFriends", m.friendCount));
@@ -60,15 +55,12 @@ function openMutualList() {
   bootstrap.Modal.getOrCreateInstance(document.getElementById("mutualModal")).show();
 }
 
-// ---- Profili Paylaş: the short link and its QR code ----
-// The link is /u/<username>: the server sends it to the profile page (or to the 404 page for a name nobody has).
 function profileShareLink() {
   return `${window.location.origin}/u/${encodeURIComponent(currentProfile.userName)}`;
 }
 
-// Draws the QR code of `text` on the canvas, as large as fits `size` pixels in whole squares, with the quiet border scanners need.
 function drawQrCode(canvas, text, size) {
-  const qr = qrcode(0, "M"); // 0: the smallest version that holds the text; "M": it still reads with a part of it covered
+  const qr = qrcode(0, "M");
   qr.addData(text);
   qr.make();
 
@@ -95,7 +87,7 @@ function openShareProfile() {
   try {
     drawQrCode(document.getElementById("shareQrCanvas"), link, 512);
   } catch (err) {
-    toast("QR kodu oluşturulamadı."); // the link can still be copied
+    toast("QR kodu oluşturulamadı.");
   }
   bootstrap.Modal.getOrCreateInstance(document.getElementById("shareProfileModal")).show();
 }
@@ -106,12 +98,10 @@ async function copyProfileLink() {
     await navigator.clipboard.writeText(link);
     toast("Bağlantı kopyalandı.");
   } catch (err) {
-    // Clipboard access can be blocked (insecure origin, permissions): show the link so it can be copied by hand.
     linkDialog(link);
   }
 }
 
-// The PNG is drawn large (about 1000 px) so it prints and zooms well, whatever the size on screen.
 function downloadProfileQr() {
   const canvas = document.createElement("canvas");
   try {
@@ -129,10 +119,8 @@ function downloadProfileQr() {
   link.remove();
 }
 
-// ---- Etiketlendiklerim: posts this person is tagged in ----
 let taggedPager = null;
 
-// Loaded when the tab is first opened, and again after the profile was reloaded (a block, say, changes what is shown).
 function showTaggedTabIfOpen() {
   taggedPager = null;
   if (document.getElementById("tab-tagged").classList.contains("active")) loadTaggedPosts();

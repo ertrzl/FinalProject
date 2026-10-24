@@ -8,7 +8,6 @@ public class PollConfiguration : IEntityTypeConfiguration<Poll>
 {
     public void Configure(EntityTypeBuilder<Poll> builder)
     {
-        // A post has at most one poll.
         builder.HasIndex(p => p.PostId).IsUnique();
 
         builder.HasMany(p => p.Options)

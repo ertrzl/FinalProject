@@ -34,7 +34,6 @@ public class PostAccessService : IPostAccessService
 
     public async Task<bool> CanViewAsync(Post post, Guid viewerId)
     {
-        // Blocked people never see each other's posts, wherever they were written (groups included).
         if (post.AuthorId != viewerId && await _blocks.AreBlockedAsync(post.AuthorId, viewerId))
             return false;
 

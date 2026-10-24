@@ -30,7 +30,6 @@ public class EventAttendeeRepository : Repository<EventAttendee>, IEventAttendee
             .Select(a => new { a.EventId, a.Status, CheckedIn = a.CheckedInAt != null })
             .ToDictionaryAsync(a => a.EventId);
 
-        // Where the viewer stands in a waiting line = how many people queued before them, plus one.
         var waitingIds = mine.Where(m => m.Value.Status == EventAttendeeStatus.Waitlisted).Select(m => m.Key).ToList();
         var ahead = waitingIds.Count == 0
             ? new Dictionary<Guid, int>()

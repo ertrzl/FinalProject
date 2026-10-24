@@ -15,7 +15,6 @@ public class PostMessageDtoValidator : AbstractValidator<PostMessageDto>
             .Must(type => string.IsNullOrEmpty(type) || type == "Text" || type == "Sticker")
             .WithMessage(_ => Loc.T("val.message.type"));
 
-        // A sticker is just one emoji (which can be several UTF-16 characters), never a long message.
         RuleFor(x => x.Text)
             .MaximumLength(16).When(x => x.Type == "Sticker")
             .WithMessage(_ => Loc.T("val.message.sticker"));

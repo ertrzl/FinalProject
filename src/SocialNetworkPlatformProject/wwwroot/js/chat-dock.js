@@ -1,6 +1,3 @@
-// Bottom-right chat dock (Messenger-style), shown on every logged-in page.
-// Shares data with messages.html via js/chat-data.js. New messages arrive live through realtime.js (SignalR).
-
 const openPopups = [];
 const MAX_POPUPS = 2;
 
@@ -123,7 +120,6 @@ function bubbleHtml(m) {
       </div>`;
 }
 
-// Live messages can arrive twice (our own echo + the send() result), so skip anything already on screen.
 function appendPopupMessage(id, m) {
   const thread = document.getElementById("chatPopupThread-" + id);
   if (!thread || thread.querySelector(`[data-message-id="${m.id}"]`)) return;
@@ -137,7 +133,6 @@ async function markPopupRead(id) {
     window.refreshMessageBadge?.();
     renderDockList();
   } catch (err) {
-    // Silent: it will be marked read next time the popup is opened.
   }
 }
 
@@ -159,7 +154,6 @@ document.addEventListener("realtime:message", e => {
     e.preventDefault();
     appendPopupMessage(m.conversationId, m);
     setPopupTyping(m.conversationId, false);
-    // A message only counts as seen while the tab is actually in front (see the visibilitychange handler below).
     if (!m.isMine && !document.hidden) markPopupRead(m.conversationId);
   }
   renderDockList();
@@ -169,8 +163,6 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) openPopups.forEach(markPopupRead);
 });
 
-// The sender took a message back, or somebody left or took back an emoji on it: redraw its bubble (the last-message
-// preview in the list changes too).
 for (const eventName of ["realtime:message-deleted", "realtime:message-updated"]) {
   document.addEventListener(eventName, e => {
     const row = document.querySelector(`#chatPopupThread-${e.detail.conversationId} [data-message-id="${e.detail.id}"]`);
@@ -179,19 +171,15 @@ for (const eventName of ["realtime:message-deleted", "realtime:message-updated"]
   });
 }
 
-// The other person has opened our messages: turn our single ticks into double ticks (in a group chat, the ones everybody
-// else has read).
 document.addEventListener("realtime:messages-read", e => {
   window.chatApplyReadReceipt(document.getElementById(`chatPopupThread-${e.detail.conversationId}`), e.detail, "bi bi-check2-all text-info read-status");
 });
 
-// Taken out of a group: its chat window closes and the list drops it.
 document.addEventListener("realtime:conversation-removed", e => {
   closeChatPopup(e.detail.conversationId);
   renderDockList();
 });
 
-// A group chat made on the Messages page changed (or one was made with this person in it): the dock's list shows it.
 document.addEventListener("realtime:conversation-changed", () => window.refreshChatDock());
 
 const typingTimers = {};

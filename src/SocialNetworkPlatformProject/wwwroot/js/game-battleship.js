@@ -1,15 +1,3 @@
-// game.html — Battleship (Amiral Battı). Loaded before game.js; game.js calls renderBattleship(), bsStatusInfo() and bsPlayerHtml()
-// when the game is a Battleship game, and uses its own game / gameId / applyGame / loadGame / renderStatus.
-//
-// Three screens, all drawn from the GetGameDto the server sends:
-//   place   I have not sent my fleet yet: drag the five ships onto the board (or tap, or "Rastgele diz"), then "Hazırım"
-//   wait    my fleet is sent, the other one is still placing: my fleet is shown
-//   battle  the opponent's board (click a cell to shoot) and my own fleet; also the finished game, with every ship shown
-// The server decides every rule (a legal fleet, whose turn it is, hit / miss / sunk, who won). This page only checks, for the
-// red / green preview while a ship is dragged, whether the ship would fit; the server checks again when the fleet is sent.
-// The boards are a 10x10 picture (SVG, 40 units a cell, the sea keeps its light blue in the dark theme) under a grid of real
-// buttons: cell number = row * 10 + column, the name of a cell is its column letter and row number ("B4").
-
 const BS_SIZE = 10;
 const BS_CELLS = BS_SIZE * BS_SIZE;
 const BS_SHIPS = [
@@ -26,19 +14,19 @@ const BS_SEA = `<rect width="400" height="400" fill="#BFDDEC"/><path d="${
 
 const bs = {
   built: false,
-  mode: null,          // "place" | "wait" | "battle": what is drawn now
-  placed: {},          // placing: ship id -> { row, col, horizontal }
-  orient: {},          // placing: ship id -> false when a ship that is not on the board waits upright (otherwise it lies flat)
-  selected: null,      // placing: the ship id the buttons and the R key act on
-  drag: null,          // placing: the ship that is being dragged
-  hover: null,         // placing: the cell the mouse (or the keyboard focus) is on, for the preview
+  mode: null,
+  placed: {},
+  orient: {},
+  selected: null,
+  drag: null,
+  hover: null,
   hoverByKeyboard: false,
   sending: false,
   loadingRandom: false,
   firing: false,
   suppressClick: false,
-  tab: "enemy",        // phone: which board is shown
-  shownShot: undefined // key of the last shot drawn (undefined = nothing drawn yet): only a new one is animated
+  tab: "enemy",
+  shownShot: undefined
 };
 
 const bsShip = id => BS_SHIPS.find(ship => ship.id === id);
@@ -47,15 +35,12 @@ const bsCoord = cell => String.fromCharCode(65 + (cell % BS_SIZE)) + (Math.floor
 const bsIsHorizontal = id => (bs.placed[id] ? bs.placed[id].horizontal : bs.orient[id] !== false);
 const bsPlacedCount = () => BS_SHIPS.filter(ship => bs.placed[ship.id]).length;
 
-// The cell numbers a ship covers.
 function bsCellsOf(id, row, col, horizontal) {
   return Array.from({ length: bsShip(id).length }, (_, i) =>
     (horizontal ? row : row + i) * BS_SIZE + (horizontal ? col + i : col));
 }
 
-// ---- The pictures (design A, flat) ----
 
-// A ship in its own box, length * 40 wide and 40 high, bow to the right. A sunk ship is dark with a red cross on every cell.
 function bsShipArt(id, sunk) {
   const length = bsShip(id).length;
   const width = length * 40;
@@ -84,12 +69,11 @@ function bsShipArt(id, sunk) {
       return hull("#5F6B78") + turret(30, 7, 46) + `<rect x="58" y="15" width="14" height="10" rx="2" fill="#3F4A56"/>` + stripe(10);
     case "Submarine":
       return submarineHull("#4A5663") + `<rect x="48" y="13" width="24" height="14" rx="5" fill="#7D8996"/>` + stripe(14);
-    default: // Destroyer
+    default:
       return hull("#5F6B78") + turret(26, 6, 40) + `<rect x="44" y="15" width="12" height="10" rx="2" fill="#3F4A56"/>` + stripe(10);
   }
 }
 
-// A ship placed on the board: p = { ship, row, col, horizontal }. A vertical ship is the flat one turned 90 degrees.
 function bsShipGroup(p, sunk = false, attributes = "") {
   const transform = p.horizontal
     ? `translate(${p.col * 40},${p.row * 40})`
@@ -109,7 +93,6 @@ const bsHitMark = cell => {
   return `<g transform="translate(${x},${y})"><polygon points="0,-15 5,-5 15,-4 8,3 10,14 0,9 -10,14 -8,3 -15,-4 -5,-5" fill="#D9442B"/><circle r="5" fill="#F5B13D"/></g>`;
 };
 
-// ---- A board: the picture, the highlight of the newest shot, and (when it takes clicks) the grid of buttons ----
 
 function bsCreateBoard(mount, { interactive, label }) {
   const buttons = interactive
@@ -134,7 +117,6 @@ function bsCreateBoard(mount, { interactive, label }) {
     grid: mount.querySelector(".bs-grid"),
     buttons: [...mount.querySelectorAll(".bs-cell")],
     draw(html) { board.svg.innerHTML = BS_SEA + html; },
-    // The orange frame of the newest shot; restart = it is a new one: the frame pings once more.
     setLast(cell, restart) {
       const mark = board.lastMark;
       if (cell === null || cell === undefined) { mark.classList.add("d-none"); mark.classList.remove("is-new"); return; }
@@ -150,7 +132,6 @@ function bsCreateBoard(mount, { interactive, label }) {
   };
 
   if (interactive) {
-    // One cell is in the tab order (the last one used); the arrow keys walk the whole board.
     board.grid.addEventListener("keydown", event => {
       const cell = event.target.closest(".bs-cell");
       const step = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] }[event.key];
@@ -170,7 +151,6 @@ function bsCreateBoard(mount, { interactive, label }) {
   return board;
 }
 
-// ---- Building the page (once) ----
 
 function bsBuild() {
   if (bs.built) return;
@@ -187,7 +167,6 @@ function bsBuild() {
       <i class="bs-tray-state bi" aria-hidden="true"></i>
     </button>`).join("");
 
-  // placing
   const grid = bs.placeBoard.grid;
   grid.addEventListener("pointerdown", event => {
     const cell = event.target.closest(".bs-cell");
@@ -213,14 +192,13 @@ function bsBuild() {
   });
   byId("bsTray").addEventListener("click", event => {
     const row = event.target.closest("[data-ship]");
-    if (row && event.detail === 0 && !bs.sending) { // the keyboard (a pointer tap was handled when the finger came up)
+    if (row && event.detail === 0 && !bs.sending) {
       bs.selected = row.dataset.ship;
       bsDrawPlace();
       bsUpdatePlaceUi();
     }
   });
 
-  // A long press on a ship (touch) would open the browser's menu and cancel the drag.
   byId("bsPlace").addEventListener("contextmenu", event => event.preventDefault());
 
   byId("bsRotate").addEventListener("click", () => bsRotate());
@@ -229,7 +207,6 @@ function bsBuild() {
 
   document.addEventListener("keydown", bsKeyDown);
 
-  // battle
   bs.enemyBoard.grid.addEventListener("click", event => {
     const cell = event.target.closest(".bs-cell");
     if (cell && cell.getAttribute("aria-disabled") !== "true") bsFire(Number(cell.dataset.cell));
@@ -242,7 +219,6 @@ function bsBuild() {
   });
 }
 
-// ---- Placing: where the ships are ----
 
 function bsTakenCells(exceptId) {
   const taken = new Map();
@@ -255,7 +231,6 @@ function bsTakenCells(exceptId) {
 
 const bsOccupant = (cell, exceptId) => bsTakenCells(exceptId).get(cell) || null;
 
-// Display-side check only: inside the board and not on another ship (the server decides when the fleet is sent).
 function bsFits(id, row, col, horizontal) {
   const length = bsShip(id).length;
   if (row < 0 || col < 0 || (horizontal ? col + length > BS_SIZE || row >= BS_SIZE : row + length > BS_SIZE || col >= BS_SIZE)) return false;
@@ -263,7 +238,6 @@ function bsFits(id, row, col, horizontal) {
   return bsCellsOf(id, row, col, horizontal).every(cell => !taken.has(cell));
 }
 
-// The top-left cell that keeps the whole ship on the board.
 function bsClamp(id, horizontal, row, col) {
   const length = bsShip(id).length;
   return {
@@ -286,7 +260,6 @@ function bsGhostSvg(id, row, col, horizontal, valid) {
     + cross;
 }
 
-// Draws the placing board: the ships on it, the frame of the selected one, and the green / red preview.
 function bsDrawPlace() {
   const drag = bs.drag && bs.drag.moved ? bs.drag : null;
   let html = "";
@@ -329,8 +302,6 @@ function bsSetHover(cell, byKeyboard) {
   if (bs.mode === "place") bsDrawPlace();
 }
 
-// The tray, the buttons and the lines above them: updated in place (never rebuilt: a ship that is being dragged or that has the
-// keyboard focus lives in it).
 function bsUpdatePlaceUi(refreshStatus = true) {
   const count = bsPlacedCount();
   byId("bsTray").querySelectorAll("[data-ship]").forEach(row => {
@@ -353,7 +324,6 @@ function bsUpdatePlaceUi(refreshStatus = true) {
   if (refreshStatus && game) renderStatus();
 }
 
-// ---- Placing: dragging, tapping, turning ----
 
 function bsPointerPos(event) {
   const rect = bs.placeBoard.grid.getBoundingClientRect();
@@ -369,7 +339,6 @@ function bsDragStart(event, id, from) {
   const length = bsShip(id).length;
   const { fx, fy } = bsPointerPos(event);
 
-  // Where the finger holds the ship (in cells from its top-left): a ship from the tray is held by its middle.
   let offX = horizontal ? length / 2 : 0.5;
   let offY = horizontal ? 0.5 : length / 2;
   if (from === "board" && placed) {
@@ -382,13 +351,12 @@ function bsDragStart(event, id, from) {
     pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, lastX: event.clientX, lastY: event.clientY,
     moved: false, target: null, wasSelected: bs.selected === id
   };
-  try { event.currentTarget.setPointerCapture(event.pointerId); } catch (e) { /* the events still reach the page */ }
+  try { event.currentTarget.setPointerCapture(event.pointerId); } catch (e) { }
   document.addEventListener("pointermove", bsDragMove);
   document.addEventListener("pointerup", bsDragUp);
   document.addEventListener("pointercancel", bsDragCancel);
 }
 
-// Where the dragged ship would land with the finger at (x, y).
 function bsDragAim(drag) {
   const { fx, fy, inside } = bsPointerPos({ clientX: drag.lastX, clientY: drag.lastY });
   if (!inside) { drag.target = null; return; }
@@ -425,13 +393,11 @@ function bsDragEnd(cancelled) {
   document.removeEventListener("pointerup", bsDragUp);
   document.removeEventListener("pointercancel", bsDragCancel);
 
-  // The click that follows (on the cell the drag began on) must not place anything.
   bs.suppressClick = true;
   setTimeout(() => { bs.suppressClick = false; }, 0);
 
   if (!drag.moved) {
     if (!cancelled) {
-      // A tap: a ship on the board turns; a ship in the tray is selected, and turns when it already was.
       const onBoard = !!bs.placed[drag.id];
       bs.selected = drag.id;
       if ((drag.from === "board" && onBoard) || (drag.from === "tray" && !onBoard && drag.wasSelected)) bsRotate();
@@ -441,18 +407,17 @@ function bsDragEnd(cancelled) {
       if (drag.target && drag.target.valid) {
         bs.placed[drag.id] = { row: drag.target.row, col: drag.target.col, horizontal: drag.horizontal };
         bs.selected = drag.id;
-      } else if (!drag.target) { // let go outside the board: the ship goes back to the tray
+      } else if (!drag.target) {
         delete bs.placed[drag.id];
         bs.orient[drag.id] = drag.horizontal;
         bs.selected = drag.id;
-      } // on a spot that does not fit: the ship stays where it was
+      }
     }
   }
   bsDrawPlace();
   bsUpdatePlaceUi();
 }
 
-// Turns the selected ship. On the board it turns around the cell it can keep (the first one that leaves room).
 function bsRotate() {
   const id = bs.selected;
   if (!id) return;
@@ -488,8 +453,6 @@ function bsRotate() {
   bsUpdatePlaceUi();
 }
 
-// A click (or Enter / Space) on a cell of the placing board: puts the selected ship there. On a ship it selects it (the keyboard;
-// a tap with the finger or mouse is handled by the pointer code).
 function bsPlaceClick(event) {
   if (bs.suppressClick || bs.sending) return;
   const button = event.target.closest(".bs-cell");
@@ -515,7 +478,7 @@ function bsPlaceClick(event) {
     return;
   }
   bs.placed[id] = { row: at.row, col: at.col, horizontal };
-  bs.selected = BS_SHIPS.find(ship => !bs.placed[ship.id])?.id || id; // on to the next ship that still waits
+  bs.selected = BS_SHIPS.find(ship => !bs.placed[ship.id])?.id || id;
   bsDrawPlace();
   bsUpdatePlaceUi();
 }
@@ -539,7 +502,6 @@ function bsKeyDown(event) {
   }
 }
 
-// ---- Placing: the buttons ----
 
 async function bsRandomFleet() {
   if (bs.sending || bs.loadingRandom) return;
@@ -570,14 +532,13 @@ async function bsSendFleet() {
     applyGame(await apiFetch(`/api/games/${gameId}/place`, { method: "POST", body: { ships } }));
   } catch (err) {
     toast(err.message || "Filo yerleştirilemedi.");
-    await loadGame(); // the game may have changed under us (the other player resigned)
+    await loadGame();
   } finally {
     bs.sending = false;
     if (game) renderBattleship();
   }
 }
 
-// ---- Battle ----
 
 async function bsFire(cell) {
   if (bs.firing) return;
@@ -587,21 +548,19 @@ async function bsFire(cell) {
     applyGame(await apiFetch(`/api/games/${gameId}/shoot`, { method: "POST", body: { cell } }));
   } catch (err) {
     toast(err.message || "Atış yapılamadı.");
-    await loadGame(); // the game may have changed under us (the other player resigned)
+    await loadGame();
   } finally {
     bs.firing = false;
     if (game) renderBattleship();
   }
 }
 
-// The ship the newest shot hit and sank (its name), "" when it is not known.
 function bsSunkShipName(shot) {
   const list = (shot.byMe ? game.opponentShips : game.myShips) || [];
   const ship = list.find(s => bsCellsOf(s.ship, s.row, s.col, s.horizontal).includes(shot.cell));
   return ship ? bsShipName(ship.ship) : "";
 }
 
-// The ships and the shots of one board as pictures. Cells of a sunk ship carry the cross of the ship, not a second mark.
 function bsBoardLayer(ships, shots) {
   const sunkCells = new Set();
   ships.forEach(s => { if (s.sunk) bsCellsOf(s.ship, s.row, s.col, s.horizontal).forEach(cell => sunkCells.add(cell)); });
@@ -638,7 +597,6 @@ function bsDrawMine() {
   bs.mineBoard.draw(bsBoardLayer(game.myShips || [], game.opponentShots).html);
 }
 
-// The pill with the newest shot ("B4 · Isabet!") and the frame on its cell; only a shot that came in since the last drawing animates.
 function bsDrawShot(battle) {
   const shot = battle ? game.lastShot : null;
   const box = byId("bsShot");
@@ -687,9 +645,7 @@ function bsDrawBattle(mode) {
   bsUpdateTabs();
 }
 
-// ---- What game.js asks for ----
 
-// "place" | "wait" | "battle", or null when there is nothing to draw (an invitation, a refused game...).
 function bsMode() {
   if (game.status === "Active") {
     if (game.phase === "Placing") return game.iAmReady ? "wait" : "place";
@@ -711,7 +667,7 @@ function renderBattleship() {
   byId("bsBattle").classList.toggle("is-wait", mode === "wait");
 
   if (mode === "place") {
-    if (before !== "place") { // a live update must not disturb the fleet that is being put together
+    if (before !== "place") {
       if (!bs.selected) bs.selected = BS_SHIPS.find(ship => !bs.placed[ship.id])?.id || null;
       bsDrawPlace();
     }
@@ -721,7 +677,6 @@ function renderBattleship() {
   }
 }
 
-// { text, sub } of the line above the board while the game is Active.
 function bsStatusInfo() {
   const other = game.opponent?.name || "";
 
@@ -742,7 +697,6 @@ function bsStatusInfo() {
   return { text: i18n("game.bsYourShot") };
 }
 
-// The card of a player at the top: lit while it is that person's turn (while placing: has not sent the fleet yet).
 function bsPlayerHtml(person) {
   const isMe = isSameId(person.id, getSession()?.userId);
   const active = game.status === "Active";

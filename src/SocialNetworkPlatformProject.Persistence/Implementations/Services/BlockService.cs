@@ -44,7 +44,6 @@ public class BlockService : IBlockService
 
         await _blocks.AddAsync(new UserBlock { BlockerId = currentUserId, BlockedId = userId });
 
-        // From now on the two are strangers to each other: no friendship, no open requests, no old notifications.
         var friendships = await _friendships.GetAll(f =>
                 (f.UserOneId == currentUserId && f.UserTwoId == userId) ||
                 (f.UserOneId == userId && f.UserTwoId == currentUserId))
@@ -74,7 +73,6 @@ public class BlockService : IBlockService
         }
         catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
-            // A second tab blocked the same person a moment earlier.
             throw new ConflictException(Loc.T("block.already"));
         }
     }

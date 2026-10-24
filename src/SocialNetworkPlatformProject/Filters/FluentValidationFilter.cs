@@ -5,13 +5,8 @@ using Microsoft.Extensions.Options;
 
 namespace SocialNetworkPlatformProject.Filters;
 
-// Runs the FluentValidation validator of every object an action receives (a posted form, a JSON body, a query object) and
-// puts what it finds into ModelState, next to the binding errors. If anything is wrong the request is answered with the
-// same 400 "errors" list [ApiController] gives for a bad model, and the action never starts.
-// (This replaced the FluentValidation.AspNetCore package, which is deprecated.)
 public class FluentValidationFilter : IAsyncActionFilter, IOrderedFilter
 {
-    // Early, before the other action filters (the log line of ActionLogFilter, for one) see a request that will be refused.
     public int Order => -2500;
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)

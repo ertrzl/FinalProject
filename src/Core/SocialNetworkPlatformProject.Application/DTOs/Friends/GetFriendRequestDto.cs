@@ -1,6 +1,5 @@
 namespace SocialNetworkPlatformProject.Application.DTOs.Friends;
 
-// friends.html "Gelen İstekler" / "Gönderilen İstekler" tabs
 public class GetFriendRequestDto
 {
     public Guid Id { get; set; }
@@ -13,7 +12,7 @@ public class GetFriendRequestDto
     public string ReceiverName { get; set; } = string.Empty;
     public string? ReceiverAvatarUrl { get; set; }
 
-    public string Status { get; set; } = string.Empty; // "Pending" / "Accepted" / "Declined" / "Cancelled"
+    public string Status { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public int MutualFriendsCount { get; set; }
 }

@@ -8,10 +8,8 @@ public class StoryHighlightItemConfiguration : IEntityTypeConfiguration<StoryHig
 {
     public void Configure(EntityTypeBuilder<StoryHighlightItem> builder)
     {
-        // A story is kept in a highlight once, even when two taps arrive at the same moment.
         builder.HasIndex(i => new { i.HighlightId, i.SourceStoryId }).IsUnique();
 
-        // Who may open the file is decided from the highlight that holds its address (UploadsController).
         builder.Property(i => i.MediaUrl).HasMaxLength(500);
         builder.HasIndex(i => i.MediaUrl);
 

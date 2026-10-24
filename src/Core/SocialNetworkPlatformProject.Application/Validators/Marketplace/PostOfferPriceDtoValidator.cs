@@ -3,7 +3,6 @@ using SocialNetworkPlatformProject.Application.DTOs.Marketplace;
 
 namespace SocialNetworkPlatformProject.Application.Validators.Marketplace;
 
-// Shape only; the negotiation rules (price window, whose turn it is) depend on the thread and live in OfferService.
 public class PostOfferPriceDtoValidator : AbstractValidator<PostOfferPriceDto>
 {
     public PostOfferPriceDtoValidator()

@@ -8,7 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Loc.T("key"): the texts shown to a person come from the language files of the Application project. -->
     <Using Include="SocialNetworkPlatformProject.Application.Common" />
   </ItemGroup>
 

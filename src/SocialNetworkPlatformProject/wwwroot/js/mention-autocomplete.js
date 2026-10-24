@@ -1,15 +1,10 @@
-// "@" suggestions for every text box marked data-mention (the post writer, the comment boxes, the edit dialog).
-// Type "@" and a few letters: the people whose name or user name matches show up under the box; Enter, Tab or a click
-// puts "@username " into the text. This is only typing help: which names are real people, who is linked and who gets
-// a notification is decided by the server when the text is saved.
-
 (function () {
   const MIN_LETTERS = 1;
   const SEARCH_DELAY = 220;
 
-  let menu = null;      // the floating list
-  let box = null;       // the text box it belongs to
-  let tag = null;       // { query, start }: the "@letters" being typed, and where its "@" is
+  let menu = null;
+  let box = null;
+  let tag = null;
   let people = [];
   let active = 0;
   let timer = null;
@@ -17,7 +12,6 @@
 
   const myId = () => getSession()?.userId;
 
-  // The "@letters" the caret is right behind, if any ("@" not glued to a word, so e-mail addresses do not count).
   function tagAtCaret(el) {
     const before = el.value.slice(0, el.selectionStart);
     const match = /(^|[^\p{L}0-9_.@])@([a-zA-Z0-9._]{0,50})$/u.exec(before);
@@ -40,7 +34,7 @@
       menu = document.createElement("div");
       menu.className = "mention-menu";
       menu.addEventListener("mousedown", event => {
-        event.preventDefault(); // keep the focus in the text box
+        event.preventDefault();
         const row = event.target.closest("[data-index]");
         if (row) choose(Number(row.dataset.index));
       });
@@ -63,7 +57,7 @@
     const myNo = ++searchNo;
     try {
       const result = await apiFetch(`/api/users/search?term=${encodeURIComponent(query)}&page=1&pageSize=6`);
-      if (myNo !== searchNo || tag !== forTag) return; // the person kept typing: this answer is old
+      if (myNo !== searchNo || tag !== forTag) return;
       people = result.items.filter(p => p.id !== myId());
       active = 0;
       drawMenu();
@@ -98,7 +92,6 @@
     timer = setTimeout(() => search(found.query, found), SEARCH_DELAY);
   });
 
-  // While the list is open the arrow keys, Enter, Tab and Escape belong to it (Enter must not send the comment).
   document.addEventListener("keydown", event => {
     if (!menu || document.activeElement !== box) return;
 

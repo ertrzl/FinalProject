@@ -51,10 +51,8 @@ public class PostDtoBuilder : IPostDtoBuilder
         var list = posts.ToList();
         var postIds = list.Select(p => p.Id).ToList();
 
-        // The originals of the shares on this page, as far as the viewer may see them.
         var originals = await LoadVisibleOriginalsAsync(list, viewerId);
 
-        // The events shown as cards in posts that share one, as far as the viewer may see them.
         var sharedEvents = await LoadVisibleEventsAsync(list, viewerId);
 
         var authors = await _users.GetSummariesAsync(list.Select(p => p.AuthorId).Concat(originals.Values.Select(p => p.AuthorId)));
@@ -110,7 +108,6 @@ public class PostDtoBuilder : IPostDtoBuilder
         return dtos;
     }
 
-    // The reaction split of one post, biggest first (ties in the order of the reactions).
     public static List<GetReactionCountDto> ToReactionList(IReadOnlyDictionary<ReactionType, int>? counts)
     {
         if (counts == null)
@@ -134,8 +131,6 @@ public class PostDtoBuilder : IPostDtoBuilder
         return visible.ToDictionary(p => p.Id);
     }
 
-    // The events behind the event cards of this page's posts, in one query. An event that is gone, private (it may have
-    // become private after it was shared) or hidden from the viewer (a block) is simply missing: its card says so.
     private async Task<Dictionary<Guid, Event>> LoadVisibleEventsAsync(List<Post> list, Guid viewerId)
     {
         var eventIds = list.Where(p => p.SharedEventId != null).Select(p => p.SharedEventId!.Value).Distinct().ToList();
@@ -186,7 +181,6 @@ public class PostDtoBuilder : IPostDtoBuilder
         return dto;
     }
 
-    // What the viewer may see of a poll: the counts only after voting, when it ended, or for its author.
     private static GetPollDto ToPollDto(
         Post post, Poll poll, Dictionary<Guid, int> optionCounts, Dictionary<Guid, Guid> myVotes, Guid viewerId)
     {

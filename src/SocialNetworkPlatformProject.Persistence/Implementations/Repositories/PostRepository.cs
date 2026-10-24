@@ -52,14 +52,11 @@ public class PostRepository : Repository<Post>, IPostRepository
         var blocks = _context.Set<UserBlock>();
 
         return posts
-            // Posts of somebody the viewer blocked, or who blocked the viewer, are never shown.
             .Where(p => !blocks.Any(b => (b.BlockerId == viewerId && b.BlockedId == p.AuthorId) || (b.BlockerId == p.AuthorId && b.BlockedId == viewerId)))
             .Where(p => p.GroupId == null
-            // A personal post: its author, the author's friends, or anyone if it is public and the account is open.
             ? p.AuthorId == viewerId
                 || friendships.Any(f => (f.UserOneId == viewerId && f.UserTwoId == p.AuthorId) || (f.UserTwoId == viewerId && f.UserOneId == p.AuthorId))
                 || (p.Privacy == PostPrivacy.Public && users.Any(u => u.Id == p.AuthorId && !u.IsPrivateAccount))
-            // A group post: anyone for a public group, otherwise only its members.
             : p.Group!.Privacy == GroupPrivacy.Public
                 || memberships.Any(m => m.GroupId == p.GroupId && m.UserId == viewerId));
     }

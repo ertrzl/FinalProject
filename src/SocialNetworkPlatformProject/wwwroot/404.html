@@ -17,8 +17,6 @@
 </head>
 <body>
 
-<!-- The server answers this page (status 404) for any address that is not a page of the site (Program.cs, MapFallback).
-     Every path here starts with "/" because the page can be shown under any address. -->
 <div class="auth-gradient d-flex align-items-center justify-content-center p-3">
   <div class="card border-0 shadow-lg rounded-4 p-4 p-md-5 text-center" style="max-width: 420px; width:100%;">
     <div class="auth-logo mb-4">Stoop</div>
@@ -31,7 +29,6 @@
 
 <script src="/js/app.js"></script>
 <script>
-// Somebody who is signed in goes back to their home page, a visitor to the sign-in page.
 if (getSession()) document.getElementById("notFoundHome").href = "/home.html";
 </script>
 </body>

@@ -2,15 +2,11 @@ using SocialNetworkPlatformProject.Domain.Enums;
 
 namespace SocialNetworkPlatformProject.Application.Common;
 
-// The rules of rock-paper-scissors: what beats what, how the scored rounds are written down, and when a match is over.
-// A match is best of three: it ends when somebody has two round wins, or after three rounds. Whose pick is still
-// secret and who may play stay in GameService.
 public static class RockPaperScissors
 {
     public const int TotalRounds = 3;
     public const int WinsNeeded = 2;
 
-    // 1 when the inviter's pick wins the round, -1 when the invitee's does, 0 when both put out the same.
     public static int Compare(RpsChoice inviter, RpsChoice invitee)
     {
         if (inviter == invitee) return 0;
@@ -22,7 +18,6 @@ public static class RockPaperScissors
         || (a == RpsChoice.Scissors && b == RpsChoice.Paper)
         || (a == RpsChoice.Paper && b == RpsChoice.Rock);
 
-    // The scored rounds are stored as two digits each (the inviter's pick, then the invitee's), e.g. "0212" = two rounds.
     public static string AppendRound(string rounds, RpsChoice inviter, RpsChoice invitee) =>
         rounds + (int)inviter + (int)invitee;
 
@@ -34,7 +29,6 @@ public static class RockPaperScissors
         return list;
     }
 
-    // Round wins of each side, and how many rounds were played.
     public static (int InviterWins, int InviteeWins, int Played) Score(string rounds)
     {
         int inviterWins = 0, inviteeWins = 0;

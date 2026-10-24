@@ -6,7 +6,6 @@ using SocialNetworkPlatformProject.Extensions;
 
 namespace SocialNetworkPlatformProject.Controllers;
 
-// games.html hub + game.html board (X-O between friends)
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]

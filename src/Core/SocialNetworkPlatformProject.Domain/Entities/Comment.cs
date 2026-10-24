@@ -2,7 +2,6 @@ using SocialNetworkPlatformProject.Domain.Common;
 
 namespace SocialNetworkPlatformProject.Domain.Entities;
 
-// F5: threaded comments (home.html/profile.html ".comment.reply" — one level of nesting via ParentCommentId)
 public class Comment : BaseEntity
 {
     public Guid PostId { get; set; }

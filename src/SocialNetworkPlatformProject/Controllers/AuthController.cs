@@ -18,9 +18,13 @@ public class AuthController : ControllerBase
     private readonly IAccessTokenRevoker _revoker;
     private readonly ITokenService _tokens;
     private readonly ISessionService _sessions;
+    private readonly IConfiguration _configuration;
+    private readonly IHostEnvironment _environment;
 
-    public AuthController(IAuthService auth, IAccessTokenRevoker revoker, ITokenService tokens, ISessionService sessions)
+    public AuthController(IAuthService auth, IAccessTokenRevoker revoker, ITokenService tokens, ISessionService sessions, IConfiguration configuration, IHostEnvironment environment)
     {
+        _configuration = configuration;
+        _environment = environment;
         _auth = auth;
         _revoker = revoker;
         _tokens = tokens;
@@ -31,9 +35,9 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
     [RequestSizeLimit(UploadLimits.MaxRequestBytes)]
-    public async Task<ActionResult<TokenResponseDto>> Register([FromForm] RegisterDto dto)
+    public async Task<ActionResult<RegisterResultDto>> Register([FromForm] RegisterDto dto)
     {
-        return await _auth.RegisterAsync(dto);
+        return await _auth.RegisterAsync(dto, Request.LinkBaseUrl(_configuration, _environment));
     }
 
     [HttpPost("login")]

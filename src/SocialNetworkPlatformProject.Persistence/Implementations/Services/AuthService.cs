@@ -14,6 +14,7 @@ public class AuthService : IAuthService
     private readonly SessionIssuer _sessions;
     private readonly IFileStorageService _files;
     private readonly LoginThrottle _unknownLogins;
+    private readonly IEmailVerificationService _verification;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
@@ -22,9 +23,11 @@ public class AuthService : IAuthService
         SessionIssuer sessions,
         IFileStorageService files,
         LoginThrottle unknownLogins,
+        IEmailVerificationService verification,
         ILogger<AuthService> logger)
     {
         _unknownLogins = unknownLogins;
+        _verification = verification;
         _userManager = userManager;
         _passwords = passwords;
         _sessions = sessions;
@@ -32,7 +35,7 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    public async Task<TokenResponseDto> RegisterAsync(RegisterDto dto)
+    public async Task<RegisterResultDto> RegisterAsync(RegisterDto dto, string? linkBaseUrl)
     {
         var userName = dto.UserName.Trim();
         var email = dto.Email.Trim();
@@ -47,10 +50,13 @@ public class AuthService : IAuthService
         if (dto.Avatar != null)
             avatarUrl = await _files.SaveImageAsync(dto.Avatar, "avatars");
 
+        var verificationRequired = _verification.IsRequired;
+
         var user = new ApplicationUser
         {
             UserName = userName,
             Email = email,
+            EmailConfirmed = !verificationRequired,
             FullName = dto.FullName.Trim(),
             BirthDate = dto.BirthDate,
             AvatarUrl = avatarUrl,
@@ -67,9 +73,16 @@ public class AuthService : IAuthService
         _unknownLogins.Forget(userName);
         _unknownLogins.Forget(email);
 
+        if (verificationRequired)
+        {
+            await _verification.SendLinkAsync(user.Id, linkBaseUrl);
+            _logger.LogInformation("New account waiting for e-mail verification: {UserName} ({UserId:l})", user.UserName, user.Id.ToString());
+            return new RegisterResultDto { EmailVerificationRequired = true, Email = user.Email! };
+        }
+
         var session = await _sessions.IssueAsync(user);
         _logger.LogInformation("New account: {UserName} ({UserId:l})", user.UserName, user.Id.ToString());
-        return session;
+        return new RegisterResultDto { Email = user.Email!, Session = session };
     }
 
     public async Task<TokenResponseDto> LoginAsync(LoginDto dto)
@@ -95,6 +108,9 @@ public class AuthService : IAuthService
             _logger.LogWarning("Failed sign-in: wrong password for {UserName} ({UserId:l}), attempt {Attempt}", user.UserName, user.Id.ToString(), user.AccessFailedCount);
             throw new UnauthorizedException(Loc.T("auth.badCredentials"));
         }
+
+        if (!user.EmailConfirmed && _verification.IsRequired)
+            throw new ForbiddenException(Loc.T("auth.emailNotConfirmed"));
 
         user.LastSeenAt = DateTime.UtcNow;
         await _userManager.UpdateAsync(user);

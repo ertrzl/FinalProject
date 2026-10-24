@@ -27,7 +27,7 @@ public class PasswordResetController : ControllerBase
     [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
     {
-        await _passwordReset.RequestAsync(dto, LinkBaseUrl());
+        await _passwordReset.RequestAsync(dto, Request.LinkBaseUrl(_configuration, _environment));
         return NoContent();
     }
 
@@ -37,14 +37,5 @@ public class PasswordResetController : ControllerBase
     {
         await _passwordReset.ResetAsync(dto);
         return NoContent();
-    }
-
-    private string? LinkBaseUrl()
-    {
-        var configured = _configuration["App:PublicBaseUrl"];
-        if (!string.IsNullOrWhiteSpace(configured))
-            return configured.Trim().TrimEnd('/');
-
-        return _environment.IsDevelopment() ? $"{Request.Scheme}://{Request.Host}" : null;
     }
 }

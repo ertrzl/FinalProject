@@ -12,6 +12,8 @@ public class ConsoleEmailSender : IEmailSender
         _logger = logger;
     }
 
+    public bool CanDeliver => false;
+
     public Task SendAsync(EmailMessage message)
     {
         Console.WriteLine($"""

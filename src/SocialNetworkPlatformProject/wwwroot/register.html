@@ -67,6 +67,14 @@
       </button>
     </form>
 
+    <div id="registerDone" class="d-none text-center">
+      <i class="bi bi-envelope-check text-primary" style="font-size: 2.5rem;"></i>
+      <p class="fw-semibold mt-2 mb-1">E-postanı kontrol et</p>
+      <p class="text-muted small mb-1">Hesabını etkinleştirmek için şu adrese bir doğrulama bağlantısı gönderdik:</p>
+      <p class="fw-semibold small mb-3" id="registerSentTo" data-no-i18n></p>
+      <p class="text-muted small mb-0">Gelmediyse spam klasörüne bak. Bağlantıya tıkladıktan sonra giriş yapabilirsin.</p>
+    </div>
+
     <p class="text-center text-muted small mt-4 mb-0">
       Zaten hesabın var mı? <a href="index.html" class="text-primary fw-semibold">Giriş Yap</a>
     </p>
@@ -101,13 +109,22 @@ document.getElementById("registerForm").addEventListener("submit", async (event)
     const avatarFile = document.getElementById("avatarInput").files[0];
     if (avatarFile) formData.append("avatar", avatarFile);
 
-    const tokenResponse = await apiFetchForm("/api/auth/register", {
+    const result = await apiFetchForm("/api/auth/register", {
       method: "POST",
       body: formData
     });
 
-    saveSession(tokenResponse);
-    window.location.href = "home.html";
+    if (result.session) {
+      saveSession(result.session);
+      window.location.href = "home.html";
+      return;
+    }
+
+    document.getElementById("registerForm").classList.add("d-none");
+    document.getElementById("registerSentTo").textContent = result.email;
+    document.getElementById("registerDone").classList.remove("d-none");
+    btnText.classList.remove("d-none");
+    spinner.classList.add("d-none");
   } catch (err) {
     errorBox.textContent = err.message || "Kayıt oluşturulamadı.";
     errorBox.classList.remove("d-none");

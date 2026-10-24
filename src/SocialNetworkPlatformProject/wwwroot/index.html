@@ -27,6 +27,10 @@
     </div>
 
     <div id="loginError" class="alert alert-danger py-2 small d-none"></div>
+    <div id="loginResendBox" class="alert alert-info py-2 small d-none">
+      <button type="button" class="btn btn-link btn-sm p-0" id="loginResendBtn">Doğrulama e-postasını tekrar gönder</button>
+      <span id="loginResendDone" class="d-none">Doğrulama e-postası gönderildi. Gelen kutunu ve spam klasörünü kontrol et.</span>
+    </div>
 
     <form id="loginForm">
       <div class="mb-3">
@@ -79,8 +83,31 @@ document.getElementById("loginForm").addEventListener("submit", async (event) =>
   } catch (err) {
     errorBox.textContent = err.message || "Giriş yapılamadı.";
     errorBox.classList.remove("d-none");
+    document.getElementById("loginResendBox").classList.toggle("d-none", err.status !== 403);
+    document.getElementById("loginResendBtn").classList.remove("d-none");
+    document.getElementById("loginResendDone").classList.add("d-none");
     btnText.classList.remove("d-none");
     spinner.classList.add("d-none");
+  }
+});
+
+document.getElementById("loginResendBtn").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  button.disabled = true;
+
+  try {
+    await apiFetchAnonymous("/api/auth/resend-verification", {
+      method: "POST",
+      body: { emailOrUserName: document.getElementById("email").value.trim() }
+    });
+    button.classList.add("d-none");
+    document.getElementById("loginResendDone").classList.remove("d-none");
+  } catch (err) {
+    const errorBox = document.getElementById("loginError");
+    errorBox.textContent = err.message || "İstek gönderilemedi.";
+    errorBox.classList.remove("d-none");
+  } finally {
+    button.disabled = false;
   }
 });
 </script>

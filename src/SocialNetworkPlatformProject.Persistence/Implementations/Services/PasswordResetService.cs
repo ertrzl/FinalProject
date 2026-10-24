@@ -91,6 +91,7 @@ public class PasswordResetService : IPasswordResetService
         await _sessions.RevokeAllAsync(user.Id);
         _logger.LogInformation("Password reset done for {UserName} ({UserId:l}); all sessions ended", user.UserName, user.Id.ToString());
 
+        user.EmailConfirmed = true;
         user.LockoutEnd = null;
         user.AccessFailedCount = 0;
         await _userManager.UpdateAsync(user);

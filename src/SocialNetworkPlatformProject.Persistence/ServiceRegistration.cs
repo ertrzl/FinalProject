@@ -97,6 +97,7 @@ public static class ServiceRegistration
 
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IPasswordResetService, PasswordResetService>();
+        services.AddScoped<IEmailVerificationService, EmailVerificationService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IFriendService, FriendService>();
         services.AddScoped<IBlockService, BlockService>();

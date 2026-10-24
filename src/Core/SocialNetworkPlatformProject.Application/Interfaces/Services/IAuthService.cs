@@ -4,7 +4,7 @@ namespace SocialNetworkPlatformProject.Application.Interfaces.Services;
 
 public interface IAuthService
 {
-    Task<TokenResponseDto> RegisterAsync(RegisterDto dto);
+    Task<RegisterResultDto> RegisterAsync(RegisterDto dto, string? linkBaseUrl);
 
     Task<TokenResponseDto> LoginAsync(LoginDto dto);
 

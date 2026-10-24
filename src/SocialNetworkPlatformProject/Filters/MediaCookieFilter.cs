@@ -9,7 +9,11 @@ public class MediaCookieFilter : IResultFilter
 {
     public void OnResultExecuting(ResultExecutingContext context)
     {
-        if (context.Result is ObjectResult { Value: TokenResponseDto { MediaToken: not null, MediaExpiresAt: not null } session })
+        var session = context.Result is ObjectResult { Value: var value }
+            ? value as TokenResponseDto ?? (value as RegisterResultDto)?.Session
+            : null;
+
+        if (session is { MediaToken: not null, MediaExpiresAt: not null })
             context.HttpContext.AppendMediaCookie(session.MediaToken, session.MediaExpiresAt.Value);
     }
 

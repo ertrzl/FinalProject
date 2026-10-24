@@ -17,6 +17,8 @@ public class SmtpEmailSender : IEmailSender
         _options = options.Value;
     }
 
+    public bool CanDeliver => true;
+
     public async Task SendAsync(EmailMessage message)
     {
         var smtp = _options.Smtp;

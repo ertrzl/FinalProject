@@ -205,7 +205,9 @@ async function handleResponse(response, hadTokenAttached) {
   const data = isJson ? await response.json() : null;
 
   if (!response.ok) {
-    throw new Error(extractErrorMessage(data));
+    const error = new Error(extractErrorMessage(data));
+    error.status = response.status;
+    throw error;
   }
 
   return data;

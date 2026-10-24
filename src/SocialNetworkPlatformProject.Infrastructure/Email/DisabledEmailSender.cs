@@ -12,6 +12,8 @@ public class DisabledEmailSender : IEmailSender
         _logger = logger;
     }
 
+    public bool CanDeliver => false;
+
     public Task SendAsync(EmailMessage message)
     {
         _logger.LogWarning("An e-mail was not sent because no SMTP account is configured (Email:Smtp:Host). Subject: {Subject}", message.Subject);

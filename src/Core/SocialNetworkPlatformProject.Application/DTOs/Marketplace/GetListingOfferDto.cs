@@ -8,6 +8,7 @@ public class GetListingOfferDto
     public string ListingTitle { get; set; } = string.Empty;
     public string? ListingImageUrl { get; set; }
     public decimal ListingPrice { get; set; }
+    public string Currency { get; set; } = MarketplaceCurrencies.Default;
     public string ListingStatus { get; set; } = string.Empty;
 
     public Guid BuyerId { get; set; }

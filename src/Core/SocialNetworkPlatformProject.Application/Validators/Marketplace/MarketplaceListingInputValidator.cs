@@ -16,6 +16,10 @@ public abstract class MarketplaceListingInputValidator<T> : AbstractValidator<T>
             .LessThanOrEqualTo(100_000_000m).WithMessage(_ => Loc.T("val.price.high"))
             .PrecisionScale(18, 2, true).WithMessage(_ => Loc.T("val.price.decimals"));
 
+        RuleFor(x => x.Currency)
+            .Must(c => MarketplaceCurrencies.IsValid(c))
+            .WithMessage(_ => Loc.T("val.listing.currency", string.Join(", ", MarketplaceCurrencies.All)));
+
         RuleFor(x => x.Category)
             .NotEmpty()
             .Must(c => MarketplaceCategories.All.Contains(c))

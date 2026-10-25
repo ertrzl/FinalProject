@@ -36,6 +36,7 @@ public class NotificationService : INotificationService
     private readonly IBlockService _blocks;
     private readonly IGroupRepository _groups;
     private readonly IListingOfferRepository _offers;
+    private readonly IMarketplaceListingRepository _listings;
     private readonly IEventRepository _events;
     private readonly IFriendRequestRepository _friendRequests;
     private readonly IGroupJoinRequestRepository _joinRequests;
@@ -49,6 +50,7 @@ public class NotificationService : INotificationService
         IBlockService blocks,
         IGroupRepository groups,
         IListingOfferRepository offers,
+        IMarketplaceListingRepository listings,
         IEventRepository events,
         IFriendRequestRepository friendRequests,
         IGroupJoinRequestRepository joinRequests,
@@ -61,6 +63,7 @@ public class NotificationService : INotificationService
         _blocks = blocks;
         _groups = groups;
         _offers = offers;
+        _listings = listings;
         _events = events;
         _friendRequests = friendRequests;
         _joinRequests = joinRequests;
@@ -140,6 +143,13 @@ public class NotificationService : INotificationService
             var offer = await _offers.GetAll(o => o.Id == offerId.Value, asNoTracking: true, includes: "Listing").FirstOrDefaultAsync();
             dto.ListingId = offer?.ListingId;
             dto.ListingTitle = offer?.Listing?.Title;
+            dto.Currency = offer?.Listing?.Currency;
+        }
+        else if (listingId.HasValue)
+        {
+            dto.Currency = await _listings.GetAll(l => l.Id == listingId.Value, asNoTracking: true)
+                .Select(l => l.Currency)
+                .FirstOrDefaultAsync();
         }
 
         if (subject != null && type == NotificationType.PostLiked)
@@ -241,10 +251,19 @@ public class NotificationService : INotificationService
 
         var offerIds = items.Where(n => n.OfferId.HasValue).Select(n => n.OfferId!.Value).Distinct().ToList();
         var offerListings = offerIds.Count == 0
-            ? new Dictionary<Guid, (Guid ListingId, string Title)>()
+            ? new Dictionary<Guid, (Guid ListingId, string Title, string Currency)>()
             : (await _offers.GetAll(o => offerIds.Contains(o.Id), asNoTracking: true, includes: "Listing").ToListAsync())
                 .Where(o => o.Listing != null)
-                .ToDictionary(o => o.Id, o => (o.ListingId, o.Listing!.Title));
+                .ToDictionary(o => o.Id, o => (o.ListingId, o.Listing!.Title, o.Listing!.Currency));
+
+        var priceDropListingIds = items
+            .Where(n => n.Type == NotificationType.MarketplacePriceDropped && n.ListingId.HasValue)
+            .Select(n => n.ListingId!.Value)
+            .Distinct()
+            .ToList();
+        var listingCurrencies = priceDropListingIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _listings.GetAll(l => priceDropListingIds.Contains(l.Id), asNoTracking: true).ToDictionaryAsync(l => l.Id, l => l.Currency);
 
         var eventIds = items.Where(n => n.EventId.HasValue).Select(n => n.EventId!.Value).Distinct().ToList();
         var eventInfo = eventIds.Count == 0
@@ -288,7 +307,12 @@ public class NotificationService : INotificationService
             {
                 dtos[i].ListingId = offerListing.ListingId;
                 dtos[i].ListingTitle = offerListing.Title;
+                dtos[i].Currency = offerListing.Currency;
             }
+
+            if (items[i].Type == NotificationType.MarketplacePriceDropped && items[i].ListingId.HasValue
+                && listingCurrencies.TryGetValue(items[i].ListingId!.Value, out var dropCurrency))
+                dtos[i].Currency = dropCurrency;
         }
 
         return new PagedResult<GetNotificationDto> { Items = dtos, Page = page, PageSize = pageSize, TotalCount = total };

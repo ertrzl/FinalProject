@@ -332,6 +332,7 @@
   "val.price.positive": "Price must be greater than zero.",
   "val.price.high": "Price is too high.",
   "val.price.decimals": "Price can have at most two decimal places.",
+  "val.listing.currency": "Currency must be one of: {0}.",
   "val.rating.stars": "Rating must be between 1 and 5 stars.",
   "val.rating.comment": "Comment cannot exceed 500 characters.",
   "val.message.empty": "Message text cannot be empty.",

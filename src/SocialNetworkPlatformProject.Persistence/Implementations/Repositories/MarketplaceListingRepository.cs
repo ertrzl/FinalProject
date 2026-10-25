@@ -22,6 +22,7 @@ public class MarketplaceListingRepository : Repository<MarketplaceListing>, IMar
             .Include(l => l.Images)
             .Where(l => l.Status == ListingStatus.Active && l.ExpiresAt > now
                 && l.Category == listing.Category
+                && l.Currency == listing.Currency
                 && l.Id != listing.Id
                 && l.SellerId != listing.SellerId
                 && l.SellerId != viewerId

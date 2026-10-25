@@ -16,6 +16,11 @@ public class MarketplaceListingQueryValidator : AbstractValidator<MarketplaceLis
             .When(x => !string.IsNullOrWhiteSpace(x.Condition))
             .WithMessage(_ => Loc.T("val.listing.condition"));
 
+        RuleFor(x => x.Currency)
+            .Must(c => MarketplaceCurrencies.IsValid(c))
+            .When(x => !string.IsNullOrWhiteSpace(x.Currency))
+            .WithMessage(_ => Loc.T("val.listing.currency", string.Join(", ", MarketplaceCurrencies.All)));
+
         RuleFor(x => x.MinPrice).GreaterThanOrEqualTo(0).When(x => x.MinPrice.HasValue);
         RuleFor(x => x.MaxPrice).GreaterThanOrEqualTo(0).When(x => x.MaxPrice.HasValue);
 

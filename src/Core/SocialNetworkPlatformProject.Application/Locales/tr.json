@@ -332,6 +332,7 @@
   "val.price.positive": "Fiyat sıfırdan büyük olmalı.",
   "val.price.high": "Fiyat çok yüksek.",
   "val.price.decimals": "Fiyatta en fazla iki ondalık basamak olabilir.",
+  "val.listing.currency": "Para birimi şunlardan biri olmalı: {0}.",
   "val.rating.stars": "Puan 1 ile 5 yıldız arasında olmalı.",
   "val.rating.comment": "Yorum en fazla 500 karakter olabilir.",
   "val.message.empty": "Mesaj boş olamaz.",

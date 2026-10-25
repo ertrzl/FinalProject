@@ -66,6 +66,7 @@ public class MarketplaceService : IMarketplaceService
             SellerId = currentUserId,
             Title = dto.Title.Trim(),
             Price = dto.Price,
+            Currency = MarketplaceCurrencies.Normalize(dto.Currency),
             Category = dto.Category.Trim(),
             Condition = ParseCondition(dto.Condition),
             Location = NullIfBlank(dto.Location),
@@ -86,7 +87,9 @@ public class MarketplaceService : IMarketplaceService
     {
         var listing = await GetOwnedListingAsync(currentUserId, listingId, Loc.T("listing.editOwn"));
 
-        if (dto.Price != listing.Price && await _offerService.HasOpenOffersAsync(listing.Id))
+        var newCurrency = MarketplaceCurrencies.Normalize(dto.Currency);
+
+        if ((dto.Price != listing.Price || newCurrency != listing.Currency) && await _offerService.HasOpenOffersAsync(listing.Id))
             throw new BadRequestException(Loc.T("listing.priceLocked"));
 
         var removeIds = dto.RemoveImageIds.Distinct().ToList();
@@ -113,9 +116,11 @@ public class MarketplaceService : IMarketplaceService
             image.SortOrder = order++;
 
         var previousPrice = listing.Price;
+        var sameCurrency = newCurrency == listing.Currency;
 
         listing.Title = dto.Title.Trim();
         listing.Price = dto.Price;
+        listing.Currency = newCurrency;
         listing.Category = dto.Category.Trim();
         listing.Condition = ParseCondition(dto.Condition);
         listing.Location = NullIfBlank(dto.Location);
@@ -126,7 +131,7 @@ public class MarketplaceService : IMarketplaceService
         foreach (var image in removed)
             _files.Delete(image.Url);
 
-        if (listing.Price < previousPrice && listing.Status != ListingStatus.Sold && listing.ExpiresAt > DateTime.UtcNow)
+        if (sameCurrency && listing.Price < previousPrice && listing.Status != ListingStatus.Sold && listing.ExpiresAt > DateTime.UtcNow)
             await NotifyPriceDropAsync(listing, previousPrice);
 
         return (await BuildDtosAsync(new[] { listing }, currentUserId))[0];
@@ -247,6 +252,12 @@ public class MarketplaceService : IMarketplaceService
 
         if (query.SellerId.HasValue)
             listings = listings.Where(l => l.SellerId == query.SellerId.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.Currency))
+        {
+            var currency = MarketplaceCurrencies.Normalize(query.Currency);
+            listings = listings.Where(l => l.Currency == currency);
+        }
 
         if (query.MinPrice.HasValue)
             listings = listings.Where(l => l.Price >= query.MinPrice.Value);

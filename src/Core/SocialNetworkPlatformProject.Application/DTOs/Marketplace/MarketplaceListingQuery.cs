@@ -6,6 +6,7 @@ public class MarketplaceListingQuery
     public string? Search { get; set; }
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
+    public string? Currency { get; set; }
     public string? Location { get; set; }
     public string? Condition { get; set; }
     public bool IncludeSold { get; set; }

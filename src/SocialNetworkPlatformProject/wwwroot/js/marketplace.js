@@ -29,8 +29,14 @@ function formatPrice(n) {
   return n.toLocaleString(localeTag(), { maximumFractionDigits: 2 });
 }
 
-function priceLabel(n) {
-  return formatPrice(n) + " ₺";
+const CURRENCY_SYMBOLS = { TRY: "₺", USD: "$", EUR: "€", AZN: "₼", GBP: "£" };
+
+function currencySymbol(code) {
+  return CURRENCY_SYMBOLS[code] || code || CURRENCY_SYMBOLS.TRY;
+}
+
+function priceLabel(n, currency) {
+  return formatPrice(n) + " " + currencySymbol(currency);
 }
 
 function isSold(item) {
@@ -108,6 +114,7 @@ function resetFilterInputs() {
   document.getElementById("marketSearch").value = "";
   document.getElementById("filterMinPrice").value = "";
   document.getElementById("filterMaxPrice").value = "";
+  document.getElementById("filterCurrency").value = "";
   document.getElementById("filterLocation").value = "";
   document.getElementById("filterCondition").value = "";
   document.getElementById("filterIncludeSold").checked = false;
@@ -132,6 +139,8 @@ function buildBrowseParams(page) {
   if (search) params.set("search", search);
   if (minPrice !== "") params.set("minPrice", minPrice);
   if (maxPrice !== "") params.set("maxPrice", maxPrice);
+  const currency = document.getElementById("filterCurrency").value;
+  if (currency) params.set("currency", currency);
   if (location) params.set("location", location);
   const condition = document.getElementById("filterCondition").value;
   if (condition) params.set("condition", condition);
@@ -168,7 +177,7 @@ function listingCardHtml(item) {
         ${heartButtonHtml(item)}
         <img src="${coverOf(item)}" class="w-100" style="height:140px;object-fit:cover;" alt="">
         <div class="p-2">
-          <div class="fw-bold text-primary">${priceLabel(item.price)}${item.openOfferCount > 0 ? ` <span class="badge text-bg-warning fw-normal">${item.openOfferCount} teklif</span>` : ""}</div>
+          <div class="fw-bold text-primary">${priceLabel(item.price, item.currency)}${item.openOfferCount > 0 ? ` <span class="badge text-bg-warning fw-normal">${item.openOfferCount} teklif</span>` : ""}</div>
           <div class="small text-truncate">${escapeHtml(item.title)}</div>
           <div class="text-muted small text-truncate"><i class="bi bi-geo-alt"></i> ${escapeHtml(item.location || "Belirtilmedi")}</div>
           ${item.sellerRatingCount > 0 ? `<div class="small"><i class="bi bi-star-fill rating-star"></i> <b>${item.sellerRatingAverage.toFixed(1)}</b> <span class="text-muted">(${item.sellerRatingCount})</span></div>` : ""}
@@ -343,7 +352,7 @@ function openListing(id, { fresh = false } = {}) {
 
   document.getElementById("listingModalTitle").textContent = item.title;
   renderCarousel(item);
-  document.getElementById("listingModalPrice").textContent = priceLabel(item.price);
+  document.getElementById("listingModalPrice").textContent = priceLabel(item.price, item.currency);
   document.getElementById("listingModalMeta").innerHTML = `<i class="bi bi-geo-alt"></i> ${escapeHtml(item.location || "Belirtilmedi")} · ${escapeHtml(item.category)}`;
   document.getElementById("listingModalDescription").textContent = item.description || "";
   document.getElementById("listingModalSellerAvatar").src = item.sellerAvatarUrl || DEFAULT_AVATAR;
@@ -425,7 +434,7 @@ function renderModalOfferButtons(item, mine) {
 function onOfferButton() {
   if (!selectedListing) return;
   if (selectedListing.myOpenOfferId) goToOffers("sent");
-  else openOfferModal({ kind: "new", id: selectedListing.id, title: selectedListing.title, asking: selectedListing.price });
+  else openOfferModal({ kind: "new", id: selectedListing.id, title: selectedListing.title, asking: selectedListing.price, currency: selectedListing.currency });
 }
 
 function miniCardHtml(o) {
@@ -434,7 +443,7 @@ function miniCardHtml(o) {
         <div class="card border-0 shadow-sm rounded-3 overflow-hidden h-100" role="button" onclick="openListing('${o.id}')">
           <img src="${coverOf(o)}" class="w-100" style="height:70px;object-fit:cover;" alt="">
           <div class="p-1">
-            <div class="fw-bold text-primary small">${priceLabel(o.price)}</div>
+            <div class="fw-bold text-primary small">${priceLabel(o.price, o.currency)}</div>
             <div class="text-truncate" style="font-size:.75rem;">${escapeHtml(o.title)}</div>
           </div>
         </div>
@@ -593,6 +602,7 @@ function resetSellForm() {
   document.getElementById("sellSubmitBtn").textContent = "Yayınla";
   document.getElementById("sellTitle").value = "";
   document.getElementById("sellPrice").value = "";
+  document.getElementById("sellCurrency").value = "TRY";
   document.getElementById("sellCategory").selectedIndex = 0;
   document.getElementById("sellCondition").value = "";
   document.getElementById("sellLocation").value = "";
@@ -613,6 +623,7 @@ function openEditListing() {
   document.getElementById("sellSubmitBtn").textContent = "Kaydet";
   document.getElementById("sellTitle").value = item.title;
   document.getElementById("sellPrice").value = item.price;
+  document.getElementById("sellCurrency").value = item.currency || "TRY";
   document.getElementById("sellCategory").value = item.category;
   document.getElementById("sellCondition").value = item.condition;
   document.getElementById("sellLocation").value = item.location || "";
@@ -653,6 +664,7 @@ async function submitListing() {
     const formData = new FormData();
     formData.append("title", title);
     formData.append("price", document.getElementById("sellPrice").value || "0");
+    formData.append("currency", document.getElementById("sellCurrency").value);
     formData.append("category", document.getElementById("sellCategory").value);
     formData.append("condition", conditionSelect.value);
     formData.append("location", document.getElementById("sellLocation").value.trim());
@@ -706,7 +718,7 @@ function offerActionsHtml(o) {
     const { low, high } = counterWindow(o);
     const canCounter = high - low > 0.01;
     return `
-      <button class="btn btn-success btn-sm rounded-pill" onclick="respondOffer('${o.id}', 'accept')">Kabul Et (${priceLabel(o.currentPrice)})</button>
+      <button class="btn btn-success btn-sm rounded-pill" onclick="respondOffer('${o.id}', 'accept')">Kabul Et (${priceLabel(o.currentPrice, o.currency)})</button>
       <button class="btn btn-outline-primary btn-sm rounded-pill" ${canCounter ? "" : "disabled title=\"Karşı teklif için uygun aralık kalmadı\""} onclick="openCounterModal('${o.id}')">Karşı Teklif</button>
       <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="respondOffer('${o.id}', 'reject')">Reddet</button>`;
   }
@@ -721,7 +733,7 @@ function offerCardHtml(o) {
     ? { name: o.sellerName, avatar: o.sellerAvatarUrl, role: "Satıcı" }
     : { name: o.buyerName, avatar: o.buyerAvatarUrl, role: "Alıcı" };
   const who = proposerId => (proposerId === myId() ? "Sen" : other.name);
-  const history = o.rounds.map(r => `<span class="${r.proposerId === myId() ? "text-primary" : "text-body"}">${escapeHtml(who(r.proposerId))}: ${priceLabel(r.price)}</span>`).join(` <i class="bi bi-arrow-right text-muted"></i> `);
+  const history = o.rounds.map(r => `<span class="${r.proposerId === myId() ? "text-primary" : "text-body"}">${escapeHtml(who(r.proposerId))}: ${priceLabel(r.price, o.currency)}</span>`).join(` <i class="bi bi-arrow-right text-muted"></i> `);
 
   return `
     <div class="card border-0 shadow-sm rounded-4 p-3 mb-3" data-offer-id="${o.id}">
@@ -732,13 +744,13 @@ function offerCardHtml(o) {
             <a href="#" class="fw-bold text-body text-decoration-none text-truncate" onclick="openListingById('${o.listingId}'); return false;">${escapeHtml(o.listingTitle)}</a>
             ${offerStatusBadge(o)}
           </div>
-          <div class="small text-muted">İstenen: ${priceLabel(o.listingPrice)}</div>
+          <div class="small text-muted">İstenen: ${priceLabel(o.listingPrice, o.currency)}</div>
           <div class="d-flex align-items-center gap-2 small mt-1">
             <img src="${other.avatar || DEFAULT_AVATAR}" class="avatar-xs" alt="">
             <span>${other.role}: <a href="profile.html?id=${o.isCurrentUserBuyer ? o.sellerId : o.buyerId}" class="text-body fw-semibold text-decoration-none">${escapeHtml(other.name)}</a></span>
           </div>
           <div class="mt-2">
-            <span class="fs-5 fw-bold text-success">${priceLabel(o.currentPrice)}</span>
+            <span class="fs-5 fw-bold text-success">${priceLabel(o.currentPrice, o.currency)}</span>
             <span class="text-muted small ms-1">son teklif: ${escapeHtml(who(o.lastProposerId))}</span>
           </div>
           <div class="small mt-1 text-muted">${history}</div>
@@ -855,8 +867,9 @@ function openOfferModal(state) {
   document.getElementById("offerModalTitle").textContent = isNew ? "Teklif Ver" : "Karşı Teklif";
   document.getElementById("offerModalListing").textContent = state.title;
   document.getElementById("offerModalHint").textContent = isNew
-    ? `İstenen fiyat ${priceLabel(state.asking)}. Teklifin bundan yüksek olamaz.`
-    : `${priceLabel(state.low)} ile ${priceLabel(state.high)} arasında (bu değerler hariç) bir fiyat gir.`;
+    ? `İstenen fiyat ${priceLabel(state.asking, state.currency)}. Teklifin bundan yüksek olamaz.`
+    : `${priceLabel(state.low, state.currency)} ile ${priceLabel(state.high, state.currency)} arasında (bu değerler hariç) bir fiyat gir.`;
+  document.getElementById("offerCurrencySymbol").textContent = currencySymbol(state.currency);
   document.getElementById("offerPriceInput").value = "";
   document.getElementById("offerModalError").classList.add("d-none");
   openModalAfterListingModal("offerModal");
@@ -866,7 +879,7 @@ function openCounterModal(offerId) {
   const o = [...offerLists.received, ...offerLists.sent].find(x => x.id === offerId);
   if (!o) return;
   const { low, high } = counterWindow(o);
-  openOfferModal({ kind: "counter", id: o.id, title: o.listingTitle, low, high });
+  openOfferModal({ kind: "counter", id: o.id, title: o.listingTitle, low, high, currency: o.currency });
 }
 
 async function submitOfferModal() {
@@ -881,7 +894,7 @@ async function submitOfferModal() {
   if (!(price > 0)) return showError("Geçerli bir fiyat gir.");
   if (state.kind === "new" && price > state.asking) return showError("Teklifin istenen fiyattan yüksek olamaz.");
   if (state.kind === "counter" && !(price > state.low && price < state.high)) {
-    return showError(`Fiyat ${priceLabel(state.low)} ile ${priceLabel(state.high)} arasında olmalı.`);
+    return showError(`Fiyat ${priceLabel(state.low, state.currency)} ile ${priceLabel(state.high, state.currency)} arasında olmalı.`);
   }
 
   const submitBtn = document.getElementById("offerModalSubmit");
@@ -913,7 +926,7 @@ async function respondOffer(offerId, action) {
   if (!o) return;
 
   const confirmText = {
-    accept: `${priceLabel(o.currentPrice)} teklifini kabul etmek istediğine emin misin? İlan satıldı olarak işaretlenecek.`,
+    accept: `${priceLabel(o.currentPrice, o.currency)} teklifini kabul etmek istediğine emin misin? İlan satıldı olarak işaretlenecek.`,
     reject: "Bu teklifi reddetmek istediğine emin misin?",
     withdraw: "Teklifini geri çekmek istediğine emin misin?"
   }[action];

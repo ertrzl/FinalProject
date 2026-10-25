@@ -22,6 +22,7 @@ public class GetNotificationDto
     public DateTime? EventStartsAt { get; set; }
     public decimal? Amount { get; set; }
     public decimal? PreviousAmount { get; set; }
+    public string? Currency { get; set; }
     public Guid? ConversationId { get; set; }
     public Guid? ListingId { get; set; }
     public string? ListingTitle { get; set; }

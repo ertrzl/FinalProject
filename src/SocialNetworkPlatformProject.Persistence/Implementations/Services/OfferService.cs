@@ -60,7 +60,7 @@ public class OfferService : IOfferService
             throw new BadRequestException(Loc.T("offer.expired"));
 
         if (dto.Price > listing.Price)
-            throw new BadRequestException(Loc.T("offer.tooHigh", Format(listing.Price)));
+            throw new BadRequestException(Loc.T("offer.tooHigh", MarketplaceCurrencies.Format(listing.Price, listing.Currency)));
 
         if (await _offers.AnyAsync(o => o.ListingId == listingId && o.BuyerId == currentUserId && o.Status == OfferStatus.Open))
             throw new ConflictException(Loc.T("offer.running"));
@@ -129,7 +129,7 @@ public class OfferService : IOfferService
         var low = Math.Min(offer.CurrentPrice, ownPrevious);
         var high = Math.Max(offer.CurrentPrice, ownPrevious);
         if (dto.Price <= low || dto.Price >= high)
-            throw new BadRequestException(Loc.T("offer.counterRange", Format(low), Format(high)));
+            throw new BadRequestException(Loc.T("offer.counterRange", MarketplaceCurrencies.Format(low, offer.Listing!.Currency), MarketplaceCurrencies.Format(high, offer.Listing!.Currency)));
 
         await _rounds.AddAsync(new ListingOfferRound { OfferId = offer.Id, ProposerId = currentUserId, Price = dto.Price });
         offer.CurrentPrice = dto.Price;
@@ -266,11 +266,6 @@ public class OfferService : IOfferService
         return offer.BuyerId == currentUserId ? offer.SellerId : offer.BuyerId;
     }
 
-    private static string Format(decimal price)
-    {
-        return price.ToString("0.##", CultureInfo.InvariantCulture);
-    }
-
     private async Task<GetListingOfferDto> GetDtoAsync(Guid offerId, Guid currentUserId)
     {
         var offer = await _offers.GetAll(o => o.Id == offerId, asNoTracking: true, includes: OfferIncludes).AsSplitQuery().FirstAsync();
@@ -301,6 +296,7 @@ public class OfferService : IOfferService
                 ListingTitle = o.Listing?.Title ?? string.Empty,
                 ListingImageUrl = o.Listing?.Images.OrderBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault(),
                 ListingPrice = o.Listing?.Price ?? 0,
+                Currency = o.Listing?.Currency ?? MarketplaceCurrencies.Default,
                 ListingStatus = (o.Listing?.Status ?? ListingStatus.Active).ToString(),
                 BuyerId = o.BuyerId,
                 BuyerName = buyer?.FullName ?? string.Empty,

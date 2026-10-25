@@ -12,6 +12,10 @@ public class MarketplaceListingConfiguration : IEntityTypeConfiguration<Marketpl
         builder.Property(m => m.Price)
             .HasColumnType("decimal(18,2)");
 
+        builder.Property(m => m.Currency)
+            .IsRequired()
+            .HasMaxLength(3);
+
         builder.Property(m => m.RowVersion).IsRowVersion();
 
         builder.Property(m => m.Title).HasMaxLength(TextLimits.ListingTitle);

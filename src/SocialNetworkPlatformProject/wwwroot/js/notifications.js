@@ -42,8 +42,10 @@ const NOTIF_ICON = {
   ContentRemoved: { badge: "bg-danger", icon: "bi-shield-exclamation" }
 };
 
-function offerMoney(n) {
-  return n == null ? "" : n.toLocaleString(localeTag(), { maximumFractionDigits: 2 }) + " ₺";
+const NOTIF_CURRENCY_SYMBOLS = { TRY: "₺", USD: "$", EUR: "€", AZN: "₼", GBP: "£" };
+
+function offerMoney(n, currency) {
+  return n == null ? "" : n.toLocaleString(localeTag(), { maximumFractionDigits: 2 }) + " " + (NOTIF_CURRENCY_SYMBOLS[currency] || currency || "₺");
 }
 
 function offerListing(n) {
@@ -79,14 +81,14 @@ const NOTIF_TEXT = {
   GroupJoinRequestApproved: n => i18n("notif.groupApproved", notifPerson(n), notifGroupName(n)),
   GroupJoinRequestRejected: n => i18n("notif.groupRejected", notifPerson(n), notifGroupName(n)),
   GroupPostPinned: n => i18n("notif.groupPostPinned", notifPerson(n), notifGroupName(n)),
-  MarketplaceOfferReceived: n => i18n("notif.offerReceived", notifPerson(n), offerListing(n), notifBold(offerMoney(n.amount))),
-  MarketplaceOfferCountered: n => i18n("notif.offerCountered", notifPerson(n), offerListing(n), notifBold(offerMoney(n.amount))),
-  MarketplaceOfferAccepted: n => i18n("notif.offerAccepted", notifPerson(n), offerListing(n), notifBold(offerMoney(n.amount))),
+  MarketplaceOfferReceived: n => i18n("notif.offerReceived", notifPerson(n), offerListing(n), notifBold(offerMoney(n.amount, n.currency))),
+  MarketplaceOfferCountered: n => i18n("notif.offerCountered", notifPerson(n), offerListing(n), notifBold(offerMoney(n.amount, n.currency))),
+  MarketplaceOfferAccepted: n => i18n("notif.offerAccepted", notifPerson(n), offerListing(n), notifBold(offerMoney(n.amount, n.currency))),
   MarketplaceOfferRejected: n => i18n("notif.offerRejected", notifPerson(n), offerListing(n)),
   MarketplaceOfferWithdrawn: n => i18n("notif.offerWithdrawn", notifPerson(n), offerListing(n)),
   MarketplaceOfferClosed: n => i18n("notif.offerClosed", offerListing(n)),
   MarketplaceRatingReceived: n => i18n("notif.ratingReceived", notifPerson(n), offerListing(n), starsHtml(n.amount)),
-  MarketplacePriceDropped: n => i18n("notif.priceDropped", offerListing(n), notifBold(offerMoney(n.previousAmount)), notifBold(offerMoney(n.amount))),
+  MarketplacePriceDropped: n => i18n("notif.priceDropped", offerListing(n), notifBold(offerMoney(n.previousAmount, n.currency)), notifBold(offerMoney(n.amount, n.currency))),
   EventUpdated: n => i18n("notif.eventUpdated", notifPerson(n), notifEventName(n)),
   EventCancelled: n => i18n("notif.eventCancelled", notifPerson(n), notifEventName(n)),
   EventInviteReceived: n => i18n("notif.eventInvite", notifPerson(n), notifEventName(n)),
